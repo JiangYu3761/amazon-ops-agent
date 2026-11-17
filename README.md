@@ -6,6 +6,8 @@
 
 ## 当前界面
 
+- 全流程 SOP 事项详情升级为逐阶段审批单，包含业务表单、完整审批链、每阶段人员与计划／预计／实际时间、退回修订、附件及历史快照；入口保留产品和筛选上下文。见 [审批单说明](docs/approval-workflows.md)。
+
 - 新增「流程协作」：可点击流程图、时间/地点/人员、动态填写项目、附件上传、指定人员会签/或签/顺序审核、版本和操作记录。只有流程管理员可配置字段与审核人。首次管理员设置与具体边界见 [流程协作说明](docs/process-collaboration.md)。
 - 多产品 × 店铺、合规、Listing、广告、备货、活动、财务、售后、复盘九个板块的进度矩阵。
 - 共享79项SOP；清单与看板；按状态、负责人、阶段、关键词筛选。
@@ -100,6 +102,7 @@ node frontend/tests/operating-rules.cjs
 python -m py_compile backend/app/*.py
 node --check frontend/app.js
 node --check frontend/process.js
+node --check frontend/approvals.js
 # 在运行的 Compose 开发栈上，创建并清理独立测试数据库：
 bash scripts/test_process.sh
 ```

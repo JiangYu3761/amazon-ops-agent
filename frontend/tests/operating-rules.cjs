@@ -7,9 +7,9 @@ vm.runInContext(`catalog=${fs.readFileSync('frontend/catalog.json','utf8')};ws=m
 const run=code=>vm.runInContext(code,context);
 assert.equal(run('catalog.tasks.length'),79);
 assert.equal(run('ws.tasks.filter(t=>t.product_id==="demo-g11").length'),79);
-assert.equal(run('createsCycle("demo-g11-capability",["demo-g11-label"])'),true);
-assert.throws(()=>run('validateComplete(ws.tasks.find(t=>t.id==="demo-g11-certification"))'),/交付证据/);
-assert.throws(()=>run('validateComplete(ws.tasks.find(t=>t.id==="demo-g11-label"))'),/前置依赖/);
+assert.equal(run('createsCycle("demo-g11-capability",["demo-g11-label-confirmation"])'),true);
+assert.throws(()=>run('validateComplete(ws.tasks.find(t=>t.id==="demo-g11-fcc-certification"))'),/交付证据/);
+assert.throws(()=>run('validateComplete(ws.tasks.find(t=>t.id==="demo-g11-label-confirmation"))'),/前置依赖/);
 assert.equal(run(`parseImport('sales','date,sku,units_ordered,ordered_revenue\\n2026-11-14,G11-US,,99',ws.products[0]).errors.length`),1);
 assert.equal(run(`parseImport('sales','date,sku,units_ordered,ordered_revenue\\n2026-11-14,G11-US,1,99',ws.products[0]).rows.length`),1);
 assert.equal(run(`parseImport('sales','date,sku,units_ordered,ordered_revenue\\n2026-11-14,WRONG-SKU,1,99',ws.products[0]).errors.length`),1);

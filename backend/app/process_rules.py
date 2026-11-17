@@ -120,7 +120,7 @@ def validate_answers(fields, answers, submitting, member_ids, attachment_ids):
                         valid=False
                         break
                     if item.get('kind')=='file':
-                        valid = item.get('id') in attachment_ids
+                        valid = isinstance(item.get('id'),str) and item['id'] in attachment_ids
                     elif item.get('kind')=='link':
                         safe_link(item.get('url'))
                     else:

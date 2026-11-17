@@ -19,18 +19,20 @@ from .workspace import router as workspace_router, initialize_sop
 from .updater import read_state, start_update, verify_admin_token, version_info
 from .workflow_auth import router as auth_router, require_admin, require_user
 from .process import router as process_router, reject_legacy_process_write
+from .approvals import router as approvals_router
 
 
 app = FastAPI(title="Amazon Operations Agent API", version="0.4.0")
 app.include_router(workspace_router)
 app.include_router(auth_router)
 app.include_router(process_router)
+app.include_router(approvals_router)
 
 
 @app.middleware('http')
 async def private_process_responses(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/process', '/api/workflow-auth')):
+    if request.url.path.startswith(('/api/process', '/api/workflow-auth', '/api/approvals')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 app.add_middleware(

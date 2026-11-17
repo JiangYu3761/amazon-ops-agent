@@ -1,5 +1,5 @@
 {
-  "version": "2.1",
+  "version": "3.0",
   "modules": [
     {
       "id": "shop",
@@ -319,9 +319,9 @@
       }
     },
     {
-      "key": "certification",
+      "key": "fcc-certification",
       "module": "compliance",
-      "title": "核验适用认证、报告与销售主体",
+      "title": "FCC 认证申请、草稿审核与正本验收",
       "offset": -78,
       "phase": "上线前",
       "department": "合规",
@@ -332,21 +332,23 @@
       "evidence_required": true,
       "approval_required": true,
       "sequence": 11,
-      "acceptance_criteria": "交付“核验适用认证、报告与销售主体”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "acceptance_criteria": "适用路径经确认后，完成资料提交、负责人审批、机构接单测试、草稿反馈与修订审核、正本接收及最终归档验收；保留原计划、实际时间、接手人和各版文件。",
       "observation_days": null,
       "delivery": {
         "category": "store",
         "subcategory": "产品与销售合规",
         "kind": "file",
         "expected_files": [
-          "认证报告与销售主体资料包"
+          "FCC申请资料与接单回执",
+          "草稿报告与修订审核记录",
+          "FCC正本或正式报告与归档验收单"
         ]
       }
     },
     {
-      "key": "dangerous",
+      "key": "dangerous-goods",
       "module": "compliance",
-      "title": "完成危险品分类、资料与审核状态登记",
+      "title": "危险品判定、结果复核与运输放行",
       "offset": -72,
       "phase": "上线前",
       "department": "合规",
@@ -357,7 +359,7 @@
       "evidence_required": true,
       "approval_required": true,
       "sequence": 12,
-      "acceptance_criteria": "交付“完成危险品分类、资料与审核状态登记”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "acceptance_criteria": "完成材料提交、机构或平台评估、正式结论反馈、内部复核及运输条件归档；记录联系人、计划与实际反馈时间、判定限制和证据。",
       "observation_days": null,
       "delivery": {
         "category": "store",
@@ -369,21 +371,22 @@
       }
     },
     {
-      "key": "label",
+      "key": "label-confirmation",
       "module": "compliance",
-      "title": "核验UPC、FNSKU、SN和型号标签",
+      "title": "标签设计、合规核对、定稿与使用验收",
       "offset": -65,
       "phase": "上线前",
       "department": "供应链",
       "depends_on": [
         "capability",
-        "certification"
+        "fcc-certification",
+        "dangerous-goods"
       ],
       "weight": 3,
       "evidence_required": true,
       "approval_required": true,
       "sequence": 13,
-      "acceptance_criteria": "交付“核验UPC、FNSKU、SN和型号标签”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "acceptance_criteria": "完成标签信息汇总、设计初稿、合规与编码审核、修订定稿及印刷或使用验收；留存版本、实物证据和处理意见。",
       "observation_days": null,
       "delivery": {
         "category": "delivery",
@@ -452,9 +455,9 @@
       "phase": "上线前",
       "department": "合规",
       "depends_on": [
-        "certification",
-        "dangerous",
-        "label"
+        "fcc-certification",
+        "dangerous-goods",
+        "label-confirmation"
       ],
       "weight": 3,
       "evidence_required": true,

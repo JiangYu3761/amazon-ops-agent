@@ -38,7 +38,7 @@ def initialize_sop(conn, product_id):
     legacy=conn.execute("SELECT t.* FROM tasks t JOIN product_workflows pw ON pw.id=t.product_workflow_id WHERE pw.product_id=%s AND t.sop_key IS NULL",(product_id,)).fetchall()
     aliases={
         '确认正式产品名称、型号和能力边界':'capability',
-        '确认FCC、危险品及标签状态':'certification',
+        '确认FCC、危险品及标签状态':'fcc-certification',
         '确认生产、头程及入仓周期':'supply-lead',
         '完成SKU成本卡和预算边界':'unit-cost',
         '完成标题、五点和关键词库':'copy',
@@ -51,11 +51,19 @@ def initialize_sop(conn, product_id):
     old_by_key={aliases.get(t['title'].replace(' ','')):t for t in legacy if t['title'].replace(' ','') in aliases}
     added = 0
     for item in data['tasks']:
-        existing = conn.execute("SELECT id FROM tasks WHERE product_workflow_id=%s AND sop_key=%s", (workflow['id'], item['key'])).fetchone()
+        existing = conn.execute("""SELECT t.id FROM tasks t JOIN product_workflows pw ON pw.id=t.product_workflow_id
+            WHERE pw.product_id=%s AND t.sop_key=%s ORDER BY t.sequence,t.id LIMIT 1""", (product_id,item['key'])).fetchone()
         if existing:
             ids[item['key']] = existing['id']
             continue
         old=old_by_key.get(item['key'])
+        # A renamed matter keeps its original task ID, evidence and approvals.
+        # The migration also handles this path for products that never run SOP refresh.
+        previous_keys={'fcc-certification':'certification','dangerous-goods':'dangerous','label-confirmation':'label'}
+        if not old and item['key'] in previous_keys:
+            old=conn.execute('''SELECT t.* FROM tasks t JOIN product_workflows pw ON pw.id=t.product_workflow_id
+                WHERE pw.product_id=%s AND t.sop_key=%s ORDER BY t.sequence LIMIT 1''',
+                (product_id,previous_keys[item['key']])).fetchone()
         if old:
             conn.execute("""UPDATE tasks SET product_workflow_id=%s,sop_key=%s,module_code=%s,phase=%s,
                 department=COALESCE(department,%s),acceptance_criteria=COALESCE(acceptance_criteria,%s)
@@ -86,6 +94,10 @@ def read_workspace():
           (SELECT COUNT(*) FROM task_evidence e WHERE e.task_id=t.id) evidence_count,
           (SELECT a.decision FROM approvals a WHERE a.task_id=t.id AND a.task_revision=t.revision ORDER BY a.decided_at DESC NULLS LAST LIMIT 1) approval_status
           FROM tasks t JOIN product_workflows pw ON pw.id=t.product_workflow_id LEFT JOIN app_users u ON u.id=t.owner_id ORDER BY t.sequence""").fetchall()
+        from .approvals import summaries
+        approval_summaries=summaries(conn,[t['id'] for t in tasks])
+        for task in tasks:
+            task['approval_summary']=approval_summaries.get(str(task['id']))
         dependencies=conn.execute('SELECT * FROM task_dependencies').fetchall()
         people=conn.execute('SELECT u.id,u.display_name,u.email,u.role_code,d.name department FROM app_users u LEFT JOIN departments d ON d.id=u.department_id WHERE u.is_active=true ORDER BY u.display_name').fetchall()
         events=conn.execute('SELECT * FROM operating_events ORDER BY start_date').fetchall()

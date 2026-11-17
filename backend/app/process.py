@@ -32,6 +32,9 @@ def task_row(conn, task_id, lock=False):
         ON pw.id=t.product_workflow_id WHERE t.id=%s''' + (' FOR UPDATE OF t' if lock else ''), (task_id,)).fetchone()
     if not row:
         raise HTTPException(404, '流程节点不存在')
+    if lock:
+        from .approvals import reject_approval_write
+        reject_approval_write(conn, task_id)
     return row
 
 
@@ -58,6 +61,8 @@ def may_fill(actor, task, config):
 
 
 def reject_legacy_process_write(conn, task_id):
+    from .approvals import reject_approval_write
+    reject_approval_write(conn, task_id)
     if config_row(conn, task_id):
         raise HTTPException(409, '该任务已启用流程协作，请在流程图节点中填写、配置或审核')
 
@@ -70,7 +75,9 @@ def node_data(conn, task, actor):
         'version':0,'fields':default_fields(task),'reviewer_ids':[],'collaborator_ids':[],
         'review_mode':'all','location':'','planned_start':None,
     }
-    return {**task,'configured':bool(config),'config':config_data,'state_version':state['version'] if state else 0,
+    from .approvals import summaries
+    approval_summary=summaries(conn,[task['id']]).get(str(task['id']))
+    return {**task,'approval_summary':approval_summary,'configured':bool(config),'config':config_data,'state_version':state['version'] if state else 0,
         'dependencies':[x['depends_on_task_id'] for x in dependencies], 'blockers':blockers(conn,task['id']),
         'permissions':{'configure':bool(actor and actor['is_admin']), 'fill':may_fill(actor,task,config),
                        'review':bool(actor and config and actor['id'] in config['reviewer_ids'])}}
@@ -111,6 +118,8 @@ def detail(task_id: UUID, actor=Depends(optional_user)):
 
 
 def write_config(conn, task, body, actor):
+    from .approvals import reject_approval_write
+    reject_approval_write(conn, task['id'])
     state = state_row(conn,task['id'])
     check_version(state,body.expected_version)
     if task['status'] in {'completed','not_applicable'}:
@@ -205,6 +214,9 @@ def reopen(conn, task, actor, reason):
         SELECT task_id FROM task_dependencies WHERE depends_on_task_id=%s
         UNION SELECT d.task_id FROM task_dependencies d JOIN chain c ON d.depends_on_task_id=c.id)
         SELECT t.id FROM tasks t JOIN chain c ON c.id=t.id WHERE t.status IN ('in_progress','pending_approval','completed')''', (task['id'],)).fetchall()
+    from .approvals import reject_approval_write
+    for item in downstream:
+        reject_approval_write(conn,item['id'])
     ids = [task['id']]+[x['id'] for x in downstream]
     for node_id in ids:
         conn.execute("UPDATE tasks SET revision=revision+1,status='in_progress',completed_at=NULL,updated_at=now() WHERE id=%s", (node_id,))
