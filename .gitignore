@@ -1,0 +1,12 @@
+.env
+deploy_key
+__pycache__/
+*.py[cod]
+.pytest_cache/
+amazon-agent-mvp.zip
+outputs/
+backups/
+.DS_Store
+node_modules/
+dist/
+

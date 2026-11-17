@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+ <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+ <meta name="theme-color" content="#151e32"><title>HOMA · 亚马逊运营工作台</title>
+ <link rel="stylesheet" href="styles.css">
+ <link rel="stylesheet" href="process.css">
+</head>
+<body>
+ <aside class="sidebar" id="sidebar">
+  <a class="brand" href="#overview" data-action="navigate" data-view="overview"><span class="brand-mark">H</span><span>HOMA<small>OPERATIONS WORKSPACE</small></span></a>
+  <div class="workspace-switch"><span class="workspace-avatar">US</span><span><strong>亚马逊运营工作台</strong><small>产品 · 流程 · 决策</small></span><span class="muted">⌄</span></div>
+  <nav id="navigation" aria-label="主导航"></nav>
+  <div class="sidebar-bottom"><div id="connectionBadge" class="connection"><i></i>正在连接</div><button class="sidebar-settings" data-action="navigate" data-view="settings"><span>⚙</span> 功能覆盖与系统设置</button><div class="user-line"><span class="user-avatar">H</span><div><strong>运营项目空间</strong><small id="storageLabel">正在读取数据…</small></div></div></div>
+ </aside>
+ <div class="main-shell">
+  <header class="topbar">
+   <div class="breadcrumbs"><button class="mobile-menu" id="menuBtn" aria-label="打开导航">☰</button><span>工作空间</span><span class="slash">/</span><strong id="breadcrumb">产品总览</strong></div>
+   <div class="top-actions"><span id="savedState" class="saved-state"></span><div id="workflowIdentity"></div><button class="icon-btn" data-action="refresh" title="重新读取数据" aria-label="重新读取数据" id="refreshBtn">↻</button><button class="top-agent" data-action="open-ai"><span>✧</span> 问 Agent</button></div>
+  </header>
+  <main>
+   <div id="modeBanner" class="mode-banner" role="status"></div>
+   <div class="page-heading"><div><div class="eyebrow" id="eyebrow">PRODUCT PORTFOLIO</div><h1 id="pageTitle">每个产品，每一步都有着落。</h1><p id="pageDescription">以产品型号为主线，连接店铺、页面、广告、供应链与协作。</p></div><div id="pageActions" class="page-actions"></div></div>
+   <div class="scopebar"><div class="product-scope"><span id="productScopeIcon"></span><select id="productSelect" aria-label="选择产品"></select><span class="market-badge" id="marketBadge">US</span></div><div class="scope-right"><span class="scope-caption" id="scopeCaption">工作范围：全部产品</span><label class="searchbox"><span id="searchIcon"></span><input id="searchInput" type="search" placeholder="搜索型号、任务或负责人" aria-label="搜索当前页面"></label></div></div>
+   <div id="viewRoot" aria-live="polite"><div class="loading-state">正在加载运营工作台…</div></div>
+   <footer><span>HOMA OPERATIONS · v0.4</span><span id="footerStatus">任务和数据均标注来源</span></footer>
+  </main>
+ </div>
+ <button class="agent-fab" data-action="open-ai" aria-label="问当前页面的运营Agent"><span>✧</span><span>问运营 Agent</span><i></i></button>
+ <div id="panelBackdrop" class="panel-backdrop hidden"></div>
+ <aside id="taskPanel" class="side-panel" aria-label="任务详情" aria-hidden="true"></aside>
+ <aside id="aiPanel" class="side-panel ai-panel" aria-label="运营Agent" aria-hidden="true"></aside>
+ <dialog id="modal"><div id="modalContent"></div></dialog>
+ <div id="toast" class="toast" role="status"></div>
+ <script src="deliverables.js" defer></script>
+ <script src="app.js" defer></script>
+ <script src="process.js" defer></script>
+</body>
+</html>

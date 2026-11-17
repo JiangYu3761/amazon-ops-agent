@@ -1,0 +1,37 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const source=fs.readFileSync('frontend/app.js','utf8');
+const context=vm.createContext({crypto:globalThis.crypto,URL,console});
+vm.runInContext(fs.readFileSync('frontend/deliverables.js','utf8'),context);
+vm.runInContext(source,context);
+vm.runInContext(`catalog=${fs.readFileSync('frontend/catalog.json','utf8')};ws=makeDemo();`,context);
+const run=code=>vm.runInContext(code,context);
+assert.equal(run('catalog.tasks.length'),79);
+assert.equal(run('ws.tasks.filter(t=>t.product_id==="demo-g11").length'),79);
+assert.equal(run('createsCycle("demo-g11-capability",["demo-g11-label"])'),true);
+assert.throws(()=>run('validateComplete(ws.tasks.find(t=>t.id==="demo-g11-certification"))'),/交付证据/);
+assert.throws(()=>run('validateComplete(ws.tasks.find(t=>t.id==="demo-g11-label"))'),/前置依赖/);
+assert.equal(run(`parseImport('sales','date,sku,units_ordered,ordered_revenue\\n2026-11-14,G11-US,,99',ws.products[0]).errors.length`),1);
+assert.equal(run(`parseImport('sales','date,sku,units_ordered,ordered_revenue\\n2026-11-14,G11-US,1,99',ws.products[0]).rows.length`),1);
+assert.equal(run(`parseImport('sales','date,sku,units_ordered,ordered_revenue\\n2026-11-14,WRONG-SKU,1,99',ws.products[0]).errors.length`),1);
+run('productId="demo-g11";view="ads";');
+assert.match(run('localAnswer("ads")'),/11 项工作/);
+assert.match(run('localAnswer("inventory")'),/11 项工作/);
+console.log('SOP graph, completion gates, CSV identity validation and page summaries: passed');
+
+// File links must be product-scoped, current, and never imply task completion.
+assert.equal(run('deliveryCategories().length'),4);
+assert.equal(run('catalog.tasks.every(t=>t.delivery&&t.delivery.expected_files.length>0)'),true);
+assert.equal(run('deliveryState(ws.tasks.find(t=>t.id==="demo-g11-capability"))'),'missing');
+run(`ws.documents=[{id:'d1',product_id:'demo-capri',task_id:'demo-g11-capability',url:'https://files.example.org/spec',title:'Other product',version:'v1',preparation_status:'prepared',is_current:true}];`);
+assert.equal(run('documentRecords(ws.tasks.find(t=>t.id==="demo-g11-capability")).length'),0);
+run(`ws.documents.push({id:'d2',product_id:'demo-g11',task_id:'demo-g11-capability',url:'https://files.example.org/spec',title:'Product spec',version:'v1',preparation_status:'prepared',is_current:true});`);
+assert.equal(run('deliveryState(ws.tasks.find(t=>t.id==="demo-g11-capability"))'),'ready');
+run('ws.tasks.find(t=>t.id==="demo-g11-capability").status="in_progress";');
+assert.equal(run('deliveryState(ws.tasks.find(t=>t.id==="demo-g11-capability"))'),'file_ready');
+run('ws.documents.find(d=>d.id==="d2").is_current=false;');
+assert.equal(run('documentRecords(ws.tasks.find(t=>t.id==="demo-g11-capability")).length'),0);
+assert.equal(run('safeDocumentUrl("javascript:alert(1)")'),null);
+assert.equal(run('safeDocumentUrl("https://user:pass@example.org/file")'),null);
+assert.equal(run('safeDocumentUrl("https://example.org/file")'),'https://example.org/file');
+assert.match(run('deliverablesCSV().split("\\r\\n")[0]'),/^\uFEFF"大分类","具体工作项","对应文件链接"/);
+console.log('Four-category file register, current versions, product isolation and CSV columns: passed');

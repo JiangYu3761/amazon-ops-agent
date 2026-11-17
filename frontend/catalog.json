@@ -1,0 +1,2111 @@
+{
+  "version": "2.1",
+  "modules": [
+    {
+      "id": "shop",
+      "name": "店铺与账户",
+      "icon": "store",
+      "department": "运营",
+      "subtitle": "主体 · 品牌 · 账户健康",
+      "description": "品牌备案、账户健康、权限、Case与例行检查"
+    },
+    {
+      "id": "compliance",
+      "name": "产品与合规",
+      "icon": "shield",
+      "department": "产品",
+      "subtitle": "能力 · 认证 · 标签",
+      "description": "产品能力、订阅边界、危险品、认证和标签"
+    },
+    {
+      "id": "listing",
+      "name": "Listing与素材",
+      "icon": "file",
+      "department": "运营",
+      "subtitle": "关键词 · 文案 · 图片 · A+",
+      "description": "页面创建、关键词埋点、内容审批与版本复盘"
+    },
+    {
+      "id": "ads",
+      "name": "广告运营",
+      "icon": "megaphone",
+      "department": "广告",
+      "subtitle": "结构 · 预算 · 搜索词 · 验证",
+      "description": "SP/SB/Display规划、投放检查、报表分析和优化任务"
+    },
+    {
+      "id": "inventory",
+      "name": "备货与库存",
+      "icon": "boxes",
+      "department": "供应链",
+      "subtitle": "采购 · 生产 · 头程 · 入仓",
+      "description": "交期、可售、预留、在途、库龄和补货"
+    },
+    {
+      "id": "calendar",
+      "name": "活动与排期",
+      "icon": "calendar",
+      "department": "运营",
+      "subtitle": "活动 · 价格 · 上线节点",
+      "description": "活动准备、毛利与库存校验、上线和复盘"
+    },
+    {
+      "id": "finance",
+      "name": "成本与利润",
+      "icon": "wallet",
+      "department": "财务",
+      "subtitle": "成本 · 预算 · 回款 · 现金",
+      "description": "完整成本口径、利润、对账与现金预测"
+    },
+    {
+      "id": "service",
+      "name": "订单与售后",
+      "icon": "message",
+      "department": "客服",
+      "subtitle": "订单 · 退款 · 买家反馈",
+      "description": "订单异常、售后、退货原因与产品反馈"
+    },
+    {
+      "id": "review",
+      "name": "数据与复盘",
+      "icon": "chart",
+      "department": "运营",
+      "subtitle": "数据 · 排名 · 周报 · 决策",
+      "description": "数据质量、固定采集环境、效果验证和知识沉淀"
+    }
+  ],
+  "tasks": [
+    {
+      "key": "account",
+      "module": "shop",
+      "title": "核验店铺主体、站点与收款资料",
+      "offset": -90,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 1,
+      "acceptance_criteria": "交付“核验店铺主体、站点与收款资料”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "店铺主体与站点档案.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "roles",
+      "module": "shop",
+      "title": "配置后台角色与离职交接清单",
+      "offset": -85,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "account"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 2,
+      "acceptance_criteria": "交付“配置后台角色与离职交接清单”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "后台权限与交接清单.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "brand",
+      "module": "shop",
+      "title": "核对品牌备案与商标授权状态",
+      "offset": -80,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "account"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 3,
+      "acceptance_criteria": "交付“核对品牌备案与商标授权状态”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "商标与品牌授权资料包"
+        ]
+      }
+    },
+    {
+      "key": "account-health",
+      "module": "shop",
+      "title": "建立账户健康与绩效通知检查清单",
+      "offset": -75,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [
+        "account"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 4,
+      "acceptance_criteria": "交付“建立账户健康与绩效通知检查清单”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "账户健康检查表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "case",
+      "module": "shop",
+      "title": "登记Case、材料、截止日期与处理结果",
+      "offset": -70,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 5,
+      "acceptance_criteria": "交付“登记Case、材料、截止日期与处理结果”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "Case与申诉跟踪表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "store-design",
+      "module": "shop",
+      "title": "完成品牌旗舰店结构、素材与链接验收",
+      "offset": -25,
+      "phase": "上线前",
+      "department": "设计",
+      "depends_on": [
+        "brand",
+        "position"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 6,
+      "acceptance_criteria": "交付“完成品牌旗舰店结构、素材与链接验收”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "品牌旗舰店设计与素材包"
+        ]
+      }
+    },
+    {
+      "key": "store-audit",
+      "module": "shop",
+      "title": "检查店铺失效链接、页面和品牌一致性",
+      "offset": 14,
+      "phase": "上线后",
+      "department": "运营",
+      "depends_on": [
+        "store-design"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 7,
+      "acceptance_criteria": "交付“检查店铺失效链接、页面和品牌一致性”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "file",
+        "expected_files": [
+          "旗舰店验收与失效链接清单.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "handover",
+      "module": "shop",
+      "title": "完成权限、资料和风险事项交接",
+      "offset": 60,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 8,
+      "acceptance_criteria": "交付“完成权限、资料和风险事项交接”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "账户、品牌与店铺",
+        "kind": "milestone",
+        "expected_files": [
+          "运营交接清单.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "capability",
+      "module": "compliance",
+      "title": "确认产品能力、参数和型号主档",
+      "offset": -88,
+      "phase": "上线前",
+      "department": "产品",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 9,
+      "acceptance_criteria": "交付“确认产品能力、参数和型号主档”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "产品能力与参数确认表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "subscription",
+      "module": "compliance",
+      "title": "确认免费功能、订阅功能与服务区域",
+      "offset": -82,
+      "phase": "上线前",
+      "department": "产品",
+      "depends_on": [
+        "capability"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 10,
+      "acceptance_criteria": "交付“确认免费功能、订阅功能与服务区域”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "免费与订阅功能对照表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "certification",
+      "module": "compliance",
+      "title": "核验适用认证、报告与销售主体",
+      "offset": -78,
+      "phase": "上线前",
+      "department": "合规",
+      "depends_on": [
+        "capability"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 11,
+      "acceptance_criteria": "交付“核验适用认证、报告与销售主体”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "认证报告与销售主体资料包"
+        ]
+      }
+    },
+    {
+      "key": "dangerous",
+      "module": "compliance",
+      "title": "完成危险品分类、资料与审核状态登记",
+      "offset": -72,
+      "phase": "上线前",
+      "department": "合规",
+      "depends_on": [
+        "capability"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 12,
+      "acceptance_criteria": "交付“完成危险品分类、资料与审核状态登记”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "危险品分类与审核材料包"
+        ]
+      }
+    },
+    {
+      "key": "label",
+      "module": "compliance",
+      "title": "核验UPC、FNSKU、SN和型号标签",
+      "offset": -65,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [
+        "capability",
+        "certification"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 13,
+      "acceptance_criteria": "交付“核验UPC、FNSKU、SN和型号标签”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "UPC_FNSKU_SN标签核验表与印刷稿"
+        ]
+      }
+    },
+    {
+      "key": "transparency",
+      "module": "compliance",
+      "title": "核对透明计划资格与标签授权",
+      "offset": -62,
+      "phase": "上线前",
+      "department": "合规",
+      "depends_on": [
+        "brand"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 14,
+      "acceptance_criteria": "交付“核对透明计划资格与标签授权”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "透明计划资格与授权记录"
+        ]
+      }
+    },
+    {
+      "key": "privacy",
+      "module": "compliance",
+      "title": "确认隐私、数据功能与对外声明",
+      "offset": -65,
+      "phase": "上线前",
+      "department": "产品",
+      "depends_on": [
+        "subscription"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 15,
+      "acceptance_criteria": "交付“确认隐私、数据功能与对外声明”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "产品与销售合规",
+        "kind": "file",
+        "expected_files": [
+          "隐私与功能声明核验表.docx"
+        ]
+      }
+    },
+    {
+      "key": "compliance-pack",
+      "module": "compliance",
+      "title": "归档合规材料并确认发货放行",
+      "offset": -50,
+      "phase": "上线前",
+      "department": "合规",
+      "depends_on": [
+        "certification",
+        "dangerous",
+        "label"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 16,
+      "acceptance_criteria": "交付“归档合规材料并确认发货放行”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "产品与销售合规",
+        "kind": "milestone",
+        "expected_files": [
+          "合规证据包与发货放行单"
+        ]
+      }
+    },
+    {
+      "key": "position",
+      "module": "listing",
+      "title": "确定定位、受众、核心场景与卖点优先级",
+      "offset": -75,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "capability"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 17,
+      "acceptance_criteria": "交付“确定定位、受众、核心场景与卖点优先级”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "产品定位与卖点优先级报告.docx"
+        ]
+      }
+    },
+    {
+      "key": "keywords",
+      "module": "listing",
+      "title": "建立核心词、场景词和长尾关键词库",
+      "offset": -65,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "position"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 18,
+      "acceptance_criteria": "交付“建立核心词、场景词和长尾关键词库”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "关键词分类与埋点词库.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "competitors",
+      "module": "listing",
+      "title": "建立竞品ASIN及页面对比档案",
+      "offset": -63,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "position"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 19,
+      "acceptance_criteria": "交付“建立竞品ASIN及页面对比档案”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "竞品ASIN与页面对比表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "category",
+      "module": "listing",
+      "title": "确认类目、必填属性、SKU与变体关系",
+      "offset": -60,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "capability"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 20,
+      "acceptance_criteria": "交付“确认类目、必填属性、SKU与变体关系”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "类目属性与SKU变体表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "listing-create",
+      "module": "listing",
+      "title": "创建Listing并核对销售权限与可见性",
+      "offset": -55,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "category",
+        "brand"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 21,
+      "acceptance_criteria": "交付“创建Listing并核对销售权限与可见性”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "milestone",
+        "expected_files": [
+          "Listing链接与创建验收记录"
+        ]
+      }
+    },
+    {
+      "key": "copy",
+      "module": "listing",
+      "title": "完成标题、五点、描述与关键词埋点",
+      "offset": -43,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "keywords",
+        "subscription"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 22,
+      "acceptance_criteria": "交付“完成标题、五点、描述与关键词埋点”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "标题_五点_描述与SearchTerms文案.docx"
+        ]
+      }
+    },
+    {
+      "key": "images",
+      "module": "listing",
+      "title": "完成主附图需求、拍摄与素材交付",
+      "offset": -40,
+      "phase": "上线前",
+      "department": "设计",
+      "depends_on": [
+        "position",
+        "subscription"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 23,
+      "acceptance_criteria": "交付“完成主附图需求、拍摄与素材交付”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "主附图需求表与原图素材包"
+        ]
+      }
+    },
+    {
+      "key": "aplus",
+      "module": "listing",
+      "title": "完成A+、品牌故事与移动端验收",
+      "offset": -30,
+      "phase": "上线前",
+      "department": "设计",
+      "depends_on": [
+        "copy",
+        "images",
+        "brand"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 24,
+      "acceptance_criteria": "交付“完成A+、品牌故事与移动端验收”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "A+与品牌故事设计交付包"
+        ]
+      }
+    },
+    {
+      "key": "video",
+      "module": "listing",
+      "title": "完成产品视频、字幕和功能表达核验",
+      "offset": -30,
+      "phase": "上线前",
+      "department": "设计",
+      "depends_on": [
+        "capability",
+        "images"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 25,
+      "acceptance_criteria": "交付“完成产品视频、字幕和功能表达核验”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "产品视频_字幕与审核记录"
+        ]
+      }
+    },
+    {
+      "key": "listing-qa",
+      "module": "listing",
+      "title": "验收页面文案、图片、属性与变体",
+      "offset": -14,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "copy",
+        "aplus",
+        "video",
+        "listing-create"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 26,
+      "acceptance_criteria": "交付“验收页面文案、图片、属性与变体”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "milestone",
+        "expected_files": [
+          "Listing上线验收表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "listing-test",
+      "module": "listing",
+      "title": "记录页面版本、变更假设与验证结果",
+      "offset": 21,
+      "phase": "上线后",
+      "department": "运营",
+      "depends_on": [
+        "listing-qa"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 27,
+      "acceptance_criteria": "交付“记录页面版本、变更假设与验证结果”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "页面版本与测试记录.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "listing-health",
+      "module": "listing",
+      "title": "检查页面抑制、购物车与异常变更",
+      "offset": 7,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [
+        "listing-create"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 28,
+      "acceptance_criteria": "交付“检查页面抑制、购物车与异常变更”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "listing",
+        "subcategory": "商品页面与内容",
+        "kind": "file",
+        "expected_files": [
+          "页面健康异常跟踪表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-goal",
+      "module": "ads",
+      "title": "确定广告阶段目标、预算与停止条件",
+      "offset": -50,
+      "phase": "上线前",
+      "department": "广告",
+      "depends_on": [
+        "unit-cost",
+        "position"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 29,
+      "acceptance_criteria": "交付“确定广告阶段目标、预算与停止条件”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "广告目标_预算与停止条件.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-map",
+      "module": "ads",
+      "title": "建立目的、广告类型、关键词和定向框架",
+      "offset": -35,
+      "phase": "上线前",
+      "department": "广告",
+      "depends_on": [
+        "ad-goal",
+        "keywords"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 30,
+      "acceptance_criteria": "交付“建立目的、广告类型、关键词和定向框架”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "广告框架_阶段与目的规划表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-structure",
+      "module": "ads",
+      "title": "建立Campaign、Ad Group和命名规则",
+      "offset": -21,
+      "phase": "上线前",
+      "department": "广告",
+      "depends_on": [
+        "ad-map"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 31,
+      "acceptance_criteria": "交付“建立Campaign、Ad Group和命名规则”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "Campaign结构与命名表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-keywords",
+      "module": "ads",
+      "title": "整理关键词匹配、商品定向和初始否词",
+      "offset": -18,
+      "phase": "上线前",
+      "department": "广告",
+      "depends_on": [
+        "ad-map",
+        "competitors"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 32,
+      "acceptance_criteria": "交付“整理关键词匹配、商品定向和初始否词”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "关键词_商品定向与初始否词库.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-creative",
+      "module": "ads",
+      "title": "验收广告素材、落地页和适用权限",
+      "offset": -14,
+      "phase": "上线前",
+      "department": "广告",
+      "depends_on": [
+        "images",
+        "listing-qa"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 33,
+      "acceptance_criteria": "交付“验收广告素材、落地页和适用权限”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "广告素材与落地页验收包"
+        ]
+      }
+    },
+    {
+      "key": "ad-launch",
+      "module": "ads",
+      "title": "验收预算、竞价、排期与投放状态",
+      "offset": -7,
+      "phase": "上线前",
+      "department": "广告",
+      "depends_on": [
+        "ad-structure",
+        "ad-keywords",
+        "ad-creative"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 34,
+      "acceptance_criteria": "交付“验收预算、竞价、排期与投放状态”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "milestone",
+        "expected_files": [
+          "广告上线设置验收表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-search",
+      "module": "ads",
+      "title": "按成熟归因数据复盘搜索词与Matched ASIN",
+      "offset": 7,
+      "phase": "上线后",
+      "department": "广告",
+      "depends_on": [
+        "ad-launch"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 35,
+      "acceptance_criteria": "交付“按成熟归因数据复盘搜索词与Matched ASIN”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "SearchTerm与MatchedASIN分析报告.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-placement",
+      "module": "ads",
+      "title": "诊断广告位、点击与转化结构变化",
+      "offset": 14,
+      "phase": "上线后",
+      "department": "广告",
+      "depends_on": [
+        "ad-launch"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 36,
+      "acceptance_criteria": "交付“诊断广告位、点击与转化结构变化”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "广告位与转化结构报告.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-budget",
+      "module": "ads",
+      "title": "结合利润、库存和边际效率调整预算竞价",
+      "offset": 21,
+      "phase": "上线后",
+      "department": "广告",
+      "depends_on": [
+        "ad-search",
+        "stock-audit"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 37,
+      "acceptance_criteria": "交付“结合利润、库存和边际效率调整预算竞价”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "预算竞价调整与审批记录.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-negatives",
+      "module": "ads",
+      "title": "审批否词与流量迁移，记录误伤范围",
+      "offset": 14,
+      "phase": "上线后",
+      "department": "广告",
+      "depends_on": [
+        "ad-search"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 38,
+      "acceptance_criteria": "交付“审批否词与流量迁移，记录误伤范围”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "否词与流量迁移审批表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "ad-verify",
+      "module": "ads",
+      "title": "验证广告变更效果并决定保留或回滚",
+      "offset": 28,
+      "phase": "上线后",
+      "department": "广告",
+      "depends_on": [
+        "ad-budget",
+        "ad-negatives"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 39,
+      "acceptance_criteria": "交付“验证广告变更效果并决定保留或回滚”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "广告策略与投放",
+        "kind": "file",
+        "expected_files": [
+          "广告变更验证与回滚记录.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "supply-lead",
+      "module": "inventory",
+      "title": "确认生产、头程、入仓周期和波动范围",
+      "offset": -85,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 40,
+      "acceptance_criteria": "交付“确认生产、头程、入仓周期和波动范围”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "生产_头程_入仓交期表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "forecast",
+      "module": "inventory",
+      "title": "制定保守、基准、积极销量与备货情景",
+      "offset": -75,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "supply-lead",
+        "unit-cost"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 41,
+      "acceptance_criteria": "交付“制定保守、基准、积极销量与备货情景”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "销量预测与首批备货方案.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "purchase",
+      "module": "inventory",
+      "title": "审批首批采购数量、金额与付款节点",
+      "offset": -65,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [
+        "forecast",
+        "cash-plan"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 42,
+      "acceptance_criteria": "交付“审批首批采购数量、金额与付款节点”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "采购订单与付款计划.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "production",
+      "module": "inventory",
+      "title": "跟踪排产、质检与预计完工时间",
+      "offset": -55,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [
+        "purchase"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 43,
+      "acceptance_criteria": "交付“跟踪排产、质检与预计完工时间”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "生产与质检跟踪表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "shipment",
+      "module": "inventory",
+      "title": "创建货件并核验箱规、标签与装箱资料",
+      "offset": -45,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [
+        "production",
+        "compliance-pack"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 44,
+      "acceptance_criteria": "交付“创建货件并核验箱规、标签与装箱资料”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "货件_箱规_标签与装箱资料包"
+        ]
+      }
+    },
+    {
+      "key": "first-mile",
+      "module": "inventory",
+      "title": "登记头程承运、节点、费用与预计入仓",
+      "offset": -38,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [
+        "shipment"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 45,
+      "acceptance_criteria": "交付“登记头程承运、节点、费用与预计入仓”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "头程运单与物流节点记录.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "receiving",
+      "module": "inventory",
+      "title": "核对签收、接收差异与可售数量",
+      "offset": -14,
+      "phase": "上线前",
+      "department": "供应链",
+      "depends_on": [
+        "first-mile"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 46,
+      "acceptance_criteria": "交付“核对签收、接收差异与可售数量”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "milestone",
+        "expected_files": [
+          "入仓与可售库存核验表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "stock-audit",
+      "module": "inventory",
+      "title": "对齐可售、预留、在途和采购库存口径",
+      "offset": -7,
+      "phase": "例行运营",
+      "department": "供应链",
+      "depends_on": [
+        "receiving"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 47,
+      "acceptance_criteria": "交付“对齐可售、预留、在途和采购库存口径”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "可售_预留_在途与采购库存表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "replenish",
+      "module": "inventory",
+      "title": "更新安全库存、补货点与断货预警",
+      "offset": 7,
+      "phase": "上线后",
+      "department": "供应链",
+      "depends_on": [
+        "stock-audit",
+        "forecast"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 48,
+      "acceptance_criteria": "交付“更新安全库存、补货点与断货预警”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "补货计划与断货预警表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "aging",
+      "module": "inventory",
+      "title": "复盘库龄、容量、滞销与移除方案",
+      "offset": 30,
+      "phase": "例行运营",
+      "department": "供应链",
+      "depends_on": [
+        "stock-audit"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 49,
+      "acceptance_criteria": "交付“复盘库龄、容量、滞销与移除方案”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "库龄_容量与滞销处理表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "reconcile-shipment",
+      "module": "inventory",
+      "title": "处理丢失、破损、差异与赔偿材料",
+      "offset": 21,
+      "phase": "例行运营",
+      "department": "供应链",
+      "depends_on": [
+        "receiving"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 50,
+      "acceptance_criteria": "交付“处理丢失、破损、差异与赔偿材料”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "生产、物流与库存",
+        "kind": "file",
+        "expected_files": [
+          "货件差异与赔偿材料包"
+        ]
+      }
+    },
+    {
+      "key": "pricing",
+      "module": "calendar",
+      "title": "审批常规售价、价格底线与促销梯度",
+      "offset": -35,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "unit-cost"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 51,
+      "acceptance_criteria": "交付“审批常规售价、价格底线与促销梯度”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "file",
+        "expected_files": [
+          "常规售价与促销梯度表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "events",
+      "module": "calendar",
+      "title": "建立活动日历、报名截止和负责人",
+      "offset": -30,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "pricing"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 52,
+      "acceptance_criteria": "交付“建立活动日历、报名截止和负责人”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "file",
+        "expected_files": [
+          "活动日历与报名截止表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "event-margin",
+      "module": "calendar",
+      "title": "核验活动折扣、费用与贡献利润",
+      "offset": -21,
+      "phase": "上线前",
+      "department": "财务",
+      "depends_on": [
+        "pricing",
+        "unit-cost"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 53,
+      "acceptance_criteria": "交付“核验活动折扣、费用与贡献利润”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "file",
+        "expected_files": [
+          "活动费用与贡献利润测算.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "event-stock",
+      "module": "calendar",
+      "title": "核验活动库存、配送与广告预算",
+      "offset": -5,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "events",
+        "stock-audit",
+        "ad-goal"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 54,
+      "acceptance_criteria": "交付“核验活动库存、配送与广告预算”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "file",
+        "expected_files": [
+          "活动库存_配送与广告准备表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "coupon",
+      "module": "calendar",
+      "title": "验收优惠券、促销价格与展示",
+      "offset": -3,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "event-margin",
+        "event-stock"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 55,
+      "acceptance_criteria": "交付“验收优惠券、促销价格与展示”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "milestone",
+        "expected_files": [
+          "优惠券与促销验收记录"
+        ]
+      }
+    },
+    {
+      "key": "launch-gate",
+      "module": "calendar",
+      "title": "完成页面、库存、价格、促销与广告上线验收",
+      "offset": -1,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "listing-qa",
+        "stock-audit",
+        "coupon",
+        "ad-launch"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 56,
+      "acceptance_criteria": "交付“完成页面、库存、价格、促销与广告上线验收”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "milestone",
+        "expected_files": [
+          "产品上线联合验收单"
+        ]
+      }
+    },
+    {
+      "key": "event-review",
+      "module": "calendar",
+      "title": "对照基线复盘活动销量、利润与库存",
+      "offset": 14,
+      "phase": "上线后",
+      "department": "运营",
+      "depends_on": [
+        "launch-gate"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 57,
+      "acceptance_criteria": "交付“对照基线复盘活动销量、利润与库存”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "活动与经营排期",
+        "kind": "file",
+        "expected_files": [
+          "活动效果与库存复盘报告.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "unit-cost",
+      "module": "finance",
+      "title": "建立产品、头程、FBA、佣金和退货成本卡",
+      "offset": -78,
+      "phase": "上线前",
+      "department": "财务",
+      "depends_on": [
+        "capability"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 58,
+      "acceptance_criteria": "交付“建立产品、头程、FBA、佣金和退货成本卡”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "SKU完整成本卡.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "budget",
+      "module": "finance",
+      "title": "审批广告、素材、活动与采购预算",
+      "offset": -60,
+      "phase": "上线前",
+      "department": "财务",
+      "depends_on": [
+        "unit-cost"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 59,
+      "acceptance_criteria": "交付“审批广告、素材、活动与采购预算”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "总预算与分项审批表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "cash-plan",
+      "module": "finance",
+      "title": "编制采购付款、回款与现金缺口计划",
+      "offset": -67,
+      "phase": "上线前",
+      "department": "财务",
+      "depends_on": [
+        "unit-cost"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 60,
+      "acceptance_criteria": "交付“编制采购付款、回款与现金缺口计划”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "delivery",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "采购付款与现金计划.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "settlement",
+      "module": "finance",
+      "title": "对账销售、退款、折扣与平台结算",
+      "offset": 14,
+      "phase": "例行运营",
+      "department": "财务",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 61,
+      "acceptance_criteria": "交付“对账销售、退款、折扣与平台结算”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "销售_退款与结算对账表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "profit",
+      "module": "finance",
+      "title": "区分单品贡献利润、期间费用与净利润",
+      "offset": 21,
+      "phase": "上线后",
+      "department": "财务",
+      "depends_on": [
+        "settlement",
+        "unit-cost"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 62,
+      "acceptance_criteria": "交付“区分单品贡献利润、期间费用与净利润”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "单品贡献利润核算表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "expense",
+      "module": "finance",
+      "title": "复核仓储、广告和异常扣费",
+      "offset": 30,
+      "phase": "例行运营",
+      "department": "财务",
+      "depends_on": [
+        "settlement"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 63,
+      "acceptance_criteria": "交付“复核仓储、广告和异常扣费”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "仓储_广告与异常扣费核查表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "cash-review",
+      "module": "finance",
+      "title": "更新现金预测与预算使用偏差",
+      "offset": 30,
+      "phase": "例行运营",
+      "department": "财务",
+      "depends_on": [
+        "cash-plan",
+        "settlement"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 64,
+      "acceptance_criteria": "交付“更新现金预测与预算使用偏差”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "成本、利润与现金",
+        "kind": "file",
+        "expected_files": [
+          "现金预测与预算偏差表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "service-sop",
+      "module": "service",
+      "title": "建立客服响应、退换货与升级流程",
+      "offset": -20,
+      "phase": "上线前",
+      "department": "客服",
+      "depends_on": [
+        "subscription"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 65,
+      "acceptance_criteria": "交付“建立客服响应、退换货与升级流程”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "订单、售后与客户反馈",
+        "kind": "file",
+        "expected_files": [
+          "客服_退换货与问题升级SOP.docx"
+        ]
+      }
+    },
+    {
+      "key": "order",
+      "module": "service",
+      "title": "检查订单取消、未配送与配送异常",
+      "offset": 1,
+      "phase": "例行运营",
+      "department": "客服",
+      "depends_on": [
+        "launch-gate"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 66,
+      "acceptance_criteria": "交付“检查订单取消、未配送与配送异常”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "订单、售后与客户反馈",
+        "kind": "file",
+        "expected_files": [
+          "订单与配送异常跟踪表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "returns",
+      "module": "service",
+      "title": "归类退款、退货原因和售后损失",
+      "offset": 14,
+      "phase": "上线后",
+      "department": "客服",
+      "depends_on": [
+        "order"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 67,
+      "acceptance_criteria": "交付“归类退款、退货原因和售后损失”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "订单、售后与客户反馈",
+        "kind": "file",
+        "expected_files": [
+          "退款_退货原因与损失报告.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "voc",
+      "module": "service",
+      "title": "记录买家之声与负面体验主题",
+      "offset": 14,
+      "phase": "例行运营",
+      "department": "客服",
+      "depends_on": [
+        "order"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 68,
+      "acceptance_criteria": "交付“记录买家之声与负面体验主题”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "订单、售后与客户反馈",
+        "kind": "file",
+        "expected_files": [
+          "买家之声与体验问题汇总.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "service-content",
+      "module": "service",
+      "title": "补充安装、连接和订阅常见问题材料",
+      "offset": -14,
+      "phase": "上线前",
+      "department": "客服",
+      "depends_on": [
+        "service-sop",
+        "capability"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 69,
+      "acceptance_criteria": "交付“补充安装、连接和订阅常见问题材料”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "订单、售后与客户反馈",
+        "kind": "file",
+        "expected_files": [
+          "安装_连接与订阅FAQ.docx"
+        ]
+      }
+    },
+    {
+      "key": "product-feedback",
+      "module": "service",
+      "title": "将重复问题反馈产品并验证修复",
+      "offset": 30,
+      "phase": "上线后",
+      "department": "产品",
+      "depends_on": [
+        "returns",
+        "voc"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 70,
+      "acceptance_criteria": "交付“将重复问题反馈产品并验证修复”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "订单、售后与客户反馈",
+        "kind": "file",
+        "expected_files": [
+          "产品问题反馈与修复验证表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "data-definition",
+      "module": "review",
+      "title": "统一站点、币种、时区、粒度与归因口径",
+      "offset": -45,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 71,
+      "acceptance_criteria": "交付“统一站点、币种、时区、粒度与归因口径”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "数据口径与报表字典.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "data-source",
+      "module": "review",
+      "title": "配置销售、广告、库存和成本数据导入",
+      "offset": -30,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "data-definition"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 72,
+      "acceptance_criteria": "交付“配置销售、广告、库存和成本数据导入”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "数据源与导入校验记录.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "rank-plan",
+      "module": "review",
+      "title": "固定排名关键词、邮编、设备与采集频率",
+      "offset": -21,
+      "phase": "上线前",
+      "department": "运营",
+      "depends_on": [
+        "keywords"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 73,
+      "acceptance_criteria": "交付“固定排名关键词、邮编、设备与采集频率”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "关键词排名监控配置表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "rank-evidence",
+      "module": "review",
+      "title": "记录自然位、广告位、BSR与采集证据",
+      "offset": 7,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [
+        "rank-plan"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 74,
+      "acceptance_criteria": "交付“记录自然位、广告位、BSR与采集证据”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "advertising",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "自然位_广告位_BSR观测与证据表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "daily-review",
+      "module": "review",
+      "title": "建立日检异常、负责人和处理截止",
+      "offset": 1,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [
+        "launch-gate",
+        "data-source"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 75,
+      "acceptance_criteria": "交付“建立日检异常、负责人和处理截止”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "运营日检与异常处理表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "weekly-review",
+      "module": "review",
+      "title": "生成目标、实际、差距与行动周报",
+      "offset": 7,
+      "phase": "上线后",
+      "department": "运营",
+      "depends_on": [
+        "daily-review"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 76,
+      "acceptance_criteria": "交付“生成目标、实际、差距与行动周报”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "周度运营复盘与行动表.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "decision-log",
+      "module": "review",
+      "title": "留存变更日期、证据、结果与回滚记录",
+      "offset": 14,
+      "phase": "例行运营",
+      "department": "运营",
+      "depends_on": [
+        "weekly-review"
+      ],
+      "weight": 1,
+      "evidence_required": true,
+      "approval_required": false,
+      "sequence": 77,
+      "acceptance_criteria": "交付“留存变更日期、证据、结果与回滚记录”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": null,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "经营决策与变更记录.xlsx"
+        ]
+      }
+    },
+    {
+      "key": "day30",
+      "module": "review",
+      "title": "完成上线30天经营复盘与资源调整",
+      "offset": 30,
+      "phase": "上线后",
+      "department": "运营",
+      "depends_on": [
+        "weekly-review",
+        "profit"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 78,
+      "acceptance_criteria": "交付“完成上线30天经营复盘与资源调整”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "上线30天经营复盘报告.docx"
+        ]
+      }
+    },
+    {
+      "key": "day60",
+      "module": "review",
+      "title": "完成上线60天去留、放量与补货决策",
+      "offset": 60,
+      "phase": "上线后",
+      "department": "运营",
+      "depends_on": [
+        "day30",
+        "ad-verify",
+        "replenish"
+      ],
+      "weight": 3,
+      "evidence_required": true,
+      "approval_required": true,
+      "sequence": 79,
+      "acceptance_criteria": "交付“完成上线60天去留、放量与补货决策”对应文件、结果或可核验链接；记录日期、主责人与待解决项。",
+      "observation_days": 14,
+      "delivery": {
+        "category": "store",
+        "subcategory": "数据、监控与经营复盘",
+        "kind": "file",
+        "expected_files": [
+          "上线60天经营决策报告.docx"
+        ]
+      }
+    }
+  ],
+  "phases": [
+    "上线前",
+    "上线后",
+    "例行运营"
+  ],
+  "delivery_categories": [
+    {
+      "id": "store",
+      "name": "店铺运营",
+      "icon": "store",
+      "description": "账户与品牌、产品合规、经营计划、活动、售后和复盘"
+    },
+    {
+      "id": "listing",
+      "name": "Listing与素材",
+      "icon": "file",
+      "description": "产品定位、关键词、文案、图片、A+、视频和页面验收"
+    },
+    {
+      "id": "advertising",
+      "name": "广告运营",
+      "icon": "megaphone",
+      "description": "预算、投放框架、结构、定向、素材、报表和效果验证"
+    },
+    {
+      "id": "delivery",
+      "name": "供应链与交付",
+      "icon": "boxes",
+      "description": "成本、交期、采购、生产、货件、头程、入仓和补货"
+    }
+  ]
+}

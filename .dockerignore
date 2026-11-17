@@ -1,0 +1,9 @@
+.git
+.env
+backups
+outputs
+dist
+**/__pycache__
+**/*.pyc
+*.zip
+deploy_key

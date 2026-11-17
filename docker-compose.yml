@@ -1,0 +1,82 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-amazon_agent}
+      POSTGRES_USER: ${POSTGRES_USER:-amazon_agent}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql://amazon_agent:change_me@db:5432/amazon_agent}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      APP_VERSION: ${APP_VERSION:-development}
+      APP_COMMIT: ${APP_COMMIT:-unknown}
+      APP_BRANCH: ${APP_BRANCH:-main}
+      UPDATE_ENABLED: ${UPDATE_ENABLED:-false}
+      UPDATE_ADMIN_TOKEN: ${UPDATE_ADMIN_TOKEN:-}
+      UPDATE_STATE_FILE: /var/run/amazon-agent/update-state.json
+      UPDATE_REQUEST_FILE: /var/run/amazon-agent/update.request
+      LLM_API_BASE: ${LLM_API_BASE:-https://api.openai.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      WORKFLOW_SETUP_TOKEN: ${WORKFLOW_SETUP_TOKEN:-}
+      WORKFLOW_COOKIE_SECURE: ${WORKFLOW_COOKIE_SECURE:-false}
+      WORKFLOW_SETUP_TOKEN_FILE: /var/run/amazon-agent/workflow-setup-token
+      WORKFLOW_UPLOAD_DIR: /var/run/amazon-agent/workflow-uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - update_state:/var/run/amazon-agent
+    ports:
+      - "8000:8000"
+
+  updater:
+    build:
+      context: .
+      dockerfile: updater.Dockerfile
+    environment:
+      APP_DIR: /opt/amazon-ops-agent
+      APP_BRANCH: ${APP_BRANCH:-main}
+      POSTGRES_DB: ${POSTGRES_DB:-amazon_agent}
+      POSTGRES_USER: ${POSTGRES_USER:-amazon_agent}
+      UPDATE_STATE_FILE: /var/run/amazon-agent/update-state.json
+      UPDATE_REQUEST_FILE: /var/run/amazon-agent/update.request
+      APP_HEALTH_URL: http://api:8000/health
+      GIT_SSH_COMMAND: ${GIT_SSH_COMMAND:-ssh -i /run/secrets/github_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new}
+    volumes:
+      - .:/opt/amazon-ops-agent
+      - update_state:/var/run/amazon-agent
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${GITHUB_DEPLOY_KEY_PATH:-./deploy_key}:/run/secrets/github_deploy_key:ro
+    restart: unless-stopped
+
+  web:
+    image: nginx:1.27-alpine
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
+  update_state:
+
