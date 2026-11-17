@@ -19,7 +19,7 @@ window.processUI = (() => {
     authBusy=true;authAttempted=true;
     try{auth=await api('/api/workflow-auth/session');authReady=true;}
     catch(err){authReady=false;toast('流程登录服务暂不可用：'+err.message)}
-    finally{authBusy=false;identity();if(view==='process'&&loadedProduct)render();}
+    finally{authBusy=false;identity();if(view==='process'&&loadedProduct||view==='workflow')render();}
   }
   function identity(){
     const el=$('#workflowIdentity');if(!el)return;
@@ -262,5 +262,5 @@ window.processUI = (() => {
   });
   window.addEventListener('beforeunload',ev=>{if(dirty){ev.preventDefault();ev.returnValue='';}});
   window.addEventListener('resize',()=>requestAnimationFrame(drawEdges));
-  return {render:renderPage,decorate,openNode,invalidate,login:async()=>{if(!authReady)await session();authDialog();}};
+  return {render:renderPage,decorate,openNode,invalidate,isAdmin:()=>!!auth.user?.is_admin,login:async()=>{if(!authReady)await session();authDialog();}};
 })();
