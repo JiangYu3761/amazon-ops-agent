@@ -53,6 +53,9 @@ services:
       dockerfile: updater.Dockerfile
     environment:
       APP_DIR: ${APP_HOST_DIR:-${PWD}}
+      # Docker service DNS stays on the Compose network; preserve existing bypasses.
+      NO_PROXY: "${NO_PROXY:-},${no_proxy:-},api,db,redis,web,localhost,127.0.0.1,::1"
+      no_proxy: "${no_proxy:-},${NO_PROXY:-},api,db,redis,web,localhost,127.0.0.1,::1"
       POSTGRES_DB: ${POSTGRES_DB:-amazon_agent}
       POSTGRES_USER: ${POSTGRES_USER:-amazon_agent}
       UPDATE_STATE_FILE: /var/run/amazon-agent/update-state.json
