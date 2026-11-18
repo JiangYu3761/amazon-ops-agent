@@ -27,10 +27,11 @@ services:
       APP_VERSION: ${APP_VERSION:-development}
       APP_COMMIT: ${APP_COMMIT:-unknown}
       APP_BRANCH: ${APP_BRANCH:-main}
-      UPDATE_ENABLED: ${UPDATE_ENABLED:-false}
-      UPDATE_ADMIN_TOKEN: ${UPDATE_ADMIN_TOKEN:-}
+      UPDATE_ENABLED: ${UPDATE_ENABLED:-true}
       UPDATE_STATE_FILE: /var/run/amazon-agent/update-state.json
       UPDATE_REQUEST_FILE: /var/run/amazon-agent/update.request
+      UPDATE_HEARTBEAT_FILE: /var/run/amazon-agent/update-worker.json
+      UPDATE_LOCK_FILE: /var/run/amazon-agent/update.lock
       LLM_API_BASE: ${LLM_API_BASE:-https://api.openai.com/v1}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_MODEL: ${LLM_MODEL:-}
@@ -51,19 +52,22 @@ services:
       context: .
       dockerfile: updater.Dockerfile
     environment:
-      APP_DIR: /opt/amazon-ops-agent
-      APP_BRANCH: ${APP_BRANCH:-main}
+      APP_DIR: ${APP_HOST_DIR:-${PWD}}
       POSTGRES_DB: ${POSTGRES_DB:-amazon_agent}
       POSTGRES_USER: ${POSTGRES_USER:-amazon_agent}
       UPDATE_STATE_FILE: /var/run/amazon-agent/update-state.json
       UPDATE_REQUEST_FILE: /var/run/amazon-agent/update.request
+      UPDATE_HEARTBEAT_FILE: /var/run/amazon-agent/update-worker.json
+      UPDATE_LOCK_FILE: /var/run/amazon-agent/update.lock
       APP_HEALTH_URL: http://api:8000/health
-      GIT_SSH_COMMAND: ${GIT_SSH_COMMAND:-ssh -i /run/secrets/github_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new}
     volumes:
-      - .:/opt/amazon-ops-agent
+      - ${APP_HOST_DIR:-${PWD}}:${APP_HOST_DIR:-${PWD}}
       - update_state:/var/run/amazon-agent
       - /var/run/docker.sock:/var/run/docker.sock
-      - ${GITHUB_DEPLOY_KEY_PATH:-./deploy_key}:/run/secrets/github_deploy_key:ro
+    working_dir: ${APP_HOST_DIR:-${PWD}}
+    depends_on:
+      api:
+        condition: service_started
     restart: unless-stopped
 
   web:

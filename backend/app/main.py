@@ -4,7 +4,7 @@ from typing import Literal
 from uuid import UUID
 
 import httpx
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
@@ -16,7 +16,7 @@ from .db import connection
 from .llm import LLMNotConfigured, ask_external_llm
 from .importer import SCHEMAS, parse_csv
 from .workspace import router as workspace_router, initialize_sop
-from .updater import read_state, start_update, verify_admin_token, version_info
+from .updater import read_state, start_update, version_info
 from .workflow_auth import router as auth_router, require_admin, require_user
 from .process import router as process_router, reject_legacy_process_write
 from .approvals import router as approvals_router
@@ -99,19 +99,20 @@ def health():
 
 
 @app.get("/api/system/version")
-def system_version():
+def system_version(response: Response):
+    response.headers['Cache-Control']='no-store'
     return version_info()
 
 
 @app.get("/api/system/update-status")
-def system_update_status():
+def system_update_status(response: Response):
+    response.headers['Cache-Control']='no-store'
     return read_state()
 
 
 @app.post("/api/system/update", status_code=202)
-def system_update(x_admin_token: str | None = Header(default=None)):
-    verify_admin_token(x_admin_token)
-    return start_update()
+def system_update(actor=Depends(require_admin)):
+    return start_update(actor)
 
 
 @app.get("/api/products")

@@ -11,3 +11,4 @@
 .oa-application-summary{cursor:pointer;list-style:none}.oa-application-summary::-webkit-details-marker{display:none}.oa-application-summary:after{content:"展开申请资料 ▾";display:block;padding:0 24px 12px;color:#8d80b5;font-size:10px}.oa-application-card[open] .oa-application-summary:after{content:"收起申请资料 ▴"}
 
 @media(max-width:500px){.oa-topbar{gap:8px}.oa-header-actions{flex-wrap:wrap;justify-content:flex-end;gap:5px;max-width:100%}.oa-upgrade-entry .icon{display:none}.oa-upgrade-entry{white-space:nowrap}}
+@media(max-width:480px){.oa-upgrade-entry span{max-width:76px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.oa-header-actions{flex-wrap:wrap;justify-content:flex-end}}

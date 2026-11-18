@@ -91,7 +91,7 @@ window.approvalsUI = (() => {
     const current=data.config.stages.find(s=>s.key===currentKey());const runtime=stageRuntime(current?.key)||{};
     const pendingIds=current?.type==='approval'?current.reviewer_ids:current?.assignee_ids;
     portal().innerHTML=`<section class="oa-page" role="dialog" aria-modal="true" aria-labelledby="oaTitle">
-      <header class="oa-topbar"><button class="oa-back" data-oa="close">${svg('arrow')}<span>返回全流程 SOP</span></button><div class="oa-breadcrumb">${esc(data.product.model||'当前产品')}<span>/</span>${esc(data.template?.name||data.task.title)}</div><div class="oa-header-actions"><button type="button" class="btn oa-upgrade-entry" data-action="upgrade" aria-label="版本与升级">${svg('upload')}<span>版本与升级</span></button>${isDemo?'<span class="oa-preview-label">本机示例 · 只读预览</span>':!data.user?button('登录处理审批','login'):''}${data.permissions.configure?button(svg('settings')+'配置审批流程','configure'):''}${button(svg('clock')+'流转记录','history')}</div></header>
+      <header class="oa-topbar"><button class="oa-back" data-oa="close">${svg('arrow')}<span>返回全流程 SOP</span></button><div class="oa-breadcrumb">${esc(data.product.model||'当前产品')}<span>/</span>${esc(data.template?.name||data.task.title)}</div><div class="oa-header-actions"><button type="button" class="btn oa-upgrade-entry" data-action="upgrade" aria-label="一键检查并升级">${svg('upload')}<span>一键检查并升级</span></button>${isDemo?'<span class="oa-preview-label">本机示例 · 只读预览</span>':!data.user?button('登录处理审批','login'):''}${data.permissions.configure?button(svg('settings')+'配置审批流程','configure'):''}${button(svg('clock')+'流转记录','history')}</div></header>
       <div class="oa-scroll"><div class="oa-content">
       <section class="oa-heading"><div class="oa-document-icon">${svg('file')}</div><div class="oa-title-group"><div class="oa-title-kicker">PRODUCT APPROVAL · ${esc(data.product.model||'')} ${data.product.data_source==='sample'?'<span>示例产品</span>':''}</div><div class="oa-title-row"><h1 id="oaTitle">${esc(data.template?.name||data.task.title)}<span> · ${esc(data.product.model||'')}</span></h1><span class="oa-case-state ${esc(state)}">${stateName}</span></div><p>${esc(data.task.acceptance_criteria||'按阶段提交资料、处理交接并完成指定人员验收。')}</p></div></section>
       <section class="oa-meta"><div><span>审批单号</span><strong>${esc(data.case?.number||(data.has_case?'登录后查看':'提交后生成'))}</strong></div><div><span>发起人 / 发起时间</span><strong>${data.case?esc(name(data.case.initiator_id)):data.has_case?'登录后查看':'尚未发起'}</strong><small>${data.case?datetime(data.case.created_at):data.has_case?'已有业务记录，登录查看详情':'填写申请后开始流转'}</small></div><div><span>当前阶段</span><strong>${state==='completed'?'全部环节已完成':esc(data.has_case&&!data.user?'登录后查看当前环节':current?.name||'申请准备')}</strong><small>${state==='private'?'业务记录需登录查看':data.config.stages.filter(s=>stageRuntime(s.key)?.status==='completed').length+' / '+data.config.stages.length+' 个环节完成'}</small></div><div class="oa-pending-person"><span>当前待处理人</span><strong>${state==='completed'?'已归档':state==='private'?'登录后查看':esc(names(pendingIds))}</strong><small>${current?.type==='approval'?'按指定审核顺序处理':current?.type==='handling'?'办理人员接手并提交结果':'准备申请资料并提交'}</small></div></section>
@@ -233,6 +233,7 @@ window.approvalsUI = (() => {
   async function handle(element) {
     if(busy)return;const action=element.dataset.oa;
     if(action==='close')return close();
+    if(action==='upgrade'){await showUpgrade();return;}
     if(action==='stage'){selected=element.dataset.key;panelTab='work';draw(false);}
     else if(action==='current'){selected=currentKey();panelTab='work';draw(false);}
     else if(action==='history'){if(panelTab==='config'&&dirty&&!confirm('放弃尚未保存的配置并查看历史？'))return;panelTab='history';draw(false);}
@@ -282,7 +283,7 @@ window.approvalsUI = (() => {
   document.addEventListener('submit',event=>{if(['oaApplicationForm','oaStageForm','oaProgressForm','oaConfigForm'].includes(event.target.id))event.preventDefault();});
   document.addEventListener('keydown',event=>{
     if(document.querySelector('dialog[open]'))return;
-    const page=$a('.oa-page');if(!page)return;
+    const page=$a('.oa-page');if(!page||document.querySelector('dialog[open]'))return;
     if(event.key==='Escape'){event.preventDefault();close();}
     if(event.key==='Tab'&&!document.querySelector('dialog[open]')){const focusable=Array.from(page.querySelectorAll('button:not(:disabled),input:not(:disabled):not([hidden]),select:not(:disabled),textarea:not(:disabled),a[href],summary')).filter(x=>x.getClientRects().length),first=focusable[0],last=focusable.at(-1);if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}}
   });

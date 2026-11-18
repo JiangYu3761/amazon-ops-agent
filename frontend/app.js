@@ -78,7 +78,7 @@ function render(){
  $('#eyebrow').textContent=meta[0];$('#pageTitle').textContent=meta[1];$('#pageDescription').textContent=meta[2];$('#breadcrumb').textContent=module?.name||nav.flatMap(g=>g[1]).find(x=>x[0]===view)?.[1]||'功能与系统设置';
  $('#productSelect').innerHTML=(['overview','workflow','team','calendar','settings','agent'].includes(view)?`<option value="all">全部产品 · ${ws.products.length} 个型号</option>`:'')+ws.products.map(p=>`<option value="${e(p.id)}">${e(p.model)}${p.data_source==='sample'?' · 示例':''}</option>`).join('');$('#productSelect').value=productId;
  $('#marketBadge').textContent=productId==='all'?'MULTI':current()?.marketplace||'—';$('#scopeCaption').textContent='工作范围：'+(productId==='all'?'全部产品':current()?.model||'未选择');
- $('#pageActions').innerHTML=view==='process'?'':view==='overview'?button(icon('flag')+'流程协作','navigate',true,'data-view="process"')+button(icon('link')+'产品交付清单','navigate',false,'data-view="deliverables"')+button(icon('plus')+'新建产品','new-product',true):view==='deliverables'?button(icon('plus')+'新建工作项','new-task',true):view==='calendar'?button(icon('plus')+'新建活动 / 节点','new-event',true):view==='team'?button(icon('plus')+'登记成员','new-person',true):view==='settings'?button(icon('settings')+'系统升级','upgrade',true):view==='ranking'?button(icon('plus')+'新建监控配置','new-query',true):view==='imports'?button('数据口径与模板说明','import-help'):button(icon('plus')+'新建任务','new-task',true);
+ $('#pageActions').innerHTML=view==='process'?'':view==='overview'?button(icon('flag')+'流程协作','navigate',true,'data-view="process"')+button(icon('link')+'产品交付清单','navigate',false,'data-view="deliverables"')+button(icon('plus')+'新建产品','new-product',true):view==='deliverables'?button(icon('plus')+'新建工作项','new-task',true):view==='calendar'?button(icon('plus')+'新建活动 / 节点','new-event',true):view==='team'?button(icon('plus')+'登记成员','new-person',true):view==='settings'?button(icon('settings')+'一键检查并升级','upgrade',true):view==='ranking'?button(icon('plus')+'新建监控配置','new-query',true):view==='imports'?button('数据口径与模板说明','import-help'):button(icon('plus')+'新建任务','new-task',true);
  if(mode==='error'){ $('#viewRoot').innerHTML=empty('没有读取到服务器数据','请恢复后端后刷新，或者显式选择示例体验。',button('重新连接','refresh'));return;}
  const renderers={process:()=>window.processUI?.render()||'',deliverables:renderDeliverables,overview:renderOverview,workflow:()=>renderWorkflow(),team:renderTeam,calendar:renderCalendar,ranking:renderRanking,agent:renderAgent,imports:renderImports,settings:renderSettings};
  $('#viewRoot').innerHTML=renderers[view]?renderers[view]():renderModule(module);
@@ -150,9 +150,9 @@ const coverage=[
  ['固定页面定时抓取与排名','未接通','监控参数保存、排名类型切换与历史曲线','采集Worker、调度与失败重试尚未部署'],
  ['外部AI与页面上下文','待配置','常驻入口、当前型号和页面范围、显式@跨页','需配置服务端模型；真实模型调用尚未验收'],
  ['自动经营诊断与执行','未接通','逾期、受阻、责任与审批规则；可创建跟进任务','经营诊断、广告调整和效果验证尚未形成闭环'],
- ['GitHub升级与重启','待实测','管理员口令、备份、迁移、重启与代码回滚脚本','静态站点无法执行；完整升级恢复链路待实测']
+ ['GitHub升级与重启','待实测','管理员登录、一键检查升级、备份、迁移、重启与恢复进度','静态站点无法执行；完整升级恢复链路待实测']
 ];
-function renderSettings(){return `<section class="panel"><div class="panel-head"><div><h2>需求覆盖与验收清单</h2><p>有入口 ≠ 已接入真实数据，有脚本 ≠ 已通过生产验收</p></div><span class="label">逐项说明 · 不估算完成百分比</span></div><div class="table-wrap"><table class="task-table coverage-table"><thead><tr><th>原始需求</th><th>当前状态</th><th>已经具备</th><th>仍然缺少 / 运行条件</th></tr></thead><tbody>${coverage.map(([name,status,has,lack])=>`<tr><td>${name}</td><td><span class="pill ${status==='可交互'?'completed':status==='未接通'?'blocked':'warning'}">${status}</span></td><td>${has}</td><td>${lack}</td></tr>`).join('')}</tbody></table></div></section><div class="settings-grid"><section class="panel settings-card"><span class="section-number">${icon('settings')}</span><h3 style="margin-top:13px">系统升级</h3><p>从GitHub main分支更新，备份数据库后迁移、重启并检查健康。代码回滚不等于数据库逆向迁移。</p><div class="meta"><span>当前界面版本</span><strong>v0.4 · 运营工作台</strong></div><div class="meta"><span>部署模式</span><strong>${mode==='demo'?'静态示例 / 本机保存':'Python后端'}</strong></div>${button('检查版本与升级','upgrade')}</section><section class="panel settings-card"><span class="section-number">${icon('spark')}</span><h3 style="margin-top:13px">AI与外部连接</h3><p>模型密钥保存在服务器环境变量中。页面只发送当前产品、当前页面及其筛选范围，显式 @全局 才扩大数据范围。</p><div class="meta"><span>外部模型</span><strong>${mode==='demo'?'未连接 · 本地规则回答':'由服务器配置'}</strong></div><div class="meta"><span>Amazon数据接入</span><strong>待接入 SP-API / Ads API</strong></div>${button('查看部署说明','deploy-help')}</section></div>`}
+function renderSettings(){return `<section class="panel"><div class="panel-head"><div><h2>需求覆盖与验收清单</h2><p>有入口 ≠ 已接入真实数据，有脚本 ≠ 已通过生产验收</p></div><span class="label">逐项说明 · 不估算完成百分比</span></div><div class="table-wrap"><table class="task-table coverage-table"><thead><tr><th>原始需求</th><th>当前状态</th><th>已经具备</th><th>仍然缺少 / 运行条件</th></tr></thead><tbody>${coverage.map(([name,status,has,lack])=>`<tr><td>${name}</td><td><span class="pill ${status==='可交互'?'completed':status==='未接通'?'blocked':'warning'}">${status}</span></td><td>${has}</td><td>${lack}</td></tr>`).join('')}</tbody></table></div></section><div class="settings-grid"><section class="panel settings-card"><span class="section-number">${icon('settings')}</span><h3 style="margin-top:13px">系统升级</h3><p>从GitHub main分支更新，备份数据库后迁移、重启并检查健康。代码回滚不等于数据库逆向迁移。</p><div class="meta"><span>当前界面版本</span><strong>v0.4 · 运营工作台</strong></div><div class="meta"><span>部署模式</span><strong>${mode==='demo'?'静态示例 / 本机保存':'Python后端'}</strong></div>${button('一键检查并升级','upgrade')}</section><section class="panel settings-card"><span class="section-number">${icon('spark')}</span><h3 style="margin-top:13px">AI与外部连接</h3><p>模型密钥保存在服务器环境变量中。页面只发送当前产品、当前页面及其筛选范围，显式 @全局 才扩大数据范围。</p><div class="meta"><span>外部模型</span><strong>${mode==='demo'?'未连接 · 本地规则回答':'由服务器配置'}</strong></div><div class="meta"><span>Amazon数据接入</span><strong>待接入 SP-API / Ads API</strong></div>${button('查看部署说明','deploy-help')}</section></div>`}
 function modal(title,body,foot='',wide=false){$('#modal').classList.toggle('modal-wide',wide);$('#modalContent').innerHTML=`<div class="modal-head"><h2>${title}</h2><button class="close-btn" data-action="close-modal" aria-label="关闭弹窗">×</button></div><div class="modal-body">${body}</div>${foot?`<div class="modal-foot">${foot}</div>`:''}`;if(!$('#modal').open)$('#modal').showModal()}
 function closeModal(){$('#modal').close()}
 function ownerOptions(id,emptyLabel='待指定'){return `<option value="">${emptyLabel}</option>`+ws.people.map(p=>`<option value="${e(p.id)}" ${p.id===id?'selected':''}>${e(p.display_name)} / ${e(p.department)}</option>`).join('')}
@@ -214,20 +214,133 @@ function localAnswer(scope){
 }
 async function sendAI(ev){ev.preventDefault();const input=$('#aiInput'),message=input.value.trim();if(!message)return;const prefix=Object.keys(scopePrefixes).find(k=>message.startsWith(k)),scope=prefix?scopePrefixes[prefix]:view,key=contextKey(),label=(productId==='all'?'全部型号':current()?.model)+' / '+contextTitle(scope)+' / '+today();chatLogs[key]=chatLogs[key]||[];chatLogs[key].push({role:'user',text:message,scope:label});input.value='';updateAIContext();$('#sendAI').disabled=true;let answer;
  try{if(mode==='server'&&productId!=='all'){const result=await api('/api/agent/chat',{method:'POST',body:JSON.stringify({product_id:productId,page_id:view==='overview'?'dashboard':view==='process'?'workflow':view,message,conversation_id:conversations[key]||null,filters:{delivery_category:deliveryCategory,delivery_readiness:deliveryReadiness,delivery_kind:deliveryKind,status:filterState,owner_id:filterOwner==='all'?null:filterOwner,module:filterModule,phase:filterPhase,search:query,rank_type:rankType,rank_keyword:rankKeyword,month:isoDate(calendarMonth).slice(0,7)}})});answer=result.answer;conversations[key]=result.conversation_id;}else answer=localAnswer(scope)+(mode==='server'?'\n如需外部模型分析，请先选择一个具体型号。':'');}catch(err){answer='请求未完成：'+err.message+'。没有替换为模拟模型回答。'}chatLogs[key].push({role:'assistant',text:answer,scope:label});if(key===contextKey()&&$('#aiPanel').classList.contains('open'))updateAIContext();if($('#sendAI'))$('#sendAI').disabled=false;}
-async function showUpgrade(){
- modal('系统版本与升级',`<div id="upgradeStatus" class="alert info" role="status">正在读取当前版本与服务器配置…</div><div class="update-steps">${['检查GitHub','备份PostgreSQL','构建与迁移','重启服务','健康检查','失败恢复代码'].map(s=>`<span>${s}</span>`).join('')}</div><label class="field">管理员升级口令<input id="updateToken" type="password" autocomplete="off" disabled placeholder="升级服务启用后，由管理员输入"></label><div class="alert">服务器升级由部署管理员授权。数据库迁移和服务重启可能短暂中断使用。</div>`,button('关闭','close-modal')+button('升级至 main 最新提交并重启','run-upgrade',true,'disabled id="runUpgradeBtn"'));
- try{
-  const data=await api('/api/system/version');if(!$('#upgradeStatus'))return;
-  $('#upgradeStatus').textContent=`版本：${data.version} · 提交：${(data.commit||'unknown').slice(0,12)} · ${data.update_enabled?'升级服务已启用':'当前部署未启用升级服务，请由部署管理员完成配置。'}`;
-  $('#runUpgradeBtn').disabled=!data.update_enabled;$('#updateToken').disabled=!data.update_enabled;
- }catch(err){
-  if(!$('#upgradeStatus'))return;
-  $('#upgradeStatus').className='alert';
-  $('#upgradeStatus').textContent=(mode==='demo'||err.noBackend)?'当前是静态预览，未连接服务器升级服务。':err.status===404?'当前后端未提供升级接口，请由部署管理员更新服务。':'升级服务读取失败：'+err.message;
+const upgradeActiveStatuses=new Set(['queued','checking','backing_up','updating','restarting','rolling_back','recovering']);
+const upgradeTerminalStatuses=new Set(['succeeded','up_to_date','failed']);
+const upgradeFlow={serial:0,posting:false,waiting:false,uncertain:false,startedAt:0,lastJob:null,version:null,loginPending:false,reloadTimer:null};
+function upgradeDialogOpen(){return !!($('#modal')?.open&&$('#upgradeStatus'));}
+function upgradeTime(value){return value?new Date(value).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai',hour12:false}):'尚未完成检查';}
+function upgradeCommit(value,fallback='等待检查'){return !value||value==='unknown'?fallback:String(value).slice(0,12);}
+function upgradeView(){
+ modal('一键检查并升级',`<div id="upgradeStatus" class="upgrade-notice checking" role="status" aria-live="polite"><span class="upgrade-status-mark">↥</span><div><strong id="upgradeHeadline">正在连接升级服务…</strong><p id="upgradeDetail">正在核对管理员身份及当前版本。</p></div></div><div class="upgrade-meta"><div><span>当前版本</span><strong id="upgradeCurrent">读取中</strong></div><div><span>目标版本</span><strong id="upgradeTarget">等待检查</strong></div><div class="upgrade-last-check"><span>最后检查时间</span><strong id="upgradeChecked">尚未完成检查</strong></div></div><ol class="upgrade-progress" aria-label="升级进度">${[['checking','检查新版'],['backing_up','备份数据'],['updating','准备新版'],['restarting','重启服务'],['succeeded','健康检查']].map(([status,label],index)=>`<li data-upgrade-step="${status}"><span>${index+1}</span>${label}</li>`).join('')}</ol><div id="upgradeLoginActions"></div><p class="upgrade-help" id="upgradeHelp">升级使用当前登录的管理员身份。窗口关闭后，已建立的升级任务继续在服务器运行。</p>`,button('关闭','close-modal'));
+}
+async function upgradeRequest(path,options={}){
+ let response;const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),20000);
+ try{response=await fetch(path,{...options,signal:controller.signal,headers:{Accept:'application/json','X-Workflow-Request':'1',...(options.body?{'Content-Type':'application/json'}:{}),...options.headers}});}catch(cause){const error=new Error('暂时无法连接升级服务');error.connection=true;throw error;}finally{clearTimeout(timeout);}
+ const jsonType=(response.headers.get('content-type')||'').includes('application/json');
+ const payload=jsonType?await response.json().catch(()=>({})):{};
+ if(!response.ok||!jsonType){const detail=payload.detail;const error=new Error(typeof detail==='string'?detail:detail?.message||`升级服务暂时不可用（${response.status}）`);error.status=response.status;error.code=detail?.code||payload.code;error.job=detail?.job||payload.job;error.noBackend=response.ok&&!jsonType;throw error;}
+ return payload;
+}
+function paintUpgrade(job={},message={}){
+ if(!upgradeDialogOpen())return;
+ const version=upgradeFlow.version||{},combined={...version,...job};
+ const status=message.status||job.status||'checking';
+ const text={queued:['升级请求已接收','正在等待服务器开始检查新版。'],checking:['正在检查 GitHub 新版','将自动获取 main 分支的最新版本。'],backing_up:['正在备份数据','正在保存升级前的数据与运行文件。'],updating:['正在准备新版本','正在下载代码、构建服务并执行必要迁移。'],restarting:['正在重启并检查服务','短暂连接中断属于升级过程的一部分，页面会继续读取进度。'],rolling_back:['正在恢复上一版本','新版未通过检查，正在恢复可用版本。'],recovering:['正在恢复升级任务状态','服务器正在核对上次任务的运行结果，页面会继续读取恢复进度。'],succeeded:['升级成功','新版已通过健康检查。'],up_to_date:['已经是最新版本','检查完成，当前已经运行 main 分支的最新提交。'],failed:['升级未完成','当前操作未成功，请查看下方说明后重试。'],reconnecting:['正在重新连接服务','服务器可能正在重启。正在读取已有任务进度，不会重复发起升级。'],login_required:['请先登录管理员账户','登录成功后，会自动继续本次检查与升级。'],forbidden:['当前账户没有升级权限','请由流程管理员使用自己的账户操作。'],unavailable:['升级服务暂不可用','请联系维护人员检查服务器升级服务连接。']}[status]||['正在读取升级进度','请稍候…'];
+ $('#upgradeStatus').className='upgrade-notice '+status;
+ $('#upgradeHeadline').textContent=message.title||text[0];
+ $('#upgradeDetail').textContent=message.detail||(job.detail&&!/^[a-f0-9]{7,64}$/i.test(String(job.detail).trim())?job.detail:'')||text[1];
+ $('#upgradeCurrent').textContent=upgradeCommit(status==='succeeded'?(combined.target_commit||combined.commit):(combined.current_commit||combined.commit),'尚未取得版本');
+ $('#upgradeTarget').textContent=upgradeCommit(combined.target_commit,status==='up_to_date'?'与当前版本一致':status==='checking'||status==='queued'?'检查中':'尚未取得目标版本');
+ $('#upgradeChecked').textContent=upgradeTime(combined.last_checked_at);
+ const order=['checking','backing_up','updating','restarting','succeeded'];
+ const index=status==='up_to_date'?order.length:order.indexOf(status==='queued'||status==='recovering'?'checking':status);
+ document.querySelectorAll('[data-upgrade-step]').forEach((node,i)=>{node.classList.toggle('complete',status==='succeeded'||status==='up_to_date'||i<index);node.classList.toggle('active',i===index&&upgradeActiveStatuses.has(status));});
+ if($('#upgradeLoginActions'))$('#upgradeLoginActions').innerHTML=status==='login_required'?button('登录管理员账户','upgrade-login',true):'';
+}
+function stopUpgradePolling(){clearTimeout(pollTimer);pollTimer=null;}
+function finishUpgrade(job){
+ stopUpgradePolling();upgradeFlow.lastJob=job;upgradeFlow.waiting=false;upgradeFlow.uncertain=false;paintUpgrade(job);
+ if(job.status==='succeeded'&&upgradeDialogOpen()){
+  $('#upgradeHelp').textContent='新版已就绪，页面将自动刷新以载入更新后的界面。';
+  clearTimeout(upgradeFlow.reloadTimer);
+  upgradeFlow.reloadTimer=setTimeout(()=>{if(upgradeDialogOpen()&&upgradeFlow.lastJob?.request_id===job.request_id)location.reload();},2500);
  }
 }
-async function runUpgrade(){const token=$('#updateToken').value;if(!token)return toast('请输入管理员升级口令。');if(!confirm('升级将备份数据库、更新代码并重启服务，期间会短暂中断。确认执行？'))return;try{await api('/api/system/update',{method:'POST',headers:{'X-Admin-Token':token}});$('#updateToken').value='';$('#runUpgradeBtn').disabled=true;pollUpgrade(0);}catch(err){$('#upgradeStatus').textContent=err.message}}
-async function pollUpgrade(attempt){clearTimeout(pollTimer);if(!$('#modal').open||!$('#upgradeStatus'))return;if(attempt>180){$('#upgradeStatus').textContent='超过自动观察时限，请在服务器核实升级状态后重新检查。';return}try{const r=await api('/api/system/update-status');$('#upgradeStatus').textContent=`${{checking:'检查更新',backing_up:'备份数据库',updating:'更新与构建',restarting:'重启中',rolling_back:'恢复旧代码',succeeded:'升级成功',up_to_date:'已经是最新提交',failed:'升级失败'}[r.status]||r.status} · ${r.detail||r.error||''}`;if(['succeeded','failed','up_to_date'].includes(r.status)){$('#runUpgradeBtn').disabled=false;if(r.status==='succeeded')setTimeout(()=>location.reload(),1500);return}}catch{$('#upgradeStatus').textContent='服务暂时不可用，正在等待重启恢复…'}pollTimer=setTimeout(()=>pollUpgrade(attempt+1),3000)}
+async function showUpgrade(){
+ if(upgradeDialogOpen()&&(upgradeFlow.posting||upgradeFlow.waiting))return;
+ const resume=upgradeFlow.waiting||upgradeFlow.posting;
+ const serial=++upgradeFlow.serial;stopUpgradePolling();clearTimeout(upgradeFlow.reloadTimer);upgradeView();
+ if(upgradeFlow.lastJob)paintUpgrade(upgradeFlow.lastJob,{status:'checking',title:resume?'正在恢复已有升级进度…':'正在检查升级权限…'});
+ const results=await Promise.allSettled([upgradeRequest('/api/workflow-auth/session'),upgradeRequest('/api/system/version'),upgradeRequest('/api/system/update-status')]);
+ if(serial!==upgradeFlow.serial||!upgradeDialogOpen())return;
+ const [sessionResult,versionResult,statusResult]=results;
+ if(versionResult.status==='fulfilled')upgradeFlow.version=versionResult.value;
+ if(statusResult.status==='fulfilled')upgradeFlow.lastJob=statusResult.value;
+ if(sessionResult.status==='rejected'){
+  const error=sessionResult.reason;
+  if(error.status===401){paintUpgrade(upgradeFlow.lastJob||{},{status:'login_required'});return;}
+  paintUpgrade(upgradeFlow.lastJob||{},{status:'unavailable',detail:error.noBackend||mode==='demo'?'当前页面为静态预览，尚未连接可升级的服务器。':'无法核对管理员登录状态，请稍后再试。'});return;
+ }
+ const session=sessionResult.value;
+ if(!session.user){paintUpgrade(upgradeFlow.lastJob||{},{status:'login_required'});return;}
+ if(!session.user.is_admin){paintUpgrade(upgradeFlow.lastJob||{},{status:'forbidden'});return;}
+ const job=statusResult.status==='fulfilled'?statusResult.value:null;
+ if(job&&upgradeActiveStatuses.has(job.status)){
+  upgradeFlow.waiting=true;upgradeFlow.uncertain=false;paintUpgrade(job);scheduleUpgradePoll(0,serial);return;
+ }
+ if(resume&&job&&upgradeTerminalStatuses.has(job.status)){finishUpgrade(job);return;}
+ if(upgradeFlow.posting){paintUpgrade(job||{},{status:'checking',title:'升级请求正在发送…'});return;}
+ await runUpgrade(serial);
+}
+async function loginForUpgrade(){
+ if(upgradeFlow.loginPending||upgradeFlow.posting)return;
+ upgradeFlow.loginPending=true;
+ try{
+  if(!window.processUI?.login){paintUpgrade(upgradeFlow.lastJob||{},{status:'unavailable',detail:'个人账户登录入口暂不可用，请稍后重新打开页面。'});upgradeFlow.loginPending=false;return;}
+  $('#modal').close();await window.processUI.login();
+  const loginDialog=$('#pwAuthDialog');
+  if(!loginDialog){upgradeFlow.loginPending=false;return;}
+  loginDialog.addEventListener('close',async()=>{
+   upgradeFlow.loginPending=false;
+   // This continuation is attached once to this login dialog. Cancelling login
+   // opens an explanatory state; successful administrator login sends one POST.
+   await showUpgrade();
+  },{once:true});
+ }catch(error){upgradeFlow.loginPending=false;upgradeView();paintUpgrade({},{status:'unavailable',detail:'登录暂时未完成，请稍后重试。'});}
+}
+async function runUpgrade(serial=upgradeFlow.serial){
+ if(upgradeFlow.posting||serial!==upgradeFlow.serial||!upgradeDialogOpen())return;
+ upgradeFlow.posting=true;upgradeFlow.startedAt=Date.now();upgradeFlow.uncertain=false;
+ paintUpgrade(upgradeFlow.lastJob||{},{status:'checking',title:'正在发送检查与升级请求…',detail:'请求将自动检查新版，并在需要时完成升级。'});
+ try{
+  const job=await upgradeRequest('/api/system/update',{method:'POST'});
+  upgradeFlow.lastJob=job;upgradeFlow.waiting=upgradeActiveStatuses.has(job.status);upgradeFlow.posting=false;
+  if(upgradeTerminalStatuses.has(job.status))finishUpgrade(job);
+  else{paintUpgrade(job);scheduleUpgradePoll(0,upgradeFlow.serial);}
+ }catch(error){
+  upgradeFlow.posting=false;
+  if(error.job&&upgradeActiveStatuses.has(error.job.status)){upgradeFlow.lastJob=error.job;upgradeFlow.waiting=true;paintUpgrade(error.job);scheduleUpgradePoll(0,upgradeFlow.serial);return;}
+  if(error.status===401){upgradeFlow.waiting=false;paintUpgrade(upgradeFlow.lastJob||{},{status:'login_required'});return;}
+  if(error.status===403){upgradeFlow.waiting=false;paintUpgrade(upgradeFlow.lastJob||{},{status:'forbidden'});return;}
+  if(error.code==='worker_unavailable'||error.code==='updates_disabled'||error.status===409){upgradeFlow.waiting=false;paintUpgrade(upgradeFlow.lastJob||{},{status:'unavailable',detail:error.message});return;}
+  // A response lost during a restart may hide an accepted request. Read the
+  // existing job until its outcome is known; never resend the POST automatically.
+  upgradeFlow.waiting=true;upgradeFlow.uncertain=true;
+  paintUpgrade(upgradeFlow.lastJob||{},{status:'reconnecting',detail:'暂时无法确认请求是否已接收，正在读取服务器任务状态。'});scheduleUpgradePoll(0,upgradeFlow.serial);
+ }
+}
+function scheduleUpgradePoll(attempt,serial){
+ stopUpgradePolling();if(!upgradeDialogOpen())return;
+ pollTimer=setTimeout(()=>pollUpgrade(attempt,serial),2500);
+}
+async function pollUpgrade(attempt=0,serial=upgradeFlow.serial){
+ stopUpgradePolling();if(serial!==upgradeFlow.serial||!upgradeDialogOpen())return;
+ if(attempt>=360){upgradeFlow.waiting=false;paintUpgrade(upgradeFlow.lastJob||{},{status:'failed',detail:'等待升级结果超时。服务器任务可能仍在运行，重新打开“一键检查并升级”可读取最新状态。'});return;}
+ try{
+  const job=await upgradeRequest('/api/system/update-status');
+  if(serial!==upgradeFlow.serial||!upgradeDialogOpen())return;
+  const recent=!upgradeFlow.uncertain||job.started_at&&new Date(job.started_at).getTime()>=upgradeFlow.startedAt-5000;
+  if(upgradeActiveStatuses.has(job.status)){
+   upgradeFlow.uncertain=false;upgradeFlow.waiting=true;upgradeFlow.lastJob=job;paintUpgrade(job);
+  }else if(upgradeTerminalStatuses.has(job.status)&&recent){finishUpgrade(job);return;}
+  else if(upgradeFlow.uncertain&&attempt>=5){upgradeFlow.waiting=false;paintUpgrade(job,{status:'failed',title:'尚未确认升级请求',detail:'服务器未返回本次升级任务。再次点击“一键检查并升级”可手动重试。'});return;}
+  else paintUpgrade(job,{status:'reconnecting',detail:'正在等待服务器返回本次升级任务进度。'});
+ }catch(error){
+  if(serial!==upgradeFlow.serial||!upgradeDialogOpen())return;
+  paintUpgrade(upgradeFlow.lastJob||{},{status:'reconnecting'});
+ }
+ scheduleUpgradePoll(attempt+1,serial);
+}
 async function refreshWorkspace(notify=true){if(mode==='server'){ws=await api('/api/workspace');if(productId!=='all'&&!product(productId))productId='all';}if(notify){renderShell();render();toast(mode==='demo'?'已重新读取本机示例状态。':'已重新读取服务器数据。')}}
 async function handleAction(el){const a=el.dataset.action,id=el.dataset.id;
  switch(a){
@@ -265,7 +378,7 @@ async function handleAction(el){const a=el.dataset.action,id=el.dataset.id;
  case 'import-help':modal('导入口径与限制','<div class="alert info">目前支持标准化CSV模板，不会自动识别各种Amazon原始报表。</div><p class="muted">统一日期 YYYY-MM-DD；金额按产品币种，不跨币种相加；SKU和ASIN归属当前型号。必填值缺失不按0处理；同一日期、SKU（广告为Campaign+对象）覆盖更新。成本是单件金额，不能当期间总费用。</p>',button('关闭','close-modal'));break;
  case 'finding-task':{const f=findings().find(x=>x.key===el.dataset.key);if(!f)return;const existing=(ws.actions||[]).find(x=>x.key===f.key&&productId===x.product_id&&ws.tasks.some(t=>t.id===x.task_id&&!done(t)));if(existing){openTask(existing.task_id);break;}newTask({product_id:f.tasks[0].product_id,module_code:'review',title:'跟进：'+f.title,description:f.action,acceptance_criteria:'关联发现逐项闭环，登记处理证据和复核结果。',finding_key:f.key});break;}
  case 'init-sop':if(current()){await api(`/api/products/${current().id}/workflow`,{method:'POST'});await refreshWorkspace();toast('已补全标准SOP。')}break;
- case 'upgrade':await showUpgrade();break;case 'run-upgrade':await runUpgrade();break;
+ case 'upgrade':await showUpgrade();break;case 'upgrade-login':await loginForUpgrade();break;case 'run-upgrade':await showUpgrade();break;
  case 'deploy-help':modal('真实运行的接入条件','<div class="alert">该在线站点为静态前端，连接真实数据库需要另行部署Python服务。</div><p class="muted">GitHub仓库包含Docker Compose、PostgreSQL迁移与部署说明。模型通过服务器 LLM_API_BASE、LLM_API_KEY、LLM_MODEL 配置，密钥不放在网页中。SP-API、Ads API、采集Worker与完整登录权限尚待建设。</p>',button('关闭','close-modal'));break;
  case 'refresh':window.processUI?.invalidate();if(mode==='error')await load();else await refreshWorkspace();break;
  case 'demo':mode='demo';ws=makeDemo();productId='all';persist();renderShell();render();break;

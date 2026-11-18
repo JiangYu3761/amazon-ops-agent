@@ -1,5 +1,5 @@
 FROM docker:27-cli
-RUN apk add --no-cache git openssh-client python3 curl gzip docker-cli-compose
-WORKDIR /opt/amazon-ops-agent
+RUN apk add --no-cache git python3 curl docker-cli-compose
+# Compose mounts the checkout at its actual host path, so daemon-created bind
+# mounts resolve consistently regardless of the user's chosen project directory.
 CMD ["sh", "scripts/update_worker.sh"]
-
