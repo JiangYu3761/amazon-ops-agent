@@ -1,13 +1,16 @@
 import json
+import hashlib
+from contextlib import asynccontextmanager
 from datetime import date
 from typing import Literal
 from uuid import UUID
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
 from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from psycopg.types.json import Jsonb
 
 from .agent import analyze_product
@@ -20,19 +23,30 @@ from .updater import read_state, start_update, version_info
 from .workflow_auth import router as auth_router, require_admin, require_user
 from .process import router as process_router, reject_legacy_process_write
 from .approvals import router as approvals_router
+from .data_automation import router as data_router, load_product_analytics, _audit, _json
 
 
-app = FastAPI(title="Amazon Operations Agent API", version="0.4.0")
+@asynccontextmanager
+async def lifespan(app):
+    from .sync_worker import SyncWorker
+    worker=SyncWorker()
+    worker.start()
+    try:yield
+    finally:worker.stop()
+
+
+app = FastAPI(title="Amazon Operations Agent API", version="0.5.0",lifespan=lifespan)
 app.include_router(workspace_router)
 app.include_router(auth_router)
 app.include_router(process_router)
 app.include_router(approvals_router)
+app.include_router(data_router)
 
 
 @app.middleware('http')
 async def private_process_responses(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/process', '/api/workflow-auth', '/api/approvals')):
+    if request.url.path.startswith(('/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/analytics','/imports','/operating-summary','/records')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 app.add_middleware(
@@ -59,6 +73,14 @@ class ProductCreate(BaseModel):
     lifecycle_stage: str = "pre_launch"
     target_launch_date: date | None = None
     currency: str = "USD"
+    business_timezone: str = 'America/Los_Angeles'
+
+    @field_validator('business_timezone')
+    @classmethod
+    def valid_zone(cls,value):
+        try:ZoneInfo(value)
+        except (ZoneInfoNotFoundError,ValueError):raise ValueError('需要有效的 IANA 业务时区') from None
+        return value
 
 
 class ApprovalDecision(BaseModel):
@@ -133,10 +155,10 @@ def create_product(body: ProductCreate, actor=Depends(require_admin)):
     with connection() as conn:
         try:
             product = conn.execute(
-                """INSERT INTO products(model,name,marketplace,asin,sku,brand,product_type,lifecycle_stage,target_launch_date,current_stage,currency)
-                   VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,'档案建立',%s) RETURNING *""",
+                """INSERT INTO products(model,name,marketplace,asin,sku,brand,product_type,lifecycle_stage,target_launch_date,current_stage,currency,business_timezone)
+                   VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,'档案建立',%s,%s) RETURNING *""",
                 (body.model.strip(), body.name.strip(), body.marketplace, body.asin, body.sku, body.brand,
-                 body.product_type, body.lifecycle_stage, body.target_launch_date,body.currency),
+                 body.product_type, body.lifecycle_stage, body.target_launch_date,body.currency,body.business_timezone),
             ).fetchone()
             initialize_sop(conn, product["id"])
             conn.commit()
@@ -304,36 +326,46 @@ def import_template(import_type: str):
 
 
 @app.post("/api/products/{product_id}/imports", status_code=201)
-async def import_operating_data(product_id: UUID, import_type: str = Form(...), file: UploadFile = File(...)):
+async def import_operating_data(product_id: UUID, import_type: str = Form(...), file: UploadFile = File(...), actor=Depends(require_admin)):
     if import_type not in SCHEMAS:
         raise HTTPException(422, "Unsupported import type")
-    raw = await file.read()
+    raw = await file.read(10 * 1024 * 1024+1)
     if len(raw) > 10 * 1024 * 1024:
         raise HTTPException(413, "CSV file is limited to 10 MB")
-    try:
-        rows, errors = parse_csv(import_type, raw)
-    except (UnicodeDecodeError, ValueError) as exc:
-        raise HTTPException(422, str(exc)) from exc
-    if not rows:
-        raise HTTPException(422, {"message": "No valid rows", "errors": errors[:20]})
     with connection() as conn:
         product=conn.execute("SELECT sku,asin,currency FROM products WHERE id=%s", (product_id,)).fetchone()
         if not product:
             raise HTTPException(404, "Product not found")
+        try:
+            rows, errors = parse_csv(import_type, raw,default_currency=product['currency'])
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise HTTPException(422, str(exc)) from exc
+        if not rows:
+            raise HTTPException(422, {"message": "No valid rows", "errors": errors[:20]})
+        mappings=conn.execute('SELECT sku,asin FROM operating_product_mappings WHERE product_id=%s',(product_id,)).fetchall()
+        allowed_skus={p['sku'] for p in mappings if p['sku']}|({product['sku']} if product['sku'] else set())
+        allowed_asins={p['asin'] for p in mappings if p['asin']}|({product['asin']} if product['asin'] else set())
         for row in rows:
-            if row.get('sku') and product.get('sku') and row['sku']!=product['sku']:
+            if row.get('sku') and allowed_skus and row['sku'] not in allowed_skus:
                 raise HTTPException(422, 'SKU belongs to a different product')
-            if row.get('asin') and product.get('asin') and row['asin']!=product['asin']:
+            if row.get('asin') and allowed_asins and row['asin'] not in allowed_asins:
                 raise HTTPException(422, 'ASIN belongs to a different product')
             if import_type!='inventory' and row.get('currency')!=product['currency']:
                 raise HTTPException(422, 'Currency must match product currency')
         import_row = conn.execute(
-            """INSERT INTO data_imports(product_id,import_type,filename,status,row_count,error_count,errors)
-               VALUES(%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
+            """INSERT INTO data_imports(product_id,import_type,filename,status,row_count,error_count,errors,imported_by)
+               VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
             (product_id, import_type, file.filename or "upload.csv", "completed_with_errors" if errors else "completed",
-             len(rows), len(errors), Jsonb(errors[:100])),
+             len(rows), len(errors), Jsonb(errors[:100]),actor['id']),
         ).fetchone()
+        previous_rows=[]
+        table,day_field={'sales':('sales_daily','sale_date'),'advertising':('ad_performance_daily','report_date'),
+            'inventory':('inventory_snapshots','snapshot_date'),'costs':('cost_records','effective_date')}[import_type]
         for row in rows:
+            key_fields=('campaign_name','entity_name') if import_type=='advertising' else ('sku',)
+            previous=conn.execute('SELECT * FROM '+table+' WHERE product_id=%s AND '+day_field+'=%s AND '+
+                ' AND '.join(k+'=%s' for k in key_fields),(product_id,row['date'],*(row.get(k,'') for k in key_fields))).fetchone()
+            if previous:previous_rows.append(dict(previous))
             if import_type == "sales":
                 conn.execute("""INSERT INTO sales_daily VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
                     ON CONFLICT(product_id,sale_date,sku) DO UPDATE SET asin=EXCLUDED.asin,units_ordered=EXCLUDED.units_ordered,
@@ -356,32 +388,47 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
                     first_mile_cost=EXCLUDED.first_mile_cost,fba_fee=EXCLUDED.fba_fee,referral_fee=EXCLUDED.referral_fee,
                     other_cost=EXCLUDED.other_cost,currency=EXCLUDED.currency,import_id=EXCLUDED.import_id""",
                     (product_id,row["date"],row["sku"],row["product_cost"],row["first_mile_cost"],row["fba_fee"],row["referral_fee"],row["other_cost"],row["currency"],import_row["id"]))
-        conn.execute("UPDATE data_imports SET completed_at=now() WHERE id=%s", (import_row["id"],))
+        conn.execute('INSERT INTO operating_csv_artifacts(import_id,product_id,content_sha256,normalized_rows,previous_rows,actor_id) VALUES(%s,%s,%s,%s,%s,%s)',
+            (import_row['id'],product_id,hashlib.sha256(raw).hexdigest(),Jsonb(_json(rows)),Jsonb(_json(previous_rows)),actor['id']))
+        _audit(conn,actor,'data_import',import_row['id'],'imported',after={'product_id':str(product_id),
+            'dataset':import_type,'row_count':len(rows),'error_count':len(errors),
+            'content_sha256':hashlib.sha256(raw).hexdigest()})
+        import_row=conn.execute("UPDATE data_imports SET completed_at=now() WHERE id=%s RETURNING *", (import_row["id"],)).fetchone()
         conn.commit()
     return {**import_row, "errors": errors[:20]}
 
 
 @app.get("/api/products/{product_id}/imports")
-def list_imports(product_id: UUID):
+def list_imports(product_id: UUID,actor=Depends(require_user)):
     with connection() as conn:
         return conn.execute("SELECT * FROM data_imports WHERE product_id=%s ORDER BY created_at DESC LIMIT 50", (product_id,)).fetchall()
 
 
 @app.get("/api/products/{product_id}/operating-summary")
-def operating_summary(product_id: UUID):
+def operating_summary(product_id: UUID,actor=Depends(require_user)):
+    # Backward-compatible fields, now derived from the same engine as the UI.
+    from datetime import datetime,timedelta,timezone
     with connection() as conn:
-        sales = conn.execute("""SELECT COUNT(*) rows,SUM(units_ordered) units,SUM(ordered_revenue) revenue
-            FROM sales_daily WHERE product_id=%s AND sale_date BETWEEN CURRENT_DATE-29 AND CURRENT_DATE""", (product_id,)).fetchone()
-        ads = conn.execute("""SELECT COUNT(*) rows,SUM(spend) spend,SUM(attributed_sales) sales,
-            SUM(clicks) clicks,SUM(impressions) impressions
-            FROM ad_performance_daily WHERE product_id=%s AND report_date BETWEEN CURRENT_DATE-29 AND CURRENT_DATE""", (product_id,)).fetchone()
-        inventory = conn.execute("""SELECT SUM(fulfillable) fulfillable,SUM(reserved) reserved,SUM(inbound) inbound,SUM(unsellable) unsellable,MAX(snapshot_date) snapshot_date FROM inventory_snapshots
-            WHERE product_id=%s AND snapshot_date=(SELECT MAX(snapshot_date) FROM inventory_snapshots WHERE product_id=%s)""", (product_id,product_id)).fetchone()
-        if inventory and inventory["snapshot_date"] is None:
-            inventory=None
-        costs=conn.execute("SELECT COUNT(*) n FROM cost_records WHERE product_id=%s",(product_id,)).fetchone()["n"]
-        imports = conn.execute("SELECT import_type,MAX(created_at) latest FROM data_imports WHERE product_id=%s GROUP BY import_type", (product_id,)).fetchall()
-    return {"period_days": 30, "sales": sales, "advertising": ads, "inventory": inventory, "latest_imports": imports, "cost_count": costs}
+        product=conn.execute('SELECT business_timezone FROM products WHERE id=%s',(product_id,)).fetchone()
+        if not product:raise HTTPException(404,'Product not found')
+        end=datetime.now(timezone.utc).astimezone(ZoneInfo(product['business_timezone'])).date()
+        data=load_product_analytics(conn,product_id,end-timedelta(days=29),end)
+        imports=conn.execute('SELECT import_type,MAX(created_at) latest FROM data_imports WHERE product_id=%s GROUP BY import_type',(product_id,)).fetchall()
+    metrics={module:{m['key']:m for m in body['metrics']} for module,body in data['modules'].items()}
+    def value(module,key):return metrics[module].get(key,{}).get('value')
+    counts=data['record_counts']
+    inventory=None
+    if value('inventory','fulfillable') is not None:
+        inventory={key:value('inventory',key) for key in ('fulfillable','reserved','inbound','unsellable')}
+        dates=metrics['inventory']['fulfillable'].get('inputs',{}).get('snapshot_dates',{})
+        inventory.update(snapshot_dates=dates,snapshot_date=max(dates.values()) if dates else None,
+                         oldest_snapshot_date=min(dates.values()) if dates else None)
+    return {'period_days':30,'period':data['period'],'engine_version':data['engine_version'],
+        'data_quality':data['data_quality'],'calculation_source':'deterministic_engine',
+        'sales':{'rows':counts['sales'],'units':value('shop','units_ordered'),'revenue':value('shop','ordered_revenue')},
+        'advertising':{'rows':counts['advertising'],'spend':value('ads','spend'),'sales':value('ads','attributed_sales'),
+            'clicks':value('ads','clicks'),'impressions':value('ads','impressions'),'scope':data['modules']['ads'].get('scope')},
+        'inventory':inventory,'latest_imports':imports,'cost_count':counts['costs']}
 
 
 @app.post("/api/products/{product_id}/tracking-queries", status_code=201)
@@ -432,7 +479,7 @@ def run_agent_analysis(product_id: UUID):
 
 
 @app.post("/api/agent/chat")
-async def agent_chat(body: AgentChatRequest):
+async def agent_chat(body: AgentChatRequest,actor=Depends(require_user)):
     scope, question = resolve_scope(body.message, body.page_id)
     if not question:
         raise HTTPException(422, "Message is required")
@@ -441,6 +488,26 @@ async def agent_chat(body: AgentChatRequest):
         if not product:
             raise HTTPException(404, "Product not found")
         context = build_context(conn, body.product_id, scope, body.filters)
+        if scope in {'dashboard','global','shop','listing','ads','inventory','calendar','finance','service','compliance','agent'}:
+            try:
+                start=date.fromisoformat(body.filters['start_date']) if body.filters.get('start_date') else None
+                end=date.fromisoformat(body.filters['end_date']) if body.filters.get('end_date') else None
+            except (ValueError,TypeError):raise HTTPException(422,'经营日期需要有效的 YYYY-MM-DD') from None
+            analytics=load_product_analytics(conn,body.product_id,start,end)
+            selected=analytics['modules'] if scope in {'dashboard','global','agent'} else {scope:analytics['modules'][scope]}
+            context['calculated_metrics']={'period':analytics['period'],'generated_at':analytics['generated_at'],
+                'currency':analytics['product']['currency'],'modules':selected,
+                'data_quality':analytics['data_quality']}
+            context['as_of']=analytics['period']['as_of']
+            context['record_sample_warning']='原始明细有条数限制，仅作抽样；期间结果以 calculated_metrics 中相同范围的后端指标为准。'
+        if scope=='settings':
+            from .data_automation import _public_connection
+            rows=conn.execute('''SELECT DISTINCT c.* FROM operating_connections c
+                JOIN operating_product_mappings m ON m.connection_id=c.id WHERE m.product_id=%s''',(body.product_id,)).fetchall()
+            states=[_public_connection(conn,row) for row in rows]
+            context['system']={'version':'0.5.0','amazon_sources':[
+                {k:state[k] for k in ('name','provider','status','last_success_at','last_error')} for state in states],
+                'permissions':'管理员配置连接与算法参数，成员按现有登录体系查看结果；平台业务修改不自动执行'}
         context = json.loads(json.dumps(context, default=str))
         conversation_id = body.conversation_id
         if conversation_id is not None:

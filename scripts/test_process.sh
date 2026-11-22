@@ -28,6 +28,7 @@ assert test_db.startswith('homa_workflow_test_') and test_path == '/tmp/'+test_d
 original = urlsplit(os.environ['DATABASE_URL'])
 os.environ['DATABASE_URL'] = urlunsplit(original._replace(path='/'+test_db))
 os.environ['WORKFLOW_INTEGRATION'] = '1'
+os.environ['SYNC_WORKER_ENABLED'] = 'false'
 os.environ['WORKFLOW_SETUP_TOKEN'] = secrets.token_urlsafe(32)
 os.environ['WORKFLOW_UPLOAD_DIR'] = test_path+'/uploads'
 try:

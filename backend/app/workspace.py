@@ -228,7 +228,7 @@ def add_event(body:EventBody):
     return row
 
 @router.get('/products/{product_id}/records')
-def operating_records(product_id:UUID,kind:Literal['ads','inventory','finance']):
+def operating_records(product_id:UUID,kind:Literal['ads','inventory','finance'],actor=Depends(require_user)):
     table,sort={'ads':('ad_performance_daily','report_date'),'inventory':('inventory_snapshots','snapshot_date'),'finance':('cost_records','effective_date')}[kind]
     with connection() as conn:
         return conn.execute(f'SELECT * FROM {table} WHERE product_id=%s ORDER BY {sort} DESC LIMIT 100',(product_id,)).fetchall()

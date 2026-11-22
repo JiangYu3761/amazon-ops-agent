@@ -18,6 +18,9 @@ services:
     image: redis:7-alpine
 
   api:
+    env_file:
+      - path: .env
+        required: false
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -39,6 +42,13 @@ services:
       WORKFLOW_COOKIE_SECURE: ${WORKFLOW_COOKIE_SECURE:-false}
       WORKFLOW_SETUP_TOKEN_FILE: /var/run/amazon-agent/workflow-setup-token
       WORKFLOW_UPLOAD_DIR: /var/run/amazon-agent/workflow-uploads
+      SYNC_WORKER_ENABLED: ${SYNC_WORKER_ENABLED:-true}
+      AMAZON_SP_API_CLIENT_ID: ${AMAZON_SP_API_CLIENT_ID:-}
+      AMAZON_SP_API_CLIENT_SECRET: ${AMAZON_SP_API_CLIENT_SECRET:-}
+      AMAZON_SP_API_REFRESH_TOKEN: ${AMAZON_SP_API_REFRESH_TOKEN:-}
+      AMAZON_ADS_CLIENT_ID: ${AMAZON_ADS_CLIENT_ID:-}
+      AMAZON_ADS_CLIENT_SECRET: ${AMAZON_ADS_CLIENT_SECRET:-}
+      AMAZON_ADS_REFRESH_TOKEN: ${AMAZON_ADS_REFRESH_TOKEN:-}
     depends_on:
       db:
         condition: service_healthy
