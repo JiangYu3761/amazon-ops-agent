@@ -1,0 +1,2383 @@
+[
+  {
+    "id": "inventory",
+    "title": "备货与库存",
+    "purpose": "供应链负责人从风险测算到入仓对账，对每笔补货的量、钱、承诺日和实收差额负责；运营确认销量场景，采购、仓配和财务分别回填回执。",
+    "roles": [
+      "供应链计划",
+      "采购",
+      "生产质检",
+      "物流仓配",
+      "运营",
+      "财务",
+      "指定审核人"
+    ],
+    "scope": "店铺＋站点＋SKU＋风险窗口或采购批次；同一审批引用既有 SOP 与附件版本。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "replenish",
+        "title": "补货与采购申请",
+        "purpose": "确认销量情景、补货数量、支付节点与最迟下单日。",
+        "source": "经营计算的销量覆盖、库存与参数；人工核对供应商报价、箱规和到账条件。",
+        "action": "提交补货草案",
+        "output": "审批后由采购回填采购单和支付节点，特殊加急交主管决定。",
+        "fields": [
+          {
+            "key": "suggested_qty",
+            "label": "引擎建议量",
+            "type": "number",
+            "required": true,
+            "help": "按当前版本和单位件抄录",
+            "min": 0
+          },
+          {
+            "key": "requested_qty",
+            "label": "申请量",
+            "type": "number",
+            "required": true,
+            "help": "本次采购的件数",
+            "min": 1
+          },
+          {
+            "key": "adjustment",
+            "label": "调整方式",
+            "type": "select",
+            "required": true,
+            "help": "与建议量核对",
+            "options": [
+              "按建议量",
+              "人工调整"
+            ]
+          },
+          {
+            "key": "adjust_reason",
+            "label": "调整依据",
+            "type": "textarea",
+            "required": false,
+            "help": "引述活动、现金或箱规的具体变化"
+          },
+          {
+            "key": "order_by",
+            "label": "最迟下单日",
+            "type": "date",
+            "required": true,
+            "help": "由目标入仓日倒排"
+          },
+          {
+            "key": "quote_ref",
+            "label": "报价及付款条款",
+            "type": "text",
+            "required": true,
+            "help": "填供应商报价编号和付款节点"
+          },
+          {
+            "key": "scenario_basis",
+            "label": "手工情景依据",
+            "type": "select",
+            "required": false,
+            "help": "仅用于本申请的情景对比，逐项核对完整已结束销售日、可售快照和确认 ETA；已有系统经营指标保持原值。",
+            "options": [
+              "完整销售日及新鲜快照已核实",
+              "依据不完整"
+            ]
+          },
+          {
+            "key": "sold_qty",
+            "label": "情景期间销量（件）",
+            "type": "number",
+            "required": false,
+            "help": "完整且已结束销售日内同 SKU 总销量",
+            "min": 0
+          },
+          {
+            "key": "closed_days",
+            "label": "完整已结束销售日数",
+            "type": "number",
+            "required": false,
+            "help": "缺一天或含当天时选择依据不完整",
+            "min": 1
+          },
+          {
+            "key": "available_qty",
+            "label": "情景可售（件）",
+            "type": "number",
+            "required": false,
+            "help": "当前可售库存，预留已经扣除",
+            "min": 0
+          },
+          {
+            "key": "eligible_inbound",
+            "label": "周期内确认在途（件）",
+            "type": "number",
+            "required": false,
+            "help": "人工按批次只汇总目标周期内有确认 ETA 的件数，确认没有则填 0",
+            "min": 0
+          },
+          {
+            "key": "lead_days",
+            "label": "补货提前期（天）",
+            "type": "number",
+            "required": false,
+            "help": "采购到可售天数",
+            "min": 0
+          },
+          {
+            "key": "safety_days",
+            "label": "安全天数",
+            "type": "number",
+            "required": false,
+            "help": "已批策略值",
+            "min": 0
+          },
+          {
+            "key": "review_days",
+            "label": "复查周期（天）",
+            "type": "number",
+            "required": false,
+            "help": "已批策略值",
+            "min": 0
+          },
+          {
+            "key": "min_order",
+            "label": "最小订购量（件）",
+            "type": "number",
+            "required": false,
+            "help": "供应商确认的整件下限",
+            "min": 1
+          },
+          {
+            "key": "pack_size",
+            "label": "每箱件数",
+            "type": "number",
+            "required": false,
+            "help": "整箱包装单位",
+            "min": 1
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "requested_qty",
+              "suggested_qty"
+            ],
+            "label": "申请量偏差",
+            "message": "正数为高于建议量，负数为低于建议量。"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "adjustment",
+              "adjust_reason"
+            ],
+            "label": "人工调整说明",
+            "message": "请说明偏离建议量的依据。",
+            "when": "人工调整"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "order_by"
+            ],
+            "label": "下单时限",
+            "message": "按业务日期显示剩余天数。"
+          }
+        ]
+      },
+      {
+        "id": "production",
+        "title": "排产、质检与货件",
+        "purpose": "跟踪采购批准后供应商承诺日期和装运条件。",
+        "source": "采购回执、工厂排产、质检报告、装箱清单和货件回执由经办人登记。",
+        "action": "登记生产货件",
+        "output": "形成可核对的采购、检验和货件关联，移交物流。",
+        "fields": [
+          {
+            "key": "po_ref",
+            "label": "采购单号",
+            "type": "text",
+            "required": true,
+            "help": "已实际下单的采购编号"
+          },
+          {
+            "key": "production_date",
+            "label": "投产日",
+            "type": "date",
+            "required": true,
+            "help": "工厂确认的开工日"
+          },
+          {
+            "key": "completion_date",
+            "label": "预计完工日",
+            "type": "date",
+            "required": true,
+            "help": "本次排产对应的完工日"
+          },
+          {
+            "key": "inspection",
+            "label": "质检结果",
+            "type": "select",
+            "required": true,
+            "help": "据质检报告登记",
+            "options": [
+              "待检",
+              "合格",
+              "有异常"
+            ]
+          },
+          {
+            "key": "corrective_action",
+            "label": "异常处置",
+            "type": "textarea",
+            "required": false,
+            "help": "返工、复验及经办人"
+          },
+          {
+            "key": "packing_ref",
+            "label": "箱规及货件资料",
+            "type": "text",
+            "required": true,
+            "help": "记录箱规版本和装箱单或在办资料编号"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "production_date",
+              "completion_date"
+            ],
+            "label": "生产排期",
+            "message": "预计完工日应在投产日当天或之后。"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "inspection",
+              "corrective_action"
+            ],
+            "label": "质量异常处理",
+            "message": "请登记返工或复验安排。",
+            "when": "有异常"
+          }
+        ]
+      },
+      {
+        "id": "receiving",
+        "title": "头程、到仓与差异",
+        "purpose": "核对运输承诺、实收和可售，转交短收、损坏、索赔。",
+        "source": "承运单、货件跟踪、签收证明、亚马逊接收明细及可售快照。",
+        "action": "登记收货对账",
+        "output": "实际数量、承运或仓库差异及凭证归档；未平差额继续追踪。",
+        "fields": [
+          {
+            "key": "shipment_ref",
+            "label": "货件及承运引用",
+            "type": "text",
+            "required": true,
+            "help": "记录货件号、提单或跟踪引用"
+          },
+          {
+            "key": "confirmed_eta",
+            "label": "确认到仓日",
+            "type": "date",
+            "required": true,
+            "help": "注明来源，未确认在途保留在库存快照"
+          },
+          {
+            "key": "shipped_qty",
+            "label": "发运件数",
+            "type": "number",
+            "required": true,
+            "help": "取装箱清单",
+            "min": 0
+          },
+          {
+            "key": "received_qty",
+            "label": "实收件数",
+            "type": "number",
+            "required": true,
+            "help": "取接收回执，允许超收或短收",
+            "min": 0
+          },
+          {
+            "key": "receipt_ref",
+            "label": "接收明细",
+            "type": "text",
+            "required": true,
+            "help": "平台回执或正式盘点记录"
+          },
+          {
+            "key": "claim_ref",
+            "label": "索赔跟踪",
+            "type": "textarea",
+            "required": false,
+            "help": "差额原因、下一跟进日期和索赔号"
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "received_qty",
+              "shipped_qty"
+            ],
+            "label": "收发差额",
+            "message": "负值需调查短收，正值核对混收；允许保存实际差异。"
+          }
+        ]
+      },
+      {
+        "id": "aging",
+        "title": "库龄与容量处置",
+        "purpose": "逐批评估滞销、仓容、移除和清仓后果。",
+        "source": "库龄报告、容量明细、报价与人工核对的批次。",
+        "action": "登记处置方案",
+        "output": "经批准后在平台执行，凭移除单或清仓回执验证实际处置量。",
+        "fields": [
+          {
+            "key": "batch_ref",
+            "label": "批次及库龄段",
+            "type": "text",
+            "required": true,
+            "help": "站点仓库报告中的批次或库龄区间"
+          },
+          {
+            "key": "affected_qty",
+            "label": "待处理可处置量",
+            "type": "number",
+            "required": true,
+            "help": "扣除无法处置的冻结件数",
+            "min": 0
+          },
+          {
+            "key": "plan_qty",
+            "label": "计划处置量",
+            "type": "number",
+            "required": true,
+            "help": "本次计划件数",
+            "min": 0
+          },
+          {
+            "key": "disposition",
+            "label": "处置方式",
+            "type": "select",
+            "required": true,
+            "help": "选择后附方案依据",
+            "options": [
+              "观察",
+              "促销清货",
+              "移除",
+              "调拨"
+            ]
+          },
+          {
+            "key": "cost_basis",
+            "label": "费用与影响",
+            "type": "textarea",
+            "required": true,
+            "help": "仓储费、处置费用、预计回款及依据"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "plan_qty",
+              "affected_qty"
+            ],
+            "label": "计划量上限",
+            "message": "计划处置量不能超过该批可处置数量。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "核实供货周期及产能，按店铺＋站点＋SKU＋风险窗口或采购批次选定办理对象。",
+      "完整数据出建议→经办核量核 ETA→审核通过待采购→录入采购单、付款计划和供应商确认→生产与质检→建 FBA 货件→承运、签收、接收与可售→差异查证或关闭。无 ETA 排除对应在途；审批退回保留输入和原版；逾期重估；短收转索赔并持续跟进",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。对账索赔、移除或清仓并复盘交期。"
+    ],
+    "rules": [
+      {
+        "name": "需求完整性",
+        "inputs": "SKU 完整已结束销售日、站点业务日期与库存快照年龄",
+        "logic": "排除今天；保留已证实零销量日；按每个 SKU 取分析日及之前最新库存。",
+        "missing": "缺完整日、快照超期或没有销售口径时列出缺项，阻止给定建议件数。",
+        "output": "数据管理员补销售覆盖；供应链复核库存时点。"
+      },
+      {
+        "name": "触发与整箱申请",
+        "inputs": "有效日均、可售、目的仓确认 ETA 及合格批次数量、MOQ、箱规和策略版本",
+        "logic": "按 SKU 计算日均销量 d＝已完结且全覆盖期间销量÷天数，可售天数＝fulfillable÷d；触发线 d×(提前期＋安全天数)；缺口＝max(0,d×(提前期＋安全天数＋复查周期)−可售−周期内确认到仓量)。缺口>0 时 max(缺口,MOQ) 向上取整到整箱。零需求不算覆盖天数",
+        "missing": "缺必要参数只出补证项，未确认 ETA 的在途单列。",
+        "output": "带逐项计算、版本和原范围的采购草案。"
+      },
+      {
+        "name": "到货缺口和赔偿",
+        "inputs": "采购单、货件、在途及预计到仓、分批实收、可售转换和索赔回执",
+        "logic": "逐货件对账累计实收−累计发运；同一回执去重；签收、FBA 接收、可售分别记时点。",
+        "missing": "无回执保留待对账，不能按预计到仓确认可售。",
+        "output": "供应链跟进短收、破损与索赔，运营复查缺货和复核日。"
+      }
+    ],
+    "ai": {
+      "inputs": "需求窗需完整已结束销售日；可售、预留、在途、不可售分列且为非负整数；过期库存显示快照时间；交期与安全天数≥0；MOQ 与箱规为正整数；经确认 ETA 需有数量、批次、确认日期和凭证",
+      "draft": "给出有日期的数据、建议件数及分过程风险，比较确认 ETA／加急／保守销量情景；缺参数列出责任人与补数入口。运营采纳只生成补货草案",
+      "human": "供应链负责人从风险测算到入仓对账，对每笔补货的量、钱、承诺日和实收差额负责；运营确认销量场景，采购、仓配和财务分别回填回执。",
+      "example": "按这个 SKU 的完整销售日和真实库存快照，说明补货量和预计断货窗口。无 ETA 的在途请另列。"
+    },
+    "tests": [
+      {
+        "input": "14 个完整日销量140，可售90，48在途无 ETA；提前期14、安全3、复查7，MOQ96、每箱24。",
+        "action": "计算库存并建补货草案。",
+        "expect": "日均10，覆盖9天，触发170件，目标240件，建议168件；在途48单列。"
+      },
+      {
+        "input": "同样需求，48件 ETA 确认落在目标周期内。",
+        "action": "按新策略版本重算并同时点击采纳两次。",
+        "expect": "补货缺口102，整箱取120；同一建议仅关联一个申请，旧测算仍可查。"
+      },
+      {
+        "input": "缺销售日或库存已过期；另有一货件发运120实收108。",
+        "action": "打开补货与入仓差异。",
+        "expect": "补货显示缺项而无建议量；入仓保留−12件差异，签收不直接增加可售。"
+      }
+    ]
+  },
+  {
+    "id": "finance",
+    "title": "成本与利润",
+    "purpose": "财务管理成本生效版本、预算及资金计划，逐单期核对回款、费用和已知贡献。运营提供价格、活动和广告变更依据，主管审批预算与核销差额。",
+    "roles": [
+      "财务核算",
+      "运营",
+      "预算负责人",
+      "指定审核人"
+    ],
+    "scope": "店铺＋站点＋SKU＋币种＋生效日；结算批次与明细外部 ID 去重，核销行链接订单或费用单。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "cost_card",
+        "title": "SKU 成本卡",
+        "purpose": "管理单位采购、头程、履约、佣金和其他费用的生效版本。",
+        "source": "供应商报价、物流账单及平台费率；核准后通过成本导入落账。",
+        "action": "登记成本版本",
+        "output": "形成待审成本变更，供销售日匹配和后续经营核算。",
+        "fields": [
+          {
+            "key": "sku",
+            "label": "成本商品编码",
+            "type": "text",
+            "required": true,
+            "help": "与产品映射的 SKU 一致"
+          },
+          {
+            "key": "currency",
+            "label": "成本币种",
+            "type": "text",
+            "required": true,
+            "help": "与产品主档一致的三位币种"
+          },
+          {
+            "key": "effective_from",
+            "label": "生效日",
+            "type": "date",
+            "required": true,
+            "help": "费用版本的首个业务日"
+          },
+          {
+            "key": "verified_on",
+            "label": "依据核实日",
+            "type": "date",
+            "required": true,
+            "help": "财务核对依据的日期"
+          },
+          {
+            "key": "product_cost",
+            "label": "采购单件成本",
+            "type": "number",
+            "required": true,
+            "help": "原币单件",
+            "min": 0
+          },
+          {
+            "key": "freight_cost",
+            "label": "头程单件成本",
+            "type": "number",
+            "required": true,
+            "help": "原币分摊到每件",
+            "min": 0
+          },
+          {
+            "key": "fba_fee",
+            "label": "履约单件费",
+            "type": "number",
+            "required": true,
+            "help": "仓配履约单件",
+            "min": 0
+          },
+          {
+            "key": "referral_fee",
+            "label": "佣金单件额",
+            "type": "number",
+            "required": true,
+            "help": "按实际核算口径",
+            "min": 0
+          },
+          {
+            "key": "other_cost",
+            "label": "其他单件成本",
+            "type": "number",
+            "required": true,
+            "help": "缺项留待补，不默认零",
+            "min": 0
+          },
+          {
+            "key": "basis_ref",
+            "label": "成本依据",
+            "type": "text",
+            "required": true,
+            "help": "原始票据或版本索引"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "effective_from"
+            ],
+            "label": "成本生效时点",
+            "message": "供区分待生效或回溯生效版本。"
+          }
+        ]
+      },
+      {
+        "id": "budget_cash",
+        "title": "预算与现金安排",
+        "purpose": "核准可用预算并对采购付款、广告支出和预计回款排程。",
+        "source": "已批预算、采购条款、平台回款计划及本期现金余额。",
+        "action": "登记预算复核",
+        "output": "确认或退回预算，向经办人交付支付计划或资金缺口处置。",
+        "fields": [
+          {
+            "key": "category",
+            "label": "支出类别",
+            "type": "select",
+            "required": true,
+            "help": "按预算归属选择",
+            "options": [
+              "广告",
+              "活动",
+              "素材",
+              "采购"
+            ]
+          },
+          {
+            "key": "currency",
+            "label": "币种",
+            "type": "text",
+            "required": true,
+            "help": "在同一币种下核算"
+          },
+          {
+            "key": "budget_amount",
+            "label": "核准预算",
+            "type": "number",
+            "required": true,
+            "help": "本期同范围金额",
+            "min": 0
+          },
+          {
+            "key": "forecast_spend",
+            "label": "预计总支出",
+            "type": "number",
+            "required": true,
+            "help": "含已承诺支出，防止重复计算",
+            "min": 0
+          },
+          {
+            "key": "payment_date",
+            "label": "计划付款日",
+            "type": "date",
+            "required": true,
+            "help": "供应商或平台约定日期"
+          },
+          {
+            "key": "funding",
+            "label": "回款及缺口依据",
+            "type": "textarea",
+            "required": true,
+            "help": "可用余额、回款批次和最迟决策日"
+          },
+          {
+            "key": "opening_cash",
+            "label": "期初现金",
+            "type": "number",
+            "required": false,
+            "help": "同币种、同周期的期初可用现金，可为负"
+          },
+          {
+            "key": "incoming_cash",
+            "label": "预计流入",
+            "type": "number",
+            "required": false,
+            "help": "仅已标明时点的同币种预计回款",
+            "min": 0
+          },
+          {
+            "key": "outgoing_cash",
+            "label": "预计流出",
+            "type": "number",
+            "required": false,
+            "help": "同期间全部预计付款，无重复预算金额",
+            "min": 0
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "budget_amount",
+              "forecast_spend"
+            ],
+            "label": "预测预算余额",
+            "message": "负数保留并交主管决策。"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "payment_date"
+            ],
+            "label": "付款时限",
+            "message": "显示待付款剩余天数。"
+          }
+        ]
+      },
+      {
+        "id": "settlement",
+        "title": "回款与费用对账",
+        "purpose": "逐批核对销售、折扣、退款、仓储扣费、实际支付及异常差额。",
+        "source": "平台结算单、交易明细、银行到账凭据；当前人工取得并核验。",
+        "action": "登记结算差异",
+        "output": "财务附调整依据并由指定审核人签核，原始回款批次可追溯。",
+        "fields": [
+          {
+            "key": "settlement_ref",
+            "label": "结算批次",
+            "type": "text",
+            "required": true,
+            "help": "平台结算编号"
+          },
+          {
+            "key": "currency",
+            "label": "币种",
+            "type": "text",
+            "required": true,
+            "help": "同币种同结算周期"
+          },
+          {
+            "key": "expected_net",
+            "label": "预期净结算",
+            "type": "number",
+            "required": true,
+            "help": "带正负号，含退款和费用"
+          },
+          {
+            "key": "actual_net",
+            "label": "实际到账净额",
+            "type": "number",
+            "required": true,
+            "help": "允许负数或实际零"
+          },
+          {
+            "key": "bank_ref",
+            "label": "资金回执",
+            "type": "text",
+            "required": true,
+            "help": "到账或扣款的脱敏引用"
+          },
+          {
+            "key": "difference_note",
+            "label": "核对说明",
+            "type": "textarea",
+            "required": true,
+            "help": "列出费用类型、来源行和后续处理"
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "actual_net",
+              "expected_net"
+            ],
+            "label": "结算差额",
+            "message": "保留原币正负差异，待核项目逐行跟进。"
+          }
+        ]
+      },
+      {
+        "id": "contribution",
+        "title": "单品利润复核",
+        "purpose": "明确单件成本覆盖、广告范围和净利润尚缺费用。",
+        "source": "同一期间经营接口、成本有效版本、退款、税、仓储、期间费和结算依据。",
+        "action": "登记利润复核",
+        "output": "交付带供应范围、缺项和纠差责任人的财务复核记录。",
+        "fields": [
+          {
+            "key": "period_start",
+            "label": "起算日",
+            "type": "date",
+            "required": true,
+            "help": "站点业务日期"
+          },
+          {
+            "key": "period_end",
+            "label": "截止日",
+            "type": "date",
+            "required": true,
+            "help": "站点业务日期"
+          },
+          {
+            "key": "sold_units",
+            "label": "期间销量",
+            "type": "number",
+            "required": true,
+            "help": "采用同范围完整销售日",
+            "min": 0
+          },
+          {
+            "key": "matched_units",
+            "label": "有效成本覆盖件数",
+            "type": "number",
+            "required": true,
+            "help": "按销售日有效成本版本匹配",
+            "min": 0
+          },
+          {
+            "key": "expense_scope",
+            "label": "费用覆盖说明",
+            "type": "textarea",
+            "required": true,
+            "help": "说明仅 SP 或其他已接渠道及缺失费用"
+          },
+          {
+            "key": "currency",
+            "label": "原币币种",
+            "type": "text",
+            "required": false,
+            "help": "本次分析统一的三位币种"
+          },
+          {
+            "key": "ordered_revenue",
+            "label": "同期订购销售额",
+            "type": "number",
+            "required": false,
+            "help": "同币种，不叠加广告归因销售",
+            "min": 0
+          },
+          {
+            "key": "matched_cost",
+            "label": "同期已匹配成本合计",
+            "type": "number",
+            "required": false,
+            "help": "逐销售日匹配有效成本版本，按销量合计",
+            "min": 0
+          },
+          {
+            "key": "ad_spend",
+            "label": "同期已核广告花费",
+            "type": "number",
+            "required": false,
+            "help": "与上列同币种；与费用说明核对广告渠道范围",
+            "min": 0
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "period_start",
+              "period_end"
+            ],
+            "label": "利润期间",
+            "message": "结束不能早于起算日。"
+          },
+          {
+            "op": "lte",
+            "keys": [
+              "matched_units",
+              "sold_units"
+            ],
+            "label": "成本覆盖范围",
+            "message": "已匹配件数不得超过销量。"
+          },
+          {
+            "op": "ratio",
+            "keys": [
+              "matched_units",
+              "sold_units"
+            ],
+            "label": "有效成本覆盖率",
+            "message": "零销量显示无可计算分母。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "建成本卡和生效版本，按店铺＋站点＋SKU＋币种＋生效日选定办理对象。",
+      "导入销售/成本/费用→缺项退财务补数→按销售日匹配成本版本→出具已知贡献和覆盖→结算到款逐行匹配→差额分配责任、附解释→复核签核；追补旧成本产生重算版本，原批准口径可回查",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。复核利润、现金预测与预算偏差。"
+    ],
+    "rules": [
+      {
+        "name": "生效版本匹配",
+        "inputs": "SKU、站点、币种、销售日及成本卡历史",
+        "logic": "逐笔选择销售日已生效的最近有效五项成本版本；覆盖率＝已匹配件数÷总售件数。",
+        "missing": "未匹配 SKU 列量和缺项，不能作为零成本。",
+        "output": "财务逐 SKU 修复后生成重算记录。"
+      },
+      {
+        "name": "贡献与净利",
+        "inputs": "订购销售额、单件费用版本、已接入广告来源及其归因/时区",
+        "logic": "销售额＝Σ订购销售额，逐笔成本＝件数×销售日有效五项成本和；贡献＝销售额−已知单件成本，另列扣已覆盖广告渠道花费的结果。退款、税费、期间费、仓储或结算欠缺时不出真实净利润。现金滚动余额＝期初现金＋预计回款−计划付款，预测与实际分列",
+        "missing": "覆盖不足保留已知费用、缺少项和覆盖率；缺结算只能查看估算。",
+        "output": "财务提供可展开的成本行、已知贡献及费用缺口。"
+      },
+      {
+        "name": "支付对账",
+        "inputs": "同币种结算净额与银行实际到账、可核对的调整项",
+        "logic": "到账减应收减已解释调整为待核销差额；按结算行一对一或带合计的一对多匹配。",
+        "missing": "缺回单、汇率或手续费依据按原币分别留待核实。",
+        "output": "财务核对异常扣费并交指定审核人签核。"
+      }
+    ],
+    "ai": {
+      "inputs": "成本卡的五项成本必须有值、非负、同币种；零写明依据；销售日按站点业务时区。结算退款/费用为有符号明细，保留原币及换汇依据；无汇率时按币种分别展示",
+      "draft": "解释差异来自销量、版本、成本或覆盖变化，展示数据集、时间和币种；输出对账候选和异常费用核查任务。财务确认归因和凭证后签核",
+      "human": "财务管理成本生效版本、预算及资金计划，逐单期核对回款、费用和已知贡献。运营提供价格、活动和广告变更依据，主管审批预算与核销差额。",
+      "example": "解释本期贡献额与结算差额，逐条列示成本版本、缺失费用和待核对凭据。"
+    },
+    "tests": [
+      {
+        "input": "成本4/1为10、4/10为12；4/9卖2件、4/10卖3件，收入100。",
+        "action": "区分生效版本计算。",
+        "expect": "总成本56、广告前贡献44；不可将未来12应用到全部销量。"
+      },
+      {
+        "input": "USD 与 GBP 混合，某 SKU 缺历史成本。",
+        "action": "查看期间贡献并尝试汇总。",
+        "expect": "按币种展示，缺成本标原因和覆盖件数，经营贡献及净利不填零。"
+      },
+      {
+        "input": "同一结算行预期净额1000、银行回款990，重复提交同一回执。",
+        "action": "登记差额及复核。",
+        "expect": "差额−10，财务有待核项；同一交易不会重复抵销。"
+      }
+    ]
+  },
+  {
+    "id": "service",
+    "title": "订单与售后",
+    "purpose": "客服管工单响应和买家沟通，运营跟进取消、未配送与履约异常；仓配核退件、财务核退款、产品和质控接收同类问题改进。",
+    "roles": [
+      "客服",
+      "订单运营",
+      "仓配",
+      "财务",
+      "质控",
+      "指定审核人"
+    ],
+    "scope": "店铺＋站点＋内部工单 ID；脱敏订单引用、订单行、退回包裹及退款交易分别关联。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "case_intake",
+        "title": "订单异常与首响",
+        "purpose": "接收未配送、取消、连接和订阅等工单，记录承诺与升级人。",
+        "source": "平台工单、订单报表或客服人工登记的脱敏引用。",
+        "action": "认领客服工单",
+        "output": "责任人完成首响并回填平台回执，需仓配或产品协助时交接。",
+        "fields": [
+          {
+            "key": "order_ref",
+            "label": "脱敏订单或工单号",
+            "type": "text",
+            "required": true,
+            "help": "仅记录办理必要标识"
+          },
+          {
+            "key": "issue_type",
+            "label": "问题类型",
+            "type": "select",
+            "required": true,
+            "help": "按买家实际问题分流",
+            "options": [
+              "未配送",
+              "取消",
+              "破损",
+              "安装连接",
+              "订阅",
+              "其他"
+            ]
+          },
+          {
+            "key": "reply_due",
+            "label": "下一响应截止日",
+            "type": "date",
+            "required": true,
+            "help": "原平台精确截止时刻写入证据"
+          },
+          {
+            "key": "promise",
+            "label": "承诺与责任",
+            "type": "text",
+            "required": true,
+            "help": "下一动作、精确时区和对外承诺"
+          },
+          {
+            "key": "reply_ref",
+            "label": "平台回复引用",
+            "type": "text",
+            "required": false,
+            "help": "实际发送回执或平台记录"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "reply_due"
+            ],
+            "label": "响应时限",
+            "message": "超期事项优先升级，保留原承诺。"
+          }
+        ]
+      },
+      {
+        "id": "returns",
+        "title": "退件与退款核对",
+        "purpose": "区分退货数量、退款金额、包裹状态及平台处理结果。",
+        "source": "退货授权、物流回执、平台退款行及脱敏订单行。",
+        "action": "登记售后核算",
+        "output": "退件交仓库核实，退款回执交财务核账。",
+        "fields": [
+          {
+            "key": "order_line",
+            "label": "订单行引用",
+            "type": "text",
+            "required": true,
+            "help": "脱敏订单行及退货批次"
+          },
+          {
+            "key": "ordered_qty",
+            "label": "对应销售件数",
+            "type": "number",
+            "required": true,
+            "help": "同订单行已售件数",
+            "min": 0
+          },
+          {
+            "key": "return_qty",
+            "label": "本批退货件数",
+            "type": "number",
+            "required": true,
+            "help": "按件记录，疑似超退单独调查",
+            "min": 0
+          },
+          {
+            "key": "refund_state",
+            "label": "退款状态",
+            "type": "select",
+            "required": true,
+            "help": "分开记录申请与实际过账",
+            "options": [
+              "待核",
+              "已过账",
+              "拒绝"
+            ]
+          },
+          {
+            "key": "refund_ref",
+            "label": "退款交易或凭证",
+            "type": "text",
+            "required": false,
+            "help": "过账时提供平台回执及原币金额"
+          },
+          {
+            "key": "reason",
+            "label": "退货原因与证据",
+            "type": "textarea",
+            "required": true,
+            "help": "物流、故障、买家使用等原因"
+          },
+          {
+            "key": "cohort_match",
+            "label": "批次口径核实",
+            "type": "select",
+            "required": false,
+            "help": "逐项核对店铺、站点、SKU、销售批次和观察截止日。",
+            "options": [
+              "已核实同批次",
+              "范围未对齐"
+            ]
+          },
+          {
+            "key": "cohort_orders",
+            "label": "批次订单数",
+            "type": "number",
+            "required": false,
+            "help": "同一观察窗口的去重订单数",
+            "min": 0
+          },
+          {
+            "key": "refund_orders",
+            "label": "批次退款订单数",
+            "type": "number",
+            "required": false,
+            "help": "已确认退款的去重订单，不是退款笔数",
+            "min": 0
+          },
+          {
+            "key": "cohort_units",
+            "label": "批次销售件数",
+            "type": "number",
+            "required": false,
+            "help": "与退货件数使用同一销售批次",
+            "min": 0
+          },
+          {
+            "key": "returned_units",
+            "label": "批次确认退货件数",
+            "type": "number",
+            "required": false,
+            "help": "同批次去重退货件数，不含仅申请的退货",
+            "min": 0
+          }
+        ],
+        "checks": [
+          {
+            "op": "ratio",
+            "keys": [
+              "return_qty",
+              "ordered_qty"
+            ],
+            "label": "本行退货占比",
+            "message": "分母为零显示缺依据；异常超退应调查。"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "refund_state",
+              "refund_ref"
+            ],
+            "label": "过账依据",
+            "message": "实际退款需平台交易凭证。",
+            "when": "已过账"
+          }
+        ]
+      },
+      {
+        "id": "voc",
+        "title": "体验主题与复核",
+        "purpose": "将重复买家问题交给产品、包装、质检或商品页负责人。",
+        "source": "脱敏工单、买家之声摘要、已有 FAQ 版本及改进凭证。",
+        "action": "创建体验改进复核",
+        "output": "形成引用原工单的改进草案；复核效果后闭环或重开。",
+        "fields": [
+          {
+            "key": "topic",
+            "label": "问题主题",
+            "type": "text",
+            "required": true,
+            "help": "描述可验证现象或安装、订阅场景"
+          },
+          {
+            "key": "case_refs",
+            "label": "工单来源",
+            "type": "text",
+            "required": true,
+            "help": "关联内部编号，避免重复计数"
+          },
+          {
+            "key": "handoff",
+            "label": "交接去向",
+            "type": "select",
+            "required": true,
+            "help": "指定后续核查岗位",
+            "options": [
+              "产品与质控",
+              "包装供应链",
+              "Listing 内容",
+              "客服知识库"
+            ]
+          },
+          {
+            "key": "review_on",
+            "label": "效果复核日",
+            "type": "date",
+            "required": true,
+            "help": "改进上线后约定的检查时间"
+          },
+          {
+            "key": "outcome_basis",
+            "label": "验证依据",
+            "type": "textarea",
+            "required": true,
+            "help": "同类工单口径、销量基数及改进版本"
+          },
+          {
+            "key": "reason_basis",
+            "label": "主因归类口径",
+            "type": "select",
+            "required": false,
+            "help": "采用同批去重的已归类事项，每条只归入一个主因。",
+            "options": [
+              "同批去重且单一主因",
+              "含重复或未核分类"
+            ]
+          },
+          {
+            "key": "reason_count",
+            "label": "该主因事项数",
+            "type": "number",
+            "required": false,
+            "help": "同一口径下命中此主因的事项数",
+            "min": 0
+          },
+          {
+            "key": "classified_count",
+            "label": "已归类事项总数",
+            "type": "number",
+            "required": false,
+            "help": "仅同一批次已明确主因的去重事项",
+            "min": 0
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "review_on"
+            ],
+            "label": "体验复核时间",
+            "message": "到期后请按同口径补充实际结果。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "按站点建立脱敏工单，按店铺＋站点＋内部工单 ID选定办理对象。",
+      "工单建立→认领→初次响应→等待外部或内部→履约/按授权退款或退件→登记平台结果→确认解决→关闭。退款待审≠已退款；未答复按承诺升级；复发以原工单重开，关联改进任务复核结果",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。将 VOC 主题交给质控、Listing 或供应链并复核。"
+    ],
+    "rules": [
+      {
+        "name": "工单响应排序",
+        "inputs": "站点时间、平台规定时限、内部承诺、上次真实回复",
+        "logic": "按下一截止时刻和状态排序，等待外部时保留内部下一跟进时间。",
+        "missing": "缺截止时列需确认，可将无法定位的异常转交主管。",
+        "output": "客服接单、回应及超时升级队列。"
+      },
+      {
+        "name": "退款与退货",
+        "inputs": "脱敏订单、订单行批次、退款交易或退货件、同期匹配分母",
+        "logic": "队列按下一响应时刻和承诺状态排序。退款率＝对应订单批次有退款订单数÷该批次订单数；退货率＝该批次退货件数÷对应销售件数。去重退款订单，部分退货按件数；分母缺失或为0输出原因，不用工单数做分母",
+        "missing": "缺平台结果、批次映射或分母显示待补。",
+        "output": "财务核款，客服与仓配按同一批次核对。"
+      },
+      {
+        "name": "问题闭环",
+        "inputs": "脱敏工单、故障类型、SKU、说明书及更改版本",
+        "logic": "同一订单个案按工单去重；聚合展示问题及样本数，关联改进任务后在验证期对比同口径。",
+        "missing": "样本不足只展示工单数与人工待复核。",
+        "output": "产品、Listing 或客服知识库负责人受理并反馈。"
+      }
+    ],
+    "ai": {
+      "inputs": "强制站点业务时区、经办人、问题类型和下一响应时刻；对外信息仅保留必要脱敏引用；退款需真实平台交易号/回执和金额币种。结案需结果、依据和时间",
+      "draft": "聚合同类设备问题、提取主题、建议 FAQ 或沟通草稿，逐条引用脱敏证据和缺项；由客服发出回复，退款操作由授权人员在平台完成并回填",
+      "human": "客服管工单响应和买家沟通，运营跟进取消、未配送与履约异常；仓配核退件、财务核退款、产品和质控接收同类问题改进。",
+      "example": "按脱敏工单归纳最常见的安装问题，并给客服准备一份待审核的回应草稿。"
+    },
+    "tests": [
+      {
+        "input": "同一订单有两笔退款；相同批次共100单。",
+        "action": "计算退款率。",
+        "expect": "退款订单数1，退款率1%；金额为两笔真实退款额合计。"
+      },
+      {
+        "input": "销售20件，确认退货2件，另有申请待收货。",
+        "action": "对照不同处理状态。",
+        "expect": "已退件数2、退货率10%，待收件不计实收。"
+      },
+      {
+        "input": "平台欠回执且买家重开已关闭订单。",
+        "action": "尝试确认退款及重新跟进。",
+        "expect": "未获交易回执仍待核；沿原案更新并保留旧历史，普通查看者只见脱敏引用。"
+      }
+    ]
+  },
+  {
+    "id": "compliance",
+    "title": "产品与合规",
+    "purpose": "产品经理维护型号能力与功能承诺，合规核对站点法规、机构回复和证件范围，设计落实标签，供应链核实适用发运批次；指定审核人负责放行。",
+    "roles": [
+      "合规",
+      "产品经理",
+      "设计",
+      "供应链",
+      "指定审核人"
+    ],
+    "scope": "产品型号＋站点＋法规事项＋材料修订；关联适用型号/部件或运输批次，保留历史批准。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "capability",
+        "title": "能力与声明核对",
+        "purpose": "确认型号主档、免费/订阅功能、服务区域、隐私与页面承诺。",
+        "source": "产品版本说明、订阅条款、隐私文件及销售站点的声明样稿。",
+        "action": "提交能力声明核对",
+        "output": "形成按站点限定的已审声明，供 Listing 和售后引用。",
+        "fields": [
+          {
+            "key": "model_revision",
+            "label": "型号与规格版本",
+            "type": "text",
+            "required": true,
+            "help": "实际销售型号和硬件/软件版本"
+          },
+          {
+            "key": "market",
+            "label": "适用站点",
+            "type": "text",
+            "required": true,
+            "help": "销售地区或服务范围"
+          },
+          {
+            "key": "access_type",
+            "label": "功能条件",
+            "type": "select",
+            "required": true,
+            "help": "区分开箱、订阅或地区限制",
+            "options": [
+              "免费",
+              "订阅",
+              "地区限制"
+            ]
+          },
+          {
+            "key": "subscription_terms",
+            "label": "订阅条款",
+            "type": "text",
+            "required": false,
+            "help": "价格、续期和服务范围的条款依据"
+          },
+          {
+            "key": "claim_ref",
+            "label": "声明与隐私证据",
+            "type": "textarea",
+            "required": true,
+            "help": "列对应条款、版本和页面引用"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "access_type",
+              "subscription_terms"
+            ],
+            "label": "订阅声明依据",
+            "message": "订阅功能需附适用条款。",
+            "when": "订阅"
+          }
+        ]
+      },
+      {
+        "id": "certificate",
+        "title": "认证与机构反馈",
+        "purpose": "追踪认证申请、草稿、机构反馈、有效正本与换证。",
+        "source": "机构受理函、正式正本、修订意见与申请型号明细，由经办人核验。",
+        "action": "登记认证审查",
+        "output": "仅在指定审核人核验范围及证据后交给发运或上市负责人员。",
+        "fields": [
+          {
+            "key": "issuer",
+            "label": "签发或受理机构",
+            "type": "text",
+            "required": true,
+            "help": "机构正式名称"
+          },
+          {
+            "key": "scope_model",
+            "label": "适用型号与站点",
+            "type": "text",
+            "required": true,
+            "help": "须与所处理对象一致"
+          },
+          {
+            "key": "phase",
+            "label": "机构阶段",
+            "type": "select",
+            "required": true,
+            "help": "记录实际外部状态",
+            "options": [
+              "受理中",
+              "待修订",
+              "已签发",
+              "已撤销"
+            ]
+          },
+          {
+            "key": "certificate_id",
+            "label": "证书号／正本引用",
+            "type": "text",
+            "required": false,
+            "help": "正本版本、证书号和正式来源"
+          },
+          {
+            "key": "follow_up",
+            "label": "下次核验日",
+            "type": "date",
+            "required": true,
+            "help": "按机构承诺、有效期或撤销通知设置"
+          },
+          {
+            "key": "validity",
+            "label": "有效期依据",
+            "type": "textarea",
+            "required": true,
+            "help": "记录签发/到期日或无固定有效期的说明"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "phase",
+              "certificate_id"
+            ],
+            "label": "已签发正本",
+            "message": "签发状态需填写正本引用。",
+            "when": "已签发"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "follow_up"
+            ],
+            "label": "复查提醒",
+            "message": "按业务日期计算余日。"
+          }
+        ]
+      },
+      {
+        "id": "shipment_release",
+        "title": "标签、危险品与发运",
+        "purpose": "核对包装定稿、危险品判定、运输限制和透明计划授权。",
+        "source": "最新标签稿及实物核对、机构分类、运输商回执、授权或豁免依据。",
+        "action": "提交批次放行审查",
+        "output": "批次放行依赖审核后的全部适用文件；资料退回时重新提交。",
+        "fields": [
+          {
+            "key": "shipment_ref",
+            "label": "批次及销售站点",
+            "type": "text",
+            "required": true,
+            "help": "链接实际批次和型号"
+          },
+          {
+            "key": "label_version",
+            "label": "正式标签版本",
+            "type": "text",
+            "required": true,
+            "help": "记录版本、样品核验和使用位置"
+          },
+          {
+            "key": "decision",
+            "label": "拟办事项",
+            "type": "select",
+            "required": true,
+            "help": "记录放行或需要的整改",
+            "options": [
+              "待整改",
+              "申请放行",
+              "申请豁免"
+            ]
+          },
+          {
+            "key": "release_evidence",
+            "label": "放行材料清单",
+            "type": "textarea",
+            "required": false,
+            "help": "列危险品结论、标签及适用授权"
+          },
+          {
+            "key": "exemption",
+            "label": "豁免理由",
+            "type": "textarea",
+            "required": false,
+            "help": "列适用条件、机构/法规依据及审批人"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "decision",
+              "release_evidence"
+            ],
+            "label": "放行依据",
+            "message": "申请放行时提供当前批次的完整核验清单。",
+            "when": "申请放行"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "decision",
+              "exemption"
+            ],
+            "label": "豁免依据",
+            "message": "申请豁免必须附依据。",
+            "when": "申请豁免"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "核查硬件能力、订阅服务与地区，按产品型号＋站点＋法规事项＋材料修订选定办理对象。",
+      "判断适用性→收件→合作机构受理→反馈修订→领取正本→指定审核人核范围与有效期→签核解除对应依赖。豁免附适用依据并经核准；材料被撤销、过期或型号变更时重审，阻断受影响批次并通知负责人",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。登记换证、整改和发货放行。"
+    ],
+    "rules": [
+      {
+        "name": "范围与适用性",
+        "inputs": "型号、配件及其版本、站点、规则依据、适用或豁免结论",
+        "logic": "型号、站点、版本均在适用范围才可用于放行；豁免需保存依据与审核。",
+        "missing": "无法确定适用性，进入待复核并回到合规负责人。",
+        "output": "按站点和批次输出可复核的证件清单。"
+      },
+      {
+        "name": "有效正本",
+        "inputs": "机构真实回复、正本编号、生效/到期/撤销情况",
+        "logic": "仅审核后的适用正本可满足对应门槛；同款其他证件相互独立。",
+        "missing": "申请受理、机构反馈或草稿保留办理状态。",
+        "output": "指定审核人核正本和生效期后归档。"
+      },
+      {
+        "name": "变更与到期",
+        "inputs": "配置的提醒期、到期日、修订和受影响批次",
+        "logic": "在提醒期派复核；证件被撤销或型号变更后重新评估相应未放行事项。",
+        "missing": "无固定效期需有核验依据并设复核时间。",
+        "output": "合规经办人续审并通知受影响岗位。"
+      }
+    ],
+    "ai": {
+      "inputs": "证件编号、签发机构、覆盖范围、签发日/有效期、责任人和核验依据必查；无固定到期日须注明依据；有效期不能早于签发日。草稿/申请回执/正本分别存储",
+      "draft": "对照内部材料清单找缺件和冲突，引用文档版本与机构反馈；声明、危险品分类和运输放行由合规负责人核定",
+      "human": "产品经理维护型号能力与功能承诺，合规核对站点法规、机构回复和证件范围，设计落实标签，供应链核实适用发运批次；指定审核人负责放行。",
+      "example": "请根据该型号和站点的证件列表列出仍需补充的正式材料与到期风险。"
+    },
+    "tests": [
+      {
+        "input": "美国站型号甲已审，加拿大站同型号尚无适用材料。",
+        "action": "在加拿大站申请放行。",
+        "expect": "不复用美国站结论，列本地适用性待核。"
+      },
+      {
+        "input": "原版正本被新 revision 替换，提交人只上传新稿。",
+        "action": "审核机构附件并查询上期通过记录。",
+        "expect": "新稿待审，保留已批准原版、签核人及使用批次。"
+      },
+      {
+        "input": "某批次申请豁免但无依据，另一批次证书到期。",
+        "action": "提交豁免并查看复核队列。",
+        "expect": "前者缺字段；后者进入复核、关联原版本，不自动恢复运输。"
+      }
+    ]
+  },
+  {
+    "id": "ranking",
+    "title": "排名监控",
+    "purpose": "SEO、Listing 与广告运营核对关键词自然位、广告位和类目 BSR 的变化，负责人验证观测条件后发起排查。",
+    "roles": [
+      "搜索运营",
+      "广告运营",
+      "数据管理员",
+      "指定审核人"
+    ],
+    "scope": "店铺＋站点＋ASIN＋观测类型＋关键词（BSR 为类目节点）＋观测条件＋时间。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "monitor_scope",
+        "title": "监控对象与观测条件",
+        "purpose": "固定站点、ASIN、查询条件和观察深度，确保序列可比。",
+        "source": "运营维护关键词或类目、设备、地区与取数时间；自动采集须另行接通。",
+        "action": "登记监控条件",
+        "output": "生成供人工或合规授权来源复测的观察计划。",
+        "fields": [
+          {
+            "key": "asin",
+            "label": "目标 ASIN",
+            "type": "text",
+            "required": true,
+            "help": "与所选产品所属站点匹配"
+          },
+          {
+            "key": "rank_type",
+            "label": "观测类型",
+            "type": "select",
+            "required": true,
+            "help": "三类序列独立处理",
+            "options": [
+              "自然位",
+              "广告位",
+              "类目畅销排名"
+            ]
+          },
+          {
+            "key": "query_term",
+            "label": "检索关键词",
+            "type": "text",
+            "required": false,
+            "help": "自然位和广告位必填"
+          },
+          {
+            "key": "category_id",
+            "label": "类目节点",
+            "type": "text",
+            "required": false,
+            "help": "类目畅销排名必填"
+          },
+          {
+            "key": "conditions",
+            "label": "固定观测条件",
+            "type": "text",
+            "required": true,
+            "help": "站点、设备、配送地区、时间窗及最大深度"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "rank_type",
+              "query_term"
+            ],
+            "label": "关键词条件",
+            "message": "自然位须提供检索词。",
+            "when": "自然位"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "rank_type",
+              "query_term"
+            ],
+            "label": "关键词条件",
+            "message": "广告位须提供检索词。",
+            "when": "广告位"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "rank_type",
+              "category_id"
+            ],
+            "label": "类目节点",
+            "message": "类目畅销排名须提供节点。",
+            "when": "类目畅销排名"
+          }
+        ]
+      },
+      {
+        "id": "observation",
+        "title": "位次与缺测登记",
+        "purpose": "记录实际观察到的具体位置、观测失败或限定深度未见。",
+        "source": "人工留存的截图/报表或经授权的同条件观测来源。",
+        "action": "登记排名证据",
+        "output": "保存可查来源的观测，未测与未见分别展示。",
+        "fields": [
+          {
+            "key": "series_ref",
+            "label": "监控序列",
+            "type": "text",
+            "required": true,
+            "help": "关联固定类型、对象和条件"
+          },
+          {
+            "key": "observed_on",
+            "label": "观测日期",
+            "type": "date",
+            "required": true,
+            "help": "明确站点业务时区"
+          },
+          {
+            "key": "outcome",
+            "label": "观测结果",
+            "type": "select",
+            "required": true,
+            "help": "按证据选状态",
+            "options": [
+              "已观测",
+              "深度内未见",
+              "采集失败"
+            ]
+          },
+          {
+            "key": "position",
+            "label": "观测位次",
+            "type": "number",
+            "required": false,
+            "help": "记录实际正整数，缺测留空",
+            "min": 1
+          },
+          {
+            "key": "scan_depth",
+            "label": "核查深度",
+            "type": "number",
+            "required": false,
+            "help": "未见时填已核查的结果数",
+            "min": 1
+          },
+          {
+            "key": "source_ref",
+            "label": "来源与时间",
+            "type": "text",
+            "required": true,
+            "help": "引用证据及具体采集时刻"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "outcome",
+              "position"
+            ],
+            "label": "真实位次",
+            "message": "已观测需填写实际名次。",
+            "when": "已观测"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "outcome",
+              "scan_depth"
+            ],
+            "label": "搜索深度",
+            "message": "深度内未见时记录检查范围。",
+            "when": "深度内未见"
+          }
+        ]
+      },
+      {
+        "id": "rank_review",
+        "title": "排名变动复核",
+        "purpose": "验证异常变动是否由采样条件、库存、页面或投放变化引起。",
+        "source": "同一序列的两次有效观测和关联的页面/投放变更。",
+        "action": "登记变化排查",
+        "output": "生成复测时间和候选原因，证据成立后交专业页办理。",
+        "fields": [
+          {
+            "key": "pair_ref",
+            "label": "同条件证据对",
+            "type": "text",
+            "required": true,
+            "help": "填写前后两条记录及其时间"
+          },
+          {
+            "key": "old_rank",
+            "label": "前次有效位次",
+            "type": "number",
+            "required": true,
+            "help": "同类型同条件",
+            "min": 1
+          },
+          {
+            "key": "new_rank",
+            "label": "本次有效位次",
+            "type": "number",
+            "required": true,
+            "help": "同类型同条件",
+            "min": 1
+          },
+          {
+            "key": "recheck_on",
+            "label": "复测日期",
+            "type": "date",
+            "required": true,
+            "help": "责任人承诺的核验日"
+          },
+          {
+            "key": "factors",
+            "label": "干扰因素",
+            "type": "textarea",
+            "required": true,
+            "help": "写明样本间隔、库存、出价、页面或类目变化"
+          },
+          {
+            "key": "before_series",
+            "label": "前次观测序列编号",
+            "type": "text",
+            "required": false,
+            "help": "监控配置中含站点、ASIN、类型、关键词或类目及设备/配送地区的版本编号"
+          },
+          {
+            "key": "after_series",
+            "label": "本次观测序列编号",
+            "type": "text",
+            "required": false,
+            "help": "条件变更须使用不同版本编号"
+          },
+          {
+            "key": "pair_state",
+            "label": "连续观测核对",
+            "type": "select",
+            "required": false,
+            "help": "核对采集日志是否包含缺测或深度内未见。",
+            "options": [
+              "连续有效观测",
+              "中间有缺测",
+              "存在未见或无效点"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "recheck_on"
+            ],
+            "label": "复测日期",
+            "message": "到期进行同条件复核。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "维护关键词/类目、站点、ASIN、设备及配送地区，按店铺＋站点＋ASIN＋观测类型＋关键词（BSR 为类目节点）＋观测条件＋时间选定办理对象。",
+      "创建监控→人工/授权来源观测→校验条件→比较有效前值→差异复测→登记调查→按约定窗口验证。参数变化新建序列；采集器未运行仅展示记录，不显示正在观测",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。关联 Listing 或广告变更以便后续验证。"
+    ],
+    "rules": [
+      {
+        "name": "同序列比较",
+        "inputs": "站点、ASIN、词或类目、设备地区、深度、证据时间",
+        "logic": "变化＝上次有效位次−本次有效位次，正值为上升；用最近两次同条件、同粒度有效点，缺测日图线断开并标出间隔。自然位、广告位、BSR 分图，不由曲线推断销量",
+        "missing": "变更观测条件或只有一个点时只建基线。",
+        "output": "搜索运营核查同条件曲线。"
+      },
+      {
+        "name": "缺测与未见",
+        "inputs": "采集状态、已查最大名次、失败原因和上次有效点",
+        "logic": "已查前 N 位未见是截断观测，未执行或失败是缺测，均不得编造名次。",
+        "missing": "缺时间或深度无法验证时列待复测。",
+        "output": "数据管理员补人工样本或检查授权来源。"
+      },
+      {
+        "name": "调查与复核",
+        "inputs": "同条件变动及关联库存、竞价和页面版本",
+        "logic": "超过团队阈值时创建待核实事项；分别展示绝对位次、样本间隔和假设。",
+        "missing": "未有复测点只输出建议，不判定影响来自某动作。",
+        "output": "SEO 或广告运营复测并记录证据。"
+      }
+    ],
+    "ai": {
+      "inputs": "位次为大于0整数；时间带时区；BSR 需要类目，自然位与广告位需要关键词；未采集、采集失败和已查前N位未见用独立状态，保留深度、来源及时间",
+      "draft": "给出带日期的变动及观测条件，列可核查的库存、广告、Listing 变更和候选复测；没有同条件基线时建议补证",
+      "human": "SEO、Listing 与广告运营核对关键词自然位、广告位和类目 BSR 的变化，负责人验证观测条件后发起排查。",
+      "example": "比较最近两次同条件自然位，列出需要人工复核的变化与同期干扰。"
+    },
+    "tests": [
+      {
+        "input": "同关键词自然位42、36；广告位3。",
+        "action": "查看变动。",
+        "expect": "自然位上升6，广告位独立显示。"
+      },
+      {
+        "input": "观察前30位未见，次日采集失败。",
+        "action": "绘制序列。",
+        "expect": "前者标深度内未见、后者标缺测；不生成31或0。"
+      },
+      {
+        "input": "同 ASIN 更换 BSR 类目。",
+        "action": "选择新类目进行比较。",
+        "expect": "另开序列，旧基线保留，缺可比前值时不产生涨跌结论。"
+      }
+    ]
+  },
+  {
+    "id": "agent",
+    "title": "Agent 决策中心",
+    "purpose": "主管和运营在当前授权产品、页面与时间窗内审议建议；执行人确认后办理，到复核日回填结果与后续决定。",
+    "roles": [
+      "运营主管",
+      "经办人",
+      "数据管理员",
+      "指定审核人"
+    ],
+    "scope": "建议按业务对象＋问题类型＋证据窗口维护，关联风险、任务编号与提交修订；会话 ID 绑定已授权产品和显式上下文。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "evidence_review",
+        "title": "决策证据评估",
+        "purpose": "确定建议针对哪个对象、要决定什么、证据是否足以开始。",
+        "source": "当前已授权产品及页面上下文、来源时间、经营指标与任务事实。",
+        "action": "提报决策建议",
+        "output": "经办人得到待判断建议或具体补证需求。",
+        "fields": [
+          {
+            "key": "question",
+            "label": "决策问题",
+            "type": "text",
+            "required": true,
+            "help": "明确要决策的对象和动作"
+          },
+          {
+            "key": "evidence_ref",
+            "label": "数据依据",
+            "type": "text",
+            "required": true,
+            "help": "记录来源、版本、分子分母和时间窗"
+          },
+          {
+            "key": "readiness",
+            "label": "证据状态",
+            "type": "select",
+            "required": true,
+            "help": "缺依据时只给补证建议",
+            "options": [
+              "可评估",
+              "缺少输入"
+            ]
+          },
+          {
+            "key": "missing_inputs",
+            "label": "缺失项及责任",
+            "type": "textarea",
+            "required": false,
+            "help": "列字段、采集人和预计补齐日"
+          },
+          {
+            "key": "decision_by",
+            "label": "最迟决策日",
+            "type": "date",
+            "required": true,
+            "help": "依据外部截止或内部影响窗"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "readiness",
+              "missing_inputs"
+            ],
+            "label": "补证责任",
+            "message": "缺少输入需列出缺项及补证责任。",
+            "when": "缺少输入"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "decision_by"
+            ],
+            "label": "决策时限",
+            "message": "逾期建议优先核查。"
+          }
+        ]
+      },
+      {
+        "id": "decision_route",
+        "title": "采纳、合并与人工审批",
+        "purpose": "将建议交给适当责任人，避免重复产生行动。",
+        "source": "已复核建议、同一未结风险、现有任务和审批实例。",
+        "action": "登记采纳决定",
+        "output": "输出审批草案、原事项关联或带理由的处置记录。",
+        "fields": [
+          {
+            "key": "risk_ref",
+            "label": "风险或建议引用",
+            "type": "text",
+            "required": true,
+            "help": "使用原风险稳定编号"
+          },
+          {
+            "key": "choice",
+            "label": "处置方式",
+            "type": "select",
+            "required": true,
+            "help": "只产生相应内部记录",
+            "options": [
+              "形成草案",
+              "合并到已有事项",
+              "延后",
+              "驳回"
+            ]
+          },
+          {
+            "key": "target_ref",
+            "label": "现有事项号",
+            "type": "text",
+            "required": false,
+            "help": "合并时明确原任务"
+          },
+          {
+            "key": "defer_until",
+            "label": "复议日",
+            "type": "date",
+            "required": false,
+            "help": "延后时填下一次决定日"
+          },
+          {
+            "key": "choice_reason",
+            "label": "选择依据",
+            "type": "textarea",
+            "required": true,
+            "help": "说明收益、成本、主责和取舍"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "choice",
+              "target_ref"
+            ],
+            "label": "合并对象",
+            "message": "合并选项须指定已有事项。",
+            "when": "合并到已有事项"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "choice",
+              "defer_until"
+            ],
+            "label": "复议时点",
+            "message": "延后时填写复议日期。",
+            "when": "延后"
+          }
+        ]
+      },
+      {
+        "id": "effect_review",
+        "title": "执行效果与周复盘",
+        "purpose": "基于真实执行凭证按原口径检查结果和同期干扰。",
+        "source": "前后同口径指标快照、实际操作回执、活动与价格记录。",
+        "action": "登记决策验证",
+        "output": "输出继续、调整、撤销或继续观察的决策及下一责任人。",
+        "fields": [
+          {
+            "key": "execution_ref",
+            "label": "执行凭证",
+            "type": "text",
+            "required": true,
+            "help": "实际操作编号与生效时间"
+          },
+          {
+            "key": "metric_unit",
+            "label": "指标及单位",
+            "type": "text",
+            "required": true,
+            "help": "写明对象、来源、时间窗、单位和方向"
+          },
+          {
+            "key": "baseline_value",
+            "label": "执行前值",
+            "type": "number",
+            "required": true,
+            "help": "同一范围的基期真实值"
+          },
+          {
+            "key": "actual_value",
+            "label": "复核值",
+            "type": "number",
+            "required": true,
+            "help": "同一范围的复核值"
+          },
+          {
+            "key": "confounders",
+            "label": "归因限制",
+            "type": "textarea",
+            "required": true,
+            "help": "季节、预算、价格、库存及对照可得性"
+          },
+          {
+            "key": "review_on",
+            "label": "复核日",
+            "type": "date",
+            "required": true,
+            "help": "原先承诺的复核日"
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "actual_value",
+              "baseline_value"
+            ],
+            "label": "指标绝对变化",
+            "message": "原单位差额，不推断因果。"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "review_on"
+            ],
+            "label": "复核日",
+            "message": "已到复核日需回填结果。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "查看带来源、日期、范围和缺失原因的建议，按建议按业务对象＋问题类型＋证据窗口维护，关联风险、任务编号与提交修订选定办理对象。",
+      "规则产出候选→经办复核证据→选择合并/补证/草案/驳回→需审批则交指定人→获得实际操作回执→到期复核→继续、调整或撤销。并发采纳只认领一次，范围变更另开上下文",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。检查权限与依赖，跟踪批准、真实执行和前后指标。"
+    ],
+    "rules": [
+      {
+        "name": "证据与缺项",
+        "inputs": "已授权产品、页面、筛选、计算版本和时间窗",
+        "logic": "引用服务器计算值和范围；跨产品必须显式切换，禁止用截断明细外推整个期间。",
+        "missing": "缺必需指标只列补证计划与负责人。",
+        "output": "运营获得范围明确的建议草案。"
+      },
+      {
+        "name": "同风险合并",
+        "inputs": "对象、风险类型、窗口、未结动作、现有流程版本",
+        "logic": "按风险编号或人工确认的同一风险关联既有动作。提交校验版本与权限，重试不新增重复任务。",
+        "missing": "多个候选列明差异，要求经办人选定。",
+        "output": "经办与指定审核人在原流程协作。"
+      },
+      {
+        "name": "效果验证",
+        "inputs": "操作时间、执行凭证、前后同口径指标和干扰因素",
+        "logic": "指标取后端经营计算结果，按硬截止、损失窗口及依赖排序，标出样本不足、覆盖或归因窗口；复核时同口径比较前后值并列关联活动/价格因素，因果结论要求额外证据",
+        "missing": "缺后值、未到归因窗口或无操作回执显示待复核。",
+        "output": "主管获得保留、调整或撤销的候选决定。"
+      }
+    ],
+    "ai": {
+      "inputs": "必须呈现证据引用、业务范围、来源时间、候选动作与复核口径；操作权限经服务端检查；风险金额/件数须注明币种或单位。使用外部模型仅传授权范围的必要上下文",
+      "draft": "模型撰写建议与备选方案，回答带证据 ID 和缺失列表；普通成员提报，资金、定价、出价、退款、认证与外部写入须按业务授权执行。模型未配置提供规则结果和配置状态",
+      "human": "主管和运营在当前授权产品、页面与时间窗内审议建议；执行人确认后办理，到复核日回填结果与后续决定。",
+      "example": "就当前产品给出一个有来源和复核日的候选动作，若证据不足先列缺项。"
+    },
+    "tests": [
+      {
+        "input": "当前只授权 SKU A，会话绑定A。",
+        "action": "切到 B 尝试使用原会话，或普通成员尝试审批。",
+        "expect": "服务端校验范围和审核身份，拒绝越权操作。"
+      },
+      {
+        "input": "两名经办人基于同一建议同时采纳。",
+        "action": "提交创建或合并。",
+        "expect": "保留单一业务事项和操作历史，重复请求不会绕过审批。"
+      },
+      {
+        "input": "销售覆盖缺一天且无实际执行回执。",
+        "action": "询问是否应按特定件数补货并复盘。",
+        "expect": "仅返回缺项、来源和补数建议，不能凭已有片段计算件数或假定动作已执行。"
+      }
+    ]
+  },
+  {
+    "id": "imports",
+    "title": "数据导入中心",
+    "purpose": "数据管理员负责四类经营 CSV 的预校验、导入与修订，运营跟进缺失业务日和异常数据；在同一范围对照只读平台同步与最终采用的来源。",
+    "roles": [
+      "数据管理员",
+      "运营",
+      "财务",
+      "指定审核人"
+    ],
+    "scope": "销售、库存、成本按产品＋业务日/生效日＋SKU；广告 CSV 按产品＋报告日＋Campaign 名＋实体名。重传批次保留文件摘要和版次。首期以现有经营指标、SOP 及人工提交的可追溯材料为依据。",
+    "sections": [
+      {
+        "id": "validate_file",
+        "title": "四类文件预校验",
+        "purpose": "选定对象后检查模板、数据身份和错误行，供管理员判断是否提交。",
+        "source": "UTF-8 标准 CSV、产品映射与现有预校验结果。",
+        "action": "登记文件预检",
+        "output": "形成引用原预览的校验工作单；实际数据经原导入入口提交。",
+        "fields": [
+          {
+            "key": "dataset",
+            "label": "数据类型",
+            "type": "select",
+            "required": true,
+            "help": "使用对应模板",
+            "options": [
+              "销售",
+              "广告",
+              "库存",
+              "成本"
+            ]
+          },
+          {
+            "key": "file_ref",
+            "label": "文件或摘要",
+            "type": "text",
+            "required": true,
+            "help": "记录文件名与可追溯摘要"
+          },
+          {
+            "key": "total_rows",
+            "label": "源数据行数",
+            "type": "number",
+            "required": true,
+            "help": "不含标题",
+            "min": 0
+          },
+          {
+            "key": "valid_rows",
+            "label": "校验通过行",
+            "type": "number",
+            "required": true,
+            "help": "需要所有必填列和范围验证",
+            "min": 0
+          },
+          {
+            "key": "mapping",
+            "label": "对象与字段确认",
+            "type": "textarea",
+            "required": true,
+            "help": "注明 SKU/ASIN、站点、币种和日期口径"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "valid_rows",
+              "total_rows"
+            ],
+            "label": "预检数量",
+            "message": "通过行数不得超过文件行数。"
+          },
+          {
+            "op": "difference",
+            "keys": [
+              "total_rows",
+              "valid_rows"
+            ],
+            "label": "未通过行数",
+            "message": "说明原因并定位到源行。"
+          }
+        ]
+      },
+      {
+        "id": "correct_batch",
+        "title": "错误批次与修订",
+        "purpose": "修正逐行错误或整批身份冲突，保留原证据与修订版本。",
+        "source": "原导入批次行号、错误文本、修正文件及新预览。",
+        "action": "登记修订重试",
+        "output": "提交前复检，已采用行以业务键更新并保留版本。",
+        "fields": [
+          {
+            "key": "previous_batch",
+            "label": "原批次编号",
+            "type": "text",
+            "required": true,
+            "help": "引用失败或待修正的原记录"
+          },
+          {
+            "key": "revised_ref",
+            "label": "修订文件摘要",
+            "type": "text",
+            "required": true,
+            "help": "须能与旧版区分"
+          },
+          {
+            "key": "issue_class",
+            "label": "错误分类",
+            "type": "select",
+            "required": true,
+            "help": "记录批次身份或字段问题",
+            "options": [
+              "产品或币种冲突",
+              "列格式错误",
+              "缺失值",
+              "业务键冲突"
+            ]
+          },
+          {
+            "key": "fix_notes",
+            "label": "修复与复检结果",
+            "type": "textarea",
+            "required": true,
+            "help": "写明受影响行、处理方式和映射依据"
+          },
+          {
+            "key": "verify_by",
+            "label": "复检截止日",
+            "type": "date",
+            "required": true,
+            "help": "交数据管理员确认"
+          },
+          {
+            "key": "original_errors",
+            "label": "原版错误行数",
+            "type": "number",
+            "required": true,
+            "help": "取原批次预校验结果，一行多处错误只计一次。",
+            "min": 0
+          },
+          {
+            "key": "remaining_errors",
+            "label": "复检错误行数",
+            "type": "number",
+            "required": true,
+            "help": "取修订文件复检结果，可能出现新的错误。",
+            "min": 0
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "original_errors",
+              "remaining_errors"
+            ],
+            "label": "错误行减少数",
+            "message": "负数表示新版本问题更多，应查看新增错误。"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "verify_by"
+            ],
+            "label": "复检时限",
+            "message": "到期前验证修订结果。"
+          }
+        ]
+      },
+      {
+        "id": "source_coverage",
+        "title": "来源选择与覆盖缺口",
+        "purpose": "跟踪哪些业务日成功发布、部分覆盖、失败或应补报。",
+        "source": "按产品、数据集与业务日本期覆盖，API 作业及 CSV 批次。",
+        "action": "登记补数需求",
+        "output": "交管理员补数或重试，复核后让经营指标引用最后有效分区。",
+        "fields": [
+          {
+            "key": "source_batch",
+            "label": "来源分区或作业号",
+            "type": "text",
+            "required": true,
+            "help": "明确最终采用的 API 或 CSV 分区"
+          },
+          {
+            "key": "from_date",
+            "label": "缺口开始日",
+            "type": "date",
+            "required": true,
+            "help": "产品主档时区的业务日"
+          },
+          {
+            "key": "to_date",
+            "label": "缺口结束日",
+            "type": "date",
+            "required": true,
+            "help": "产品主档时区的业务日"
+          },
+          {
+            "key": "coverage_state",
+            "label": "覆盖情况",
+            "type": "select",
+            "required": true,
+            "help": "空白日不推作零",
+            "options": [
+              "完整",
+              "部分",
+              "缺失",
+              "失败"
+            ]
+          },
+          {
+            "key": "missing_reason",
+            "label": "补数说明",
+            "type": "textarea",
+            "required": false,
+            "help": "列缺失来源、责任与计划时间"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "from_date",
+              "to_date"
+            ],
+            "label": "补数日期范围",
+            "message": "起始日期应早于或等于截止日期。"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "coverage_state",
+              "missing_reason"
+            ],
+            "label": "缺失补报",
+            "message": "缺失数据须注明补报需求。",
+            "when": "缺失"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "下载标准模板，按销售、库存、成本按产品＋业务日/生效日＋SKU选定办理对象。",
+      "管理员选目标→解析与逐行校验→预览影响范围/错误→确认写入有效行→事务落库＋批次回执→复核覆盖并修正。范围已变更强制重验；产品/币种身份冲突拒整批；服务端按原文件再校验",
+      "执行人保存外部操作编号或证据，由指定审核人对照当前版本复核。明确确认有效行，查看导入回执、修复失败批次、核对 API 同日数据及来源优先级。"
+    ],
+    "rules": [
+      {
+        "name": "源文件契约",
+        "inputs": "销售、广告、库存、成本各自的标准模板、身份映射及业务时区",
+        "logic": "UTF-8、≤10 MB、表头完整、日期 YYYY-MM-DD 且日历有效；相同产品主档的币种/SKU/ASIN；销量曝光为非负整数，金额/成本按列精度解析。库存必含可售/预留/在途/不可售，四字段分别校验",
+        "missing": "缺列、无效日期或非法数字标行及原因；未经明确确认不写数据。",
+        "output": "数据管理员获得预检清单。"
+      },
+      {
+        "name": "导入键与冲突",
+        "inputs": "同一产品内业务日、SKU 或活动实体、原币及目标映射",
+        "logic": "销售、库存、成本按产品＋业务日/生效日＋SKU；广告 CSV 按产品＋报告日＋Campaign 名＋实体名。重传批次保留文件摘要和版次",
+        "missing": "目标或币种身份冲突拒绝污染整批；普通字段错误由管理员明确选择通过行。",
+        "output": "落库批次与含接受/拒绝原因的回执。"
+      },
+      {
+        "name": "来源覆盖",
+        "inputs": "API 已发布分区、CSV 批次、完整日期及同步结果",
+        "logic": "各数据集/产品/日期以已发布 API 分区优先，CSV 补无 API 分区。部分覆盖保留标记，空白日期不作零，同一业务键重传更新而非相加；保留输入快照、操作者、版本和最终采用来源",
+        "missing": "缺分区、缺授权或中断时显示实际覆盖和最后成功时间，禁止虚构零。",
+        "output": "经营计算引用最终采用分区；业务岗位可追溯。"
+      }
+    ],
+    "ai": {
+      "inputs": "UTF-8、≤10 MB、表头完整、日期 YYYY-MM-DD 且日历有效；相同产品主档的币种/SKU/ASIN；销量曝光为非负整数，金额/成本按列精度解析。库存必含可售/预留/在途/不可售，四字段分别校验",
+      "draft": "说明报错字段、行号、输入示例和修正路径，按影响的业务指标建议补数顺序；不自动猜币种、SKU、金额或覆盖缺日",
+      "human": "数据管理员负责四类经营 CSV 的预校验、导入与修订，运营跟进缺失业务日和异常数据；在同一范围对照只读平台同步与最终采用的来源。",
+      "example": "解释该批拒绝行和缺失业务日，指出需要谁在何处补数。"
+    },
+    "tests": [
+      {
+        "input": "销售 CSV 两个有效行和一行非法日期。",
+        "action": "预览并明确提交有效行。",
+        "expect": "预览保留错误行号；有效行单独计数，导入历史可追查。"
+      },
+      {
+        "input": "相同范围 CSV 重传，随后同日完整 API 分区发布。",
+        "action": "核对数据来源与期销量。",
+        "expect": "版本和批次可查，重复文件不翻倍；采用有效 API 分区。"
+      },
+      {
+        "input": "预览后更换产品或检测到不同币种。",
+        "action": "尝试直接沿用原预览提交。",
+        "expect": "拒绝跨范围提交；重新校验后按正确主档办理，缺日保持缺失。"
+      }
+    ]
+  }
+]

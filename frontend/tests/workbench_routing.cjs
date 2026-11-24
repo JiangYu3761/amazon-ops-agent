@@ -1,0 +1,10 @@
+const assert = require('node:assert/strict');
+const {classify} = require('../workbench-triage.js');
+const input = '库存只有9天，广告准备放量。新主图已交二版；只记录想法。新主图已交二版。';
+const result = classify(input);
+assert.deepEqual(result.map(r=>r.page), ['inventory','ads','listing',null]);
+assert.equal(result[0].quote,'库存只有9天，广告准备放量');
+assert.deepEqual(classify(''), []);
+assert.equal(classify('ＡＣＯＳ 高于目标')[0].page, 'ads');
+assert.equal(classify('库存正常')[0].quote,'库存正常');
+console.log('运营记录分派：多主题、原文、未知、同句去重和全角输入通过');

@@ -7,7 +7,10 @@ out.mkdir(exist_ok=True)
 for p in out.iterdir():
     if p.is_dir():shutil.rmtree(p)
     else:p.unlink()
-for name in ('index.html','styles.css','app.js','analytics.js','analytics.css','deliverables.js','process.js','process.css','approvals.js','approvals.css','approval-templates.json','catalog.json'):
+for name in ('index.html','styles.css','app.js','analytics.js','analytics.css','deliverables.js','process.js','process.css','approvals.js','approvals.css','approval-templates.json','catalog.json',
+             'workbench.js','workbench-triage.js','workbench.css'):
     shutil.copy2(root/'frontend'/name,out/name)
+for definition in (root/'frontend').glob('workbench-*.json'):
+    shutil.copy2(definition,out/definition.name)
 shutil.copytree(root/'frontend'/'templates',out/'templates')
 print('Static workspace prepared in dist/')

@@ -1,0 +1,1466 @@
+[
+  {
+    "id": "shop",
+    "title": "店铺与账户",
+    "purpose": "店铺负责人先处理有平台回应期限、已限制销售或仍待回执的账户事项，再安排例行权限核验。",
+    "roles": [
+      "店铺负责人",
+      "账户经办人",
+      "合规复核人"
+    ],
+    "scope": "涉及指定产品时，选择产品并登记受影响的 ASIN。涉及整店的账户通知、权限和 Case 时，按店铺办理，登记店铺账号、站点和经营时区。以官方通知或 Case 号核对范围，经办人登记脱敏后的材料和回执。",
+    "sections": [
+      {
+        "id": "notice",
+        "title": "绩效通知",
+        "purpose": "从原始通知确认受影响的权限、销售范围和最迟回应时间。",
+        "source": "经办人摘录对应站点卖家平台通知并标记读取时间。",
+        "action": "登记绩效通知",
+        "output": "形成待回应事项，向指定复核人提交事实、截止和拟补材料。",
+        "fields": [
+          {
+            "key": "notice_ref",
+            "label": "官方通知编号或标题",
+            "type": "text",
+            "required": true,
+            "help": "使用可在该站点重新定位的编号或标题。"
+          },
+          {
+            "key": "notice_date",
+            "label": "通知日期",
+            "type": "date",
+            "required": true,
+            "help": "按站点业务日登记。"
+          },
+          {
+            "key": "affected_scope",
+            "label": "影响范围",
+            "type": "textarea",
+            "required": true,
+            "help": "列明账户、ASIN、配送方式或停用的功能。"
+          },
+          {
+            "key": "platform_deadline",
+            "label": "平台截止日期",
+            "type": "date",
+            "required": false,
+            "help": "照录通知。仅给下一次跟进日时不要填入此栏。"
+          },
+          {
+            "key": "deadline_detail",
+            "label": "原文截止时刻与时区",
+            "type": "text",
+            "required": false,
+            "help": "包含小时或时区时一并摘录，保留平台原文。"
+          },
+          {
+            "key": "next_follow_up",
+            "label": "下一次内部跟进",
+            "type": "date",
+            "required": true,
+            "help": "从未解决项中指定最近的检查日。"
+          },
+          {
+            "key": "notice_evidence",
+            "label": "脱敏通知摘录",
+            "type": "textarea",
+            "required": true,
+            "help": "保留平台措辞、材料清单和来源；去掉买家及账户敏感信息。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "next_follow_up"
+            ],
+            "label": "跟进提醒",
+            "message": "按站点业务日核查内部跟进是否到期。"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "platform_deadline"
+            ],
+            "label": "回应期限",
+            "message": "先核实通知原文的当地时刻，再安排实际回应。"
+          }
+        ]
+      },
+      {
+        "id": "case",
+        "title": "Case 往来",
+        "purpose": "按一条平台处理链记录回复、补件、整改和最终结果。",
+        "source": "从 Case 日志或通知中心取得原文、时间及凭证。",
+        "action": "登记 Case 进展",
+        "output": "形成有凭证的往来记录；有最终平台结果时由复核人验收关闭。",
+        "fields": [
+          {
+            "key": "case_ref",
+            "label": "平台 Case 编号",
+            "type": "text",
+            "required": true,
+            "help": "沿用原编号，便于把多次补件挂回同一案件。"
+          },
+          {
+            "key": "case_status",
+            "label": "平台处理状态",
+            "type": "select",
+            "required": true,
+            "help": "按最新回执填写。",
+            "options": [
+              "待准备材料",
+              "待平台回复",
+              "平台要求补件",
+              "已有最终答复"
+            ]
+          },
+          {
+            "key": "last_reply",
+            "label": "最近一次往来日期",
+            "type": "date",
+            "required": true,
+            "help": "填写平台回应或实际提交的站点日期。"
+          },
+          {
+            "key": "remediation",
+            "label": "已完成整改与证据",
+            "type": "textarea",
+            "required": true,
+            "help": "列出可核查的操作、日期和脱敏凭证，未实施的措施另列。"
+          },
+          {
+            "key": "next_step",
+            "label": "下一步与内部经办角色",
+            "type": "text",
+            "required": true,
+            "help": "标明补什么、谁跟进或结案依据。"
+          },
+          {
+            "key": "receipt_ref",
+            "label": "平台回执或处理结果编号",
+            "type": "text",
+            "required": false,
+            "help": "仅在平台提供时写入，并可从审批证据追溯原文。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "case_status",
+              "receipt_ref"
+            ],
+            "label": "最终答复凭证",
+            "message": "请记录可定位到平台最终答复的编号或摘录。",
+            "when": "已有最终答复"
+          }
+        ]
+      },
+      {
+        "id": "access",
+        "title": "权限与品牌复查",
+        "purpose": "核对离职交接、角色范围与品牌授权有效期。",
+        "source": "经授权的店铺负责人对照角色清单、商标／品牌授权文件及后台核验记录。",
+        "action": "建立复查单",
+        "output": "形成按期复核或撤销权限的任务，经办人在平台处理后回填凭证。",
+        "fields": [
+          {
+            "key": "review_type",
+            "label": "复查对象",
+            "type": "select",
+            "required": true,
+            "help": "按本次要核实的授权选一类。",
+            "options": [
+              "人员权限",
+              "离职交接",
+              "品牌备案",
+              "商标使用授权"
+            ]
+          },
+          {
+            "key": "subject_ref",
+            "label": "内部角色或授权文件编号",
+            "type": "text",
+            "required": true,
+            "help": "使用角色、内部人员编号或文件版本。"
+          },
+          {
+            "key": "actual_scope",
+            "label": "当前授权范围",
+            "type": "textarea",
+            "required": true,
+            "help": "写明当前店铺、站点、品牌和可操作范围。"
+          },
+          {
+            "key": "expected_scope",
+            "label": "应保留的范围",
+            "type": "textarea",
+            "required": true,
+            "help": "以已批准职责或权利凭证为准。"
+          },
+          {
+            "key": "review_date",
+            "label": "下次复查日",
+            "type": "date",
+            "required": true,
+            "help": "据交接时间或文件有效期安排。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "review_date"
+            ],
+            "label": "授权复查日期",
+            "message": "按登记日期提醒店铺负责人复核。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "经办人按官方通知、店铺和站点登记，不同站点同名通知各自定位。",
+      "指定复核人核对适用范围、截止、事实及脱敏材料；退回说明缺哪份证据。",
+      "获批后经办人在授权平台提交并登记实际回执，待回复与已执行分开记录。",
+      "复核人查验平台结果及限制解除情况；尚待补件时保持跟进。"
+    ],
+    "rules": [
+      {
+        "name": "官方截止优先",
+        "inputs": "官方通知原文、站点时区、平台截止、内部跟进日。",
+        "logic": "硬截止前倒排回应时间，按平台要求的当地时刻判断是否逾期。内部提醒日期单独排序。",
+        "missing": "截止或时区不明时列为待核实并安排人工跟进。",
+        "output": "店铺负责人得到含优先原因的待回应清单。"
+      },
+      {
+        "name": "材料与动作匹配",
+        "inputs": "通知所需材料、已完成整改、待办及回执。",
+        "logic": "逐条对应原文要求和凭证，未完成措施列入后续计划。",
+        "missing": "缺关键材料时列出提供人及证据清单。",
+        "output": "账户经办人补证，复核人判断能否提交。"
+      },
+      {
+        "name": "结案复核",
+        "inputs": "同一站点 Case 编号、最后回应、问题结果与复查记录。",
+        "logic": "平台要求补件或仍限制销售时继续跟进；记录最终答复及核验结果后申请关闭。",
+        "missing": "只有发件时间或已批准内部草稿时，记录下一次人工查询日期。",
+        "output": "复核人核验最新平台状态。"
+      }
+    ],
+    "ai": {
+      "inputs": "当前通知的脱敏原文、站点、截止、受影响对象、往来与附件版本。",
+      "draft": "列回应清单、已证实的整改和待核实事项，起草内部复核稿。",
+      "human": "经办人核实事实和出处。指定复核人通过后，由具有店铺平台权限的人提交并回填回执。",
+      "example": "请逐条引用本通知的原文要求，区分已完成整改和待补件，给出最晚回应时间的依据；没有平台期限时标待核实。"
+    },
+    "tests": [
+      {
+        "input": "同一店铺两站点分别收到同标题通知。",
+        "action": "分别登记原编号、站点、截止及影响范围。",
+        "expect": "每条事项可回到本站点原文，截止与材料独立。"
+      },
+      {
+        "input": "通知只有内部跟进日，没有明确平台时刻。",
+        "action": "查看办理建议并开内部提醒。",
+        "expect": "保留内部跟进日，平台截止待核实。"
+      },
+      {
+        "input": "经办人有内部核准材料，但平台尚未回复。",
+        "action": "查看 Case 状态后回填实际提交回执。",
+        "expect": "内部批准、外部已提交、平台待回复可分别追溯；等待最终结果再验收。"
+      }
+    ]
+  },
+  {
+    "id": "listing",
+    "title": "Listing 与素材",
+    "purpose": "运营和设计按页面字段定位改动，逐项跟踪需求、候选素材、审核、发布及上线后的表现。",
+    "roles": [
+      "Listing 运营",
+      "视觉设计",
+      "产品资料负责人",
+      "内容复核人"
+    ],
+    "scope": "比较同站点、同 ASIN 与具体 SKU 的内容版本。流量与销量可引用同范围经营报表；现版内容、候选素材、平台发布结果及同期变更由经办人登记。",
+    "sections": [
+      {
+        "id": "brief",
+        "title": "页面改版需求",
+        "purpose": "说明哪个字段影响了买家理解、证据在哪里、准备验证哪项假设。",
+        "source": "当前页面快照、产品规格或认证、关键词研究、可追溯的流量／反馈。",
+        "action": "新建页面需求",
+        "output": "交给设计或文案制作的单变量改版需求。",
+        "fields": [
+          {
+            "key": "asin",
+            "label": "目标 ASIN",
+            "type": "text",
+            "required": true,
+            "help": "关联站点与变体，区分展示的父或子 ASIN。"
+          },
+          {
+            "key": "content_area",
+            "label": "变更位置",
+            "type": "select",
+            "required": true,
+            "help": "一次记录一个独立可回溯的改动。",
+            "options": [
+              "标题",
+              "五点与描述",
+              "主图",
+              "附图或视频",
+              "A+ 与品牌故事",
+              "类目、属性与变体",
+              "搜索词"
+            ]
+          },
+          {
+            "key": "current_version",
+            "label": "现版标识及快照",
+            "type": "text",
+            "required": true,
+            "help": "含版本、采样日期或截图引用。"
+          },
+          {
+            "key": "hypothesis",
+            "label": "买家问题与修改假设",
+            "type": "textarea",
+            "required": true,
+            "help": "写明从哪里观察到问题，想通过本次变更验证什么。"
+          },
+          {
+            "key": "product_proof",
+            "label": "产品事实依据",
+            "type": "textarea",
+            "required": true,
+            "help": "引用可证实的参数、用途、授权或限制条件。"
+          },
+          {
+            "key": "variation_evidence",
+            "label": "变体关系核验依据",
+            "type": "textarea",
+            "required": false,
+            "help": "涉及变体时写明拟修改属性、父子关系及适用类目的依据。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "content_area",
+              "variation_evidence"
+            ],
+            "label": "变体变更依据",
+            "message": "涉及类目或变体时，需明确变更前后关系及适用依据。",
+            "when": "类目、属性与变体"
+          }
+        ]
+      },
+      {
+        "id": "asset",
+        "title": "素材版本与验收",
+        "purpose": "跟踪待制作、待审、退回和新版本，锁定实际核准的交付物。",
+        "source": "引用产品交付清单的文件或受控链接，登记版本与使用授权。",
+        "action": "登记候选素材",
+        "output": "输出核准版本及适用页面位置，供运营发布。",
+        "fields": [
+          {
+            "key": "asset_kind",
+            "label": "素材类型",
+            "type": "select",
+            "required": true,
+            "help": "按交付对象核对相应规格。",
+            "options": [
+              "文案",
+              "主图",
+              "附图",
+              "视频",
+              "A+ 模块",
+              "商品属性表"
+            ]
+          },
+          {
+            "key": "asset_version",
+            "label": "候选版本",
+            "type": "text",
+            "required": true,
+            "help": "每次改稿填写可区分的版本号。"
+          },
+          {
+            "key": "asset_source",
+            "label": "文件或交付清单引用",
+            "type": "text",
+            "required": true,
+            "help": "指向具体文件或已有交付记录。"
+          },
+          {
+            "key": "fact_check",
+            "label": "事实与授权核验",
+            "type": "textarea",
+            "required": true,
+            "help": "列明每个关键宣称的依据、适用型号及版权使用条件。"
+          },
+          {
+            "key": "changes",
+            "label": "与前版差异",
+            "type": "textarea",
+            "required": true,
+            "help": "说明新增／移除的内容，退回重提时逐项对应审核意见。"
+          },
+          {
+            "key": "locale",
+            "label": "素材语言及站点",
+            "type": "text",
+            "required": true,
+            "help": "注明语言、站点、手机端检查情况。"
+          },
+          {
+            "key": "previous_version",
+            "label": "前版版本号",
+            "type": "text",
+            "required": false,
+            "help": "首次交付留空；修订时注明被替代的版本。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "neq",
+            "keys": [
+              "asset_version",
+              "previous_version"
+            ],
+            "label": "版本唯一",
+            "message": "修订件请使用新版本号，便于审核人区分前后稿。"
+          }
+        ]
+      },
+      {
+        "id": "release",
+        "title": "发布与效果复核",
+        "purpose": "记录实际生效的内容，并用可比期间验证页面表现。",
+        "source": "运营手工确认前台显示及时间；Sessions 和订购件数取相同口径流量与销售报告。",
+        "action": "建立发布复核单",
+        "output": "形成上线凭证、可比期间的指标与保留、再测或回退结论。",
+        "fields": [
+          {
+            "key": "approved_version",
+            "label": "核准版本",
+            "type": "text",
+            "required": true,
+            "help": "应与内容审批选定的文件或文案版本一致。"
+          },
+          {
+            "key": "release_ref",
+            "label": "平台页面或发布记录引用",
+            "type": "text",
+            "required": true,
+            "help": "填目标页面位置；上线后在执行记录附前台截图和实际时间。"
+          },
+          {
+            "key": "baseline_period",
+            "label": "基线区间",
+            "type": "text",
+            "required": true,
+            "help": "填写起止日期和业务时区，注明断货与促销。"
+          },
+          {
+            "key": "review_date",
+            "label": "计划复核日",
+            "type": "date",
+            "required": true,
+            "help": "结合流量及同类日期选定。"
+          },
+          {
+            "key": "comparison_period",
+            "label": "复核区间",
+            "type": "text",
+            "required": false,
+            "help": "在复核时登记同范围、可比长度的完整窗口。"
+          },
+          {
+            "key": "confounders",
+            "label": "同期价格、广告与供货变化",
+            "type": "textarea",
+            "required": false,
+            "help": "记录变更时间，说明哪些因素可能影响表现。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "review_date"
+            ],
+            "label": "效果复核日",
+            "message": "到期后核对实际发布凭证和完整流量窗口。"
+          }
+        ]
+      },
+      {
+        "id": "catalog_incident",
+        "title": "变体与页面抑制",
+        "purpose": "处理页面抑制、被错误合并或关键属性冲突时，先核实具体子 ASIN 是否仍能购买。",
+        "source": "经办人登记平台报错、前台快照、站点类目规则及父子 ASIN 关系。",
+        "action": "发起页面恢复核验",
+        "output": "运营核实修订后父子映射和可售状态，留存平台反馈与恢复时间。",
+        "fields": [
+          {
+            "key": "child_asin",
+            "label": "受影响子 ASIN",
+            "type": "text",
+            "required": true,
+            "help": "针对实际可购买的子体与 SKU 记录。"
+          },
+          {
+            "key": "issue_kind",
+            "label": "异常种类",
+            "type": "select",
+            "required": true,
+            "help": "依据实际提示选择。",
+            "options": [
+              "页面抑制",
+              "变体错挂",
+              "属性冲突",
+              "失去购买选项"
+            ]
+          },
+          {
+            "key": "current_parent",
+            "label": "当前父 ASIN 或映射证据",
+            "type": "text",
+            "required": false,
+            "help": "变体错挂时登记当前父体及可核对的关系。"
+          },
+          {
+            "key": "notice_text",
+            "label": "平台提示与来源日期",
+            "type": "textarea",
+            "required": true,
+            "help": "记录具体条款、属性错误或平台通知，保留原版链接。"
+          },
+          {
+            "key": "change_proof",
+            "label": "拟改属性及产品依据",
+            "type": "textarea",
+            "required": true,
+            "help": "以包装、说明书或制造商资料证实参数适用于指定子体。"
+          },
+          {
+            "key": "verification_day",
+            "label": "复查日期",
+            "type": "date",
+            "required": true,
+            "help": "到期后核对页面可见、变体正确、可正常下单三项事实。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "issue_kind",
+              "current_parent"
+            ],
+            "label": "变体映射",
+            "message": "变体错挂需保留当前父子关系的依据。",
+            "when": "变体错挂"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "verification_day"
+            ],
+            "label": "页面复查",
+            "message": "检查修订在前台是否实际生效。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "运营选定站点、ASIN 与待改位置，存下基线快照及事实依据。",
+      "设计提交候选版本，指定复核人审查可证实的内容、使用授权和端内展示。",
+      "经办人按批准版本在平台发布，回填实际生效时间、截图及版本，未生效继续跟进。",
+      "复核人比较同范围完整窗口的 Sessions、订购件数及件数／Session，并记录干扰因素与后续动作。"
+    ],
+    "rules": [
+      {
+        "name": "内容可追溯",
+        "inputs": "现版、候选版、适用 SKU／ASIN、产品说明或授权证明。",
+        "logic": "核对版本差异的每个宣称，标记无依据参数或供应商未确认的承诺。",
+        "missing": "缺产品事实则退回相应字段补证。",
+        "output": "产品资料负责人补材料，内容审核人确认可发布版本。"
+      },
+      {
+        "name": "发布核对",
+        "inputs": "已批准候选版本、站点、上线后前台截图和生效时间。",
+        "logic": "以实际可见版本与核准内容比对，被平台拒绝或局部未更新时记录异常。",
+        "missing": "仅有内部审批时保持待发布。",
+        "output": "运营记录真实上线版本和回退基线。"
+      },
+      {
+        "name": "同口径复核",
+        "inputs": "同站点同 ASIN、完整期间 Sessions 与订购件数、活动价格或广告变动。",
+        "logic": "分别汇总基线和观察期件数与 Sessions，再计算件数／Session；它反映每次访问的购买件数。价格、广告或断货重叠时列为替代解释。",
+        "missing": "Sessions 为零或缺期间覆盖时保留计数和缺口，并重设复查条件。",
+        "output": "运营给出保留、补样再测或回退建议。"
+      }
+    ],
+    "ai": {
+      "inputs": "当前页面、产品证明、目标市场语言、候选版本、观测期间和同范围流量。",
+      "draft": "针对具体字段生成改稿或设计说明，列每项依据、需人工核准的措辞和观察指标。",
+      "human": "设计确认交付规格，运营确认发布对象，指定复核人核对事实和素材授权。平台发布由获授权经办人操作。",
+      "example": "请给这个 ASIN 的候选主图写制作说明，逐条引用已提供的产品参数；把缺少证明的卖点列到待确认，并定义发布前后如何复核。"
+    },
+    "tests": [
+      {
+        "input": "同一主图有初稿、被退回版和修订版。",
+        "action": "绑定本次核准版本，录入实际发布截图。",
+        "expect": "能够看见版本差异、退回理由和真实上线证据。"
+      },
+      {
+        "input": "前台仍显示旧版，内部审批已通过。",
+        "action": "对照发布截图和候选文件。",
+        "expect": "显示待核实的版本差异，不形成新版效果结论。"
+      },
+      {
+        "input": "访问为零，或上线同期大幅促销。",
+        "action": "对照基线和观察期计算件数／Session。",
+        "expect": "零分母标不可计算；有促销时记录同期影响并建议可比窗口。"
+      }
+    ]
+  },
+  {
+    "id": "ads",
+    "title": "广告运营",
+    "purpose": "广告专员从商品异常进入调查，核对归因与利润约束，再把具体投放对象的调整、执行凭证和复核结果串起来。",
+    "roles": [
+      "广告专员",
+      "投放主管",
+      "商品运营",
+      "财务复核人"
+    ],
+    "scope": "首批使用选定店铺、站点、SKU 及完整期间的 SP 商品报告。Campaign、搜索词、Matched ASIN、广告位、SB 和 Display 要分别提供对应粒度及权限。手工引用来源时保留报告日期和对象 ID。",
+    "sections": [
+      {
+        "id": "investigation",
+        "title": "商品异常调查",
+        "purpose": "先判断花费变化是否有可比且成熟的证据，再决定调查方向。",
+        "source": "引用商品广告报告与同步覆盖记录、产品获批目标、价格及可售库存。",
+        "action": "发起广告调查",
+        "output": "输出应补的报告或待复核的异常，交广告专员定位。",
+        "fields": [
+          {
+            "key": "report_ref",
+            "label": "报表与对象引用",
+            "type": "text",
+            "required": true,
+            "help": "写明 SKU／ASIN、SP 或其他已授权类型、粒度、日期、币种及业务时区。"
+          },
+          {
+            "key": "maturity",
+            "label": "归因确认",
+            "type": "select",
+            "required": true,
+            "help": "窗口结束后还需有最终刷新证据。",
+            "options": [
+              "已成熟并刷新",
+              "窗口内",
+              "缺少刷新或窗口信息"
+            ]
+          },
+          {
+            "key": "spend",
+            "label": "同期广告花费",
+            "type": "number",
+            "required": true,
+            "help": "所选范围的花费合计。",
+            "min": 0
+          },
+          {
+            "key": "attributed_sales",
+            "label": "同期广告归因销售额",
+            "type": "number",
+            "required": true,
+            "help": "与花费采用同一报告、对象及币种。",
+            "min": 0
+          },
+          {
+            "key": "target_acos",
+            "label": "已批准目标 ACOS（%）",
+            "type": "number",
+            "required": false,
+            "help": "填写产品具体目标；空白表示目标待核实。",
+            "min": 0
+          },
+          {
+            "key": "review_date",
+            "label": "下一次核查日",
+            "type": "date",
+            "required": true,
+            "help": "结合归因窗、报告刷新及样本量确定。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "ratio",
+            "keys": [
+              "spend",
+              "attributed_sales"
+            ],
+            "label": "本期 ACOS",
+            "message": "以同口径花费除以归因销售额；归因未成熟时仅作暂估。"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "review_date"
+            ],
+            "label": "广告复查日",
+            "message": "待归因窗口与最终刷新都满足时重新核算。"
+          }
+        ]
+      },
+      {
+        "id": "change",
+        "title": "投放调整申请",
+        "purpose": "把调查结论限定到可核验的具体投放对象，说明影响与回退。",
+        "source": "从广告后台或有对应粒度的报告读取对象 ID、当前设置和观测日期。",
+        "action": "建立调整申请",
+        "output": "形成带原值、新值、观察期和停止条件的变更单，待批准后由人执行。",
+        "fields": [
+          {
+            "key": "entity_id",
+            "label": "拟改对象 ID 与层级",
+            "type": "text",
+            "required": true,
+            "help": "如 Campaign／广告组／Target；避免凭名称匹配。"
+          },
+          {
+            "key": "change_kind",
+            "label": "调整类型",
+            "type": "select",
+            "required": true,
+            "help": "广告组或 Campaign 层变更应附额外影响说明。",
+            "options": [
+              "调整预算",
+              "调整竞价",
+              "新增定向",
+              "精准否定",
+              "暂停投放",
+              "调整广告位"
+            ]
+          },
+          {
+            "key": "previous_setting",
+            "label": "当前设置及取值日期",
+            "type": "text",
+            "required": true,
+            "help": "照录现值及时间；新增对象说明原来没有。"
+          },
+          {
+            "key": "proposed_setting",
+            "label": "建议变更值与范围",
+            "type": "text",
+            "required": true,
+            "help": "注明单位、币种、适用对象及预期作用。"
+          },
+          {
+            "key": "change_basis",
+            "label": "证据与经营约束",
+            "type": "textarea",
+            "required": true,
+            "help": "引用相应粒度成熟报告，附贡献毛利、可售库存、预算及流量误伤影响。"
+          },
+          {
+            "key": "stop_condition",
+            "label": "停止、回退与复核条件",
+            "type": "textarea",
+            "required": true,
+            "help": "记录原值、复核日期、保留或回滚的业务条件。"
+          },
+          {
+            "key": "affected_reach",
+            "label": "预计影响的流量及停投替代",
+            "type": "textarea",
+            "required": false,
+            "help": "暂停时说明可能影响的核心流量、承接安排与恢复条件。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "change_kind",
+              "affected_reach"
+            ],
+            "label": "暂停影响",
+            "message": "暂停前请登记影响的流量、承接安排和恢复条件。",
+            "when": "暂停投放"
+          }
+        ]
+      },
+      {
+        "id": "verification",
+        "title": "效果复核",
+        "purpose": "到复核日时审查实际设置、同口径成熟窗口和同期干扰。",
+        "source": "手工登记外部执行回执、前后投放快照；指标复用同一归因口径的商品或目标级报告。",
+        "action": "登记投放复核",
+        "output": "形成保留、继续观察或回滚建议及下次检查条件。",
+        "fields": [
+          {
+            "key": "change_ref",
+            "label": "变更单与执行回执",
+            "type": "text",
+            "required": true,
+            "help": "注明获批动作、外部前后值及执行时间。"
+          },
+          {
+            "key": "baseline_end",
+            "label": "基线结束日",
+            "type": "date",
+            "required": true,
+            "help": "在实际投放调整前截取完整基线。"
+          },
+          {
+            "key": "observation_start",
+            "label": "观察期开始日",
+            "type": "date",
+            "required": true,
+            "help": "使用调整后的首个完整业务日或注明例外。"
+          },
+          {
+            "key": "observation_end",
+            "label": "观察期结束日",
+            "type": "date",
+            "required": true,
+            "help": "与基线采用相同粒度和归因窗口。"
+          },
+          {
+            "key": "evidence",
+            "label": "复核口径与结果",
+            "type": "textarea",
+            "required": true,
+            "help": "含对象、成熟度、花费、点击、归因销售及同期促销、价格或供货变化。"
+          },
+          {
+            "key": "next_decision",
+            "label": "待确认结论",
+            "type": "select",
+            "required": true,
+            "help": "由指定复核人结合利润与库存确认。",
+            "options": [
+              "保留调整",
+              "延长观察",
+              "建议恢复原设置"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "observation_start",
+              "observation_end"
+            ],
+            "label": "观察窗口",
+            "message": "观察结束日应等于或晚于开始日。"
+          },
+          {
+            "op": "lte",
+            "keys": [
+              "baseline_end",
+              "observation_start"
+            ],
+            "label": "基线顺序",
+            "message": "基线需来自调整之前，并与观察期采用相同的经营日口径。"
+          }
+        ]
+      },
+      {
+        "id": "framework",
+        "title": "广告组合与搭建",
+        "purpose": "把产品目标写成可执行的广告单元，并明确阶段、预算、准入和停止条件。",
+        "source": "以站点与产品阶段、现有投放结构、品牌与素材资格、已批准预算及成本／库存边界为据。",
+        "action": "建立投放单元方案",
+        "output": "目标模块、策略子模块和执行单元沿用稳定编号；获批后登记后台对象 ID 和版本。",
+        "fields": [
+          {
+            "key": "goal",
+            "label": "当期目标模块",
+            "type": "select",
+            "required": true,
+            "help": "按本产品当前业务目标选一项。",
+            "options": [
+              "探索需求",
+              "增长放量",
+              "利润改善",
+              "品牌防守",
+              "竞品拓展",
+              "再营销"
+            ]
+          },
+          {
+            "key": "strategy",
+            "label": "策略子模块与受众／词意图",
+            "type": "text",
+            "required": true,
+            "help": "说明该单元承接何种流量和购买意图。"
+          },
+          {
+            "key": "unit_ref",
+            "label": "执行单元编号与配置",
+            "type": "textarea",
+            "required": true,
+            "help": "列出广告类型、定向对象、匹配方式、落地页及素材；涉及 DSP 时须核实实际权限。"
+          },
+          {
+            "key": "planned_daily",
+            "label": "拟用日预算",
+            "type": "number",
+            "required": true,
+            "help": "以同站点同币种记录。",
+            "min": 0
+          },
+          {
+            "key": "approved_daily",
+            "label": "该单元已批日预算上限",
+            "type": "number",
+            "required": true,
+            "help": "引用预算分配及其生效版本。",
+            "min": 0
+          },
+          {
+            "key": "stage_gate",
+            "label": "阶段切换与止损条件",
+            "type": "textarea",
+            "required": true,
+            "help": "注明归因成熟、库存、贡献、目标以及下一次判断条件。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "planned_daily",
+              "approved_daily"
+            ],
+            "label": "日预算边界",
+            "message": "申请超出已批上限时应先修改预算分配或降低用额。"
+          }
+        ]
+      },
+      {
+        "id": "query_harvest",
+        "title": "搜索词收割与否定",
+        "purpose": "逐条核对真实搜索词及来源定向，把有效查询迁移到承接单元，或申请有限范围的否定。",
+        "source": "需要站点对应的搜索词／Matched ASIN 报告，加上查询、来源定向及归因成熟日期。",
+        "action": "建立查询处置单",
+        "output": "明确源对象、承接对象或拟否定范围，留存回滚方法与复核日期。",
+        "fields": [
+          {
+            "key": "query_ref",
+            "label": "查询／Matched ASIN 与源对象",
+            "type": "text",
+            "required": true,
+            "help": "填写广告账户、Campaign、广告组和来源定向的真实 ID。"
+          },
+          {
+            "key": "report_ref",
+            "label": "搜索词报表及成熟期间",
+            "type": "text",
+            "required": true,
+            "help": "核对币种、完整观察期、归因窗口与最终刷新。"
+          },
+          {
+            "key": "query_action",
+            "label": "建议动作",
+            "type": "select",
+            "required": true,
+            "help": "选择要复核的动作。",
+            "options": [
+              "建立精准承接",
+              "精准否定单一查询",
+              "评估词组否定",
+              "验证承接后否定来源",
+              "保留并继续观察"
+            ]
+          },
+          {
+            "key": "handoff_proof",
+            "label": "目标单元及实际流量凭证",
+            "type": "textarea",
+            "required": false,
+            "help": "否定源流量前核对目标已上线且能承接流量。"
+          },
+          {
+            "key": "risk_bounds",
+            "label": "样本、贡献与误伤范围",
+            "type": "textarea",
+            "required": true,
+            "help": "结合客单价、预期转化和任务说明证据强弱、近似词及品牌影响。"
+          },
+          {
+            "key": "recheck_day",
+            "label": "复核日期",
+            "type": "date",
+            "required": true,
+            "help": "依据归因和可比样本选择。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "query_action",
+              "handoff_proof"
+            ],
+            "label": "流量承接",
+            "message": "否定原流量前需指出目标单元及实际承接凭证。",
+            "when": "验证承接后否定来源"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "recheck_day"
+            ],
+            "label": "查询复核",
+            "message": "检查实际承接或否定后的流量变化。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "按产品阶段和批准目标筛选异常，核查报告齐备程度、粒度及最后刷新时间。",
+      "经办人定位具体对象，把成本、可售、预算空间与误伤风险提交指定审核人。",
+      "批准后在广告后台操作，回填实际执行时间、对象 ID、变更前后值与回执。",
+      "到复核日检查同口径数据；证据较弱时延长观察，需要回滚时单独确认外部动作。"
+    ],
+    "rules": [
+      {
+        "name": "成熟 ACOS 与目标",
+        "inputs": "同一对象和币种下的 Σ花费、Σ归因销售、归因天数、刷新时间及已批目标。",
+        "logic": "ACOS＝Σ花费÷Σ归因销售×100%。同粒度、完整、归因成熟且最终刷新后，才根据目标差异安排调查。",
+        "missing": "归因销售为零时比率不可计算；缺覆盖、目标或成熟度时登记补数和复查日期。",
+        "output": "广告专员核对对象、边际贡献与库存，决定是否立变更单。"
+      },
+      {
+        "name": "流量层级与动作",
+        "inputs": "SP 商品报告，另需具体搜索词／定向／广告位报告及对应 ID。",
+        "logic": "商品效率变化只能定位调查范围。评估单个查询的否定先检查其定向归属、影响和样本。禁止把分开的报表拼成未经观测的交叉明细。",
+        "missing": "缺对应层的明细则保留调查单，补齐后再制定参数。",
+        "output": "经办人输出具名对象、动作范围和证据。"
+      },
+      {
+        "name": "预算与复核",
+        "inputs": "资金上限、当前库存及供货、已批预算、同口径基线、观察期、执行记录。",
+        "logic": "预算耗尽时先核查受限的是优质流量还是低效花费；发布后分开计算效率与经营影响。",
+        "missing": "缺利润、库存边界或同期变化无法排除时，标明条件及可逆测试范围。",
+        "output": "投放主管确认影响并记录保留、再测或回滚。"
+      }
+    ],
+    "ai": {
+      "inputs": "产品目标以及实际开放的报告类型、对象 ID、完整日期、归因窗口和刷新、花费／点击／归因销售、价格与可售状态。",
+      "draft": "起草调查方向、支持与反证、必要补数、拟变更范围、误伤与复核计划。",
+      "human": "有权限的主管批准预算和具体操作范围，经办人在广告后台改值并留回执，复核人验证效果。",
+      "example": "请先判断该商品广告报告是否已成熟并可比，核算 ACOS 后解释可能原因。若只有商品粒度，请写下一步应取的报告，不指定否词或竞价。"
+    },
+    "tests": [
+      {
+        "input": "已成熟同币种 SP 商品报告花费 100，归因销售 400，已批目标 20%。",
+        "action": "登记异常并核对计算。",
+        "expect": "ACOS 为 25%，进入商品调查；仅凭此报告不能指定某个搜索词为否定。"
+      },
+      {
+        "input": "归因销售为零，或窗口尚未结束。",
+        "action": "查看建议并登记复查日。",
+        "expect": "零分母标不可计算；未成熟仅建议补证或再看，不能据此宣布调整失败。"
+      },
+      {
+        "input": "调整已批准但后台未变更；后来执行时与促销重叠。",
+        "action": "回填实际设置和时间，比较成熟基线与观察期。",
+        "expect": "内部审批与外部执行分开，复核列出促销干扰及保留、观察或回滚建议。"
+      }
+    ]
+  },
+  {
+    "id": "calendar",
+    "title": "活动与排期",
+    "purpose": "活动运营与广告、设计、供应链按报名截止和上线窗口协作，核对可售、素材、优惠与贡献，再安排上线及复核。",
+    "roles": [
+      "活动运营",
+      "广告专员",
+      "设计负责人",
+      "供应链经办人",
+      "财务复核人"
+    ],
+    "scope": "按站点业务时区及参与 ASIN 确认活动窗口。已有活动、物流节点和任务截止仍从原日历进入；活动资格、价格叠加、平台确认和实际上线由经办人提供带日期的记录。",
+    "sections": [
+      {
+        "id": "event",
+        "title": "活动申报计划",
+        "purpose": "掌握活动类型、报名窗、上线期和各岗位的硬截止。",
+        "source": "以对应站点的活动邀请、后台报名条件、内部产品排期为准。",
+        "action": "登记活动计划",
+        "output": "向相关岗位交接申报窗口与待备材料，并关联原活动或任务编号。",
+        "fields": [
+          {
+            "key": "event_kind",
+            "label": "活动类型",
+            "type": "select",
+            "required": true,
+            "help": "按实际活动和适用资格填写。",
+            "options": [
+              "平台活动",
+              "优惠券",
+              "价格折扣",
+              "站外引流",
+              "新品上线"
+            ]
+          },
+          {
+            "key": "participants",
+            "label": "参与 ASIN／SKU",
+            "type": "textarea",
+            "required": true,
+            "help": "写明参与型号、站点及适用变体。"
+          },
+          {
+            "key": "application_deadline",
+            "label": "报名截止日",
+            "type": "date",
+            "required": false,
+            "help": "仅有明确报名窗时填写，并在原文补充站点截止时刻。"
+          },
+          {
+            "key": "start_date",
+            "label": "计划开始日",
+            "type": "date",
+            "required": true,
+            "help": "按站点业务时区。"
+          },
+          {
+            "key": "end_date",
+            "label": "计划结束日",
+            "type": "date",
+            "required": true,
+            "help": "跨月排期保留实际结束日期。"
+          },
+          {
+            "key": "qualification_ref",
+            "label": "资格凭证或排期依据",
+            "type": "text",
+            "required": true,
+            "help": "平台活动引用站点通知及日期；内部上线引用已确认的里程碑。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "start_date",
+              "end_date"
+            ],
+            "label": "活动窗口",
+            "message": "活动结束日应等于或晚于开始日。"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "application_deadline"
+            ],
+            "label": "报名截止",
+            "message": "在平台活动窗口结束前按站点时间确认申报。"
+          }
+        ]
+      },
+      {
+        "id": "readiness",
+        "title": "上线前检查",
+        "purpose": "在申报和上线前明确库存、折扣、预算、素材与成本底线是否齐备。",
+        "source": "使用最新可售快照、价格叠加试算、活动页面及素材核准版本、财务确认的成本口径。",
+        "action": "建立上线检查单",
+        "output": "列出缺件和对应责任人，检查齐备后形成待执行计划。",
+        "fields": [
+          {
+            "key": "forecast_units",
+            "label": "预计活动需求（件）",
+            "type": "number",
+            "required": true,
+            "help": "记录销量情景，包含期间内其他销售的占用。",
+            "min": 0
+          },
+          {
+            "key": "available_units",
+            "label": "可投入活动的可售件数",
+            "type": "number",
+            "required": true,
+            "help": "按最新库存扣除其他预留；在途单列。",
+            "min": 0
+          },
+          {
+            "key": "promo_price",
+            "label": "优惠叠加后单价",
+            "type": "number",
+            "required": true,
+            "help": "在同一币种、税价口径下核对优惠券和活动优惠的组合。",
+            "min": 0
+          },
+          {
+            "key": "unit_cost_total",
+            "label": "同口径单件成本与费用",
+            "type": "number",
+            "required": true,
+            "help": "仅填可核实的单件成本和活动费用分摊，标明已含折扣、广告、税费或退款的项目。",
+            "min": 0
+          },
+          {
+            "key": "floor_ref",
+            "label": "成本底线与预算依据",
+            "type": "textarea",
+            "required": true,
+            "help": "引用已批贡献底线、费用口径及预算；估计项说明假设。"
+          },
+          {
+            "key": "creative_ref",
+            "label": "素材与优惠配置引用",
+            "type": "text",
+            "required": true,
+            "help": "记录已批准素材版本、目标页面及已核对的优惠配置。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "difference",
+            "keys": [
+              "available_units",
+              "forecast_units"
+            ],
+            "label": "活动现货结余（件）",
+            "message": "负值表示现货不能覆盖本期预计需求。"
+          },
+          {
+            "op": "difference",
+            "keys": [
+              "promo_price",
+              "unit_cost_total"
+            ],
+            "label": "已知单件贡献",
+            "message": "仅覆盖已登记的同币种成本和费用；请联系财务核对底线。"
+          }
+        ]
+      },
+      {
+        "id": "review",
+        "title": "上线回执与复盘",
+        "purpose": "区分计划窗口、已确认窗口、实际上线及复核，核对经营结果。",
+        "source": "手工录入平台确认和活动前台检查结果，取同站点同期销售、广告、费用与库存记录。",
+        "action": "登记活动复盘",
+        "output": "形成下一次排期可引用的复核结论及后续负责人。",
+        "fields": [
+          {
+            "key": "platform_ref",
+            "label": "活动／平台回执编号",
+            "type": "text",
+            "required": true,
+            "help": "若为内部新品上线，使用内部执行凭证。"
+          },
+          {
+            "key": "actual_start",
+            "label": "实际上线日",
+            "type": "date",
+            "required": true,
+            "help": "以在目标站点可见的时间为准。"
+          },
+          {
+            "key": "actual_end",
+            "label": "实际结束日",
+            "type": "date",
+            "required": true,
+            "help": "按平台或内部活动的实际结束日期。"
+          },
+          {
+            "key": "comparison",
+            "label": "对照口径与同期变化",
+            "type": "textarea",
+            "required": true,
+            "help": "说明比较对象、日期、广告投入、断货以及费用是否覆盖。"
+          },
+          {
+            "key": "result",
+            "label": "经营结果与费用依据",
+            "type": "textarea",
+            "required": true,
+            "help": "记录订单、销量、折扣、活动费和库存变化的来源；预测值单独说明。"
+          },
+          {
+            "key": "decision",
+            "label": "复核建议",
+            "type": "select",
+            "required": true,
+            "help": "按证据成熟度选择。",
+            "options": [
+              "纳入下期计划",
+              "调整条件后再试",
+              "停止同类安排",
+              "补成本或观察数据"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "actual_start",
+              "actual_end"
+            ],
+            "label": "实际执行窗口",
+            "message": "实际上线日不得在实际结束日之后。"
+          }
+        ]
+      },
+      {
+        "id": "pricing_track",
+        "title": "优惠叠加与站外追踪",
+        "purpose": "核对最终到手价、费用边界和外部流量的落地与测量口径。",
+        "source": "来自促销后台配置、财务底价、承接页面及经授权的站外追踪记录。",
+        "action": "新建促销测算单",
+        "output": "形成经审核的价格配置、渠道追踪方案和恢复条件；外部推广手工回填回执。",
+        "fields": [
+          {
+            "key": "channel",
+            "label": "活动渠道",
+            "type": "select",
+            "required": true,
+            "help": "指出站内或需追踪的外部渠道。",
+            "options": [
+              "站内促销",
+              "站外引流",
+              "站内外联动"
+            ]
+          },
+          {
+            "key": "base_price",
+            "label": "参考售价",
+            "type": "number",
+            "required": true,
+            "help": "注明有效期、币种及税价口径。",
+            "min": 0
+          },
+          {
+            "key": "effective_price",
+            "label": "实际叠加后售价",
+            "type": "number",
+            "required": true,
+            "help": "按可同时领取的优惠范围复核。",
+            "min": 0
+          },
+          {
+            "key": "cost_floor",
+            "label": "已批最低到手价",
+            "type": "number",
+            "required": true,
+            "help": "采用同一币种、税价和费用口径。",
+            "min": 0
+          },
+          {
+            "key": "tracking_ref",
+            "label": "承接页与追踪标识",
+            "type": "text",
+            "required": false,
+            "help": "含目标 ASIN、落地页、活动标签及归因口径。"
+          },
+          {
+            "key": "rollback",
+            "label": "停推与恢复条件",
+            "type": "textarea",
+            "required": true,
+            "help": "明确毛利、库存等停止条件及恢复原优惠步骤。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "gte",
+            "keys": [
+              "effective_price",
+              "cost_floor"
+            ],
+            "label": "已批价盘",
+            "message": "优惠叠加后售价低于批准底价，应先调整方案并复核预算。"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "channel",
+              "tracking_ref"
+            ],
+            "label": "站外追踪",
+            "message": "站外推广需记录承接页面与追踪依据。",
+            "when": "站外引流"
+          },
+          {
+            "op": "required_if",
+            "keys": [
+              "channel",
+              "tracking_ref"
+            ],
+            "label": "联动追踪",
+            "message": "站内外联动时请说明外部流量如何被追踪。",
+            "when": "站内外联动"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "活动运营登记站点、ASIN、资格、窗口与报名截止，参与岗位确认交接日期。",
+      "经办人核对可售、预算、叠加优惠与素材；指定审核人对本版材料审批。",
+      "经办人在平台申报并登记确认号及实际上线情况，计划、批准和上线各有依据。",
+      "结束后核对经营数据、费用和库存，记录能否判断增量以及下次决策。"
+    ],
+    "rules": [
+      {
+        "name": "活动日期与截止",
+        "inputs": "站点时区、平台报名窗、计划及实际起止日期。",
+        "logic": "结束日须不早于开始日。按平台原文梳理申报倒排，并保留跨月活动的全部有效日期。",
+        "missing": "通知未给硬截止时使用内部跟进日，提示确认。",
+        "output": "运营得到报名、上线、物流和复核节点。"
+      },
+      {
+        "name": "库存覆盖",
+        "inputs": "可投入活动的可售件数、预计活动需求、其他承诺、在途与可确认接收时间。",
+        "logic": "活动可用件数减预计需求，出现缺口时让供应链确认补货、缩量或调期。",
+        "missing": "缺可售时间戳或需求情景则请求确认，预计到货不能直接当作现货。",
+        "output": "供应链回填可承诺数量及影响窗口。"
+      },
+      {
+        "name": "贡献底线与增量",
+        "inputs": "叠加折扣后单价、同币种单件成本费用、已批准底线、活动费与对照数据。",
+        "logic": "单价减同口径单件成本费用得到已知贡献；核对是否覆盖全部适用费用，再与批准底线比较。只有可比的对照及成本归属齐备时讨论增量。",
+        "missing": "成本口径或对照不全时只展示可证实的数值，并登记费用缺口。",
+        "output": "财务确认底线，运营据此调整投放或活动范围。"
+      }
+    ],
+    "ai": {
+      "inputs": "站点、活动资格原文、涉及型号、时间与时区、叠加价格、成本、广告、可售快照及素材确认。",
+      "draft": "起草按岗位拆分的申报清单、库存缺口和贡献情景、延期选项与复核口径。",
+      "human": "供应链确认实物可售，财务核准底线，运营负责人确认申报；经办人登记实际平台结果。",
+      "example": "请按这份活动邀请的时区倒排报名、库存和素材节点。给出缺件及对应岗位，列出价格再降一档时需要重新确认的成本项。"
+    },
+    "tests": [
+      {
+        "input": "活动从月末开始，下月初结束。",
+        "action": "填写跨月开始、结束和报名截止；打开相关排期。",
+        "expect": "按站点业务日期显示完整活动窗口，能追溯原截止。"
+      },
+      {
+        "input": "活动需求 150 件，可用现货 70 件，另有在途 100 件。",
+        "action": "登记检查单并核对库存差额。",
+        "expect": "现货缺口为 80 件，待供应链确认替代计划。"
+      },
+      {
+        "input": "销售增加但同期提高广告预算，活动费用尚未确认。",
+        "action": "记录活动结果与比较窗口。",
+        "expect": "保留观测销量、广告变化和费用缺口，增量回报待核实。"
+      }
+    ]
+  }
+]
