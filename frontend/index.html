@@ -7,6 +7,7 @@
  <link rel="stylesheet" href="analytics.css">
  <link rel="stylesheet" href="process.css">
  <link rel="stylesheet" href="approvals.css">
+ <link rel="stylesheet" href="workbench.css">
 </head>
 <body>
  <aside class="sidebar" id="sidebar">
@@ -24,6 +25,7 @@
    <div id="modeBanner" class="mode-banner" role="status"></div>
    <div class="page-heading"><div><div class="eyebrow" id="eyebrow">PRODUCT PORTFOLIO</div><h1 id="pageTitle">每个产品，每一步都有着落。</h1><p id="pageDescription">以产品型号为主线，连接店铺、页面、广告、供应链与协作。</p></div><div id="pageActions" class="page-actions"></div></div>
    <div class="scopebar"><div class="product-scope"><span id="productScopeIcon"></span><select id="productSelect" aria-label="选择产品"></select><span class="market-badge" id="marketBadge">US</span></div><div class="scope-right"><span class="scope-caption" id="scopeCaption">工作范围：全部产品</span><label class="searchbox"><span id="searchIcon"></span><input id="searchInput" type="search" placeholder="搜索型号、任务或负责人" aria-label="搜索当前页面"></label></div></div>
+   <div id="workbenchRoot"></div>
    <div id="viewRoot" aria-live="polite"><div class="loading-state">正在加载运营工作台…</div></div>
    <footer><span>HOMA OPERATIONS · v0.4</span><span id="footerStatus">任务和数据均标注来源</span></footer>
   </main>
@@ -39,5 +41,7 @@
  <script src="analytics.js" defer></script>
  <script src="process.js" defer></script>
  <script src="approvals.js" defer></script>
+ <script src="workbench-triage.js" defer></script>
+ <script src="workbench.js" defer></script>
 </body>
 </html>

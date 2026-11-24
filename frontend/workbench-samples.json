@@ -1,0 +1,715 @@
+[
+  {
+    "id": "demo-sample:overview",
+    "product_id": "demo-g11",
+    "page_id": "overview",
+    "section_id": "risk_triage",
+    "title": "示例 · 运营今日先核 G11 补货窗口",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／试销补货情景",
+    "owner_id": "op",
+    "reviewer_id": "supply",
+    "owner_role": "admin",
+    "status": "draft",
+    "values": {
+      "risk_kind": "供货风险",
+      "last_action_date": "2026-11-25",
+      "evidence_summary": "推演数据：14 个完整销售日 140 件，可售 90 件，常规到货要 14 天。请供应链确认在途 48 件的到仓日，再决定加急或调拨。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:deliverables",
+    "product_id": "demo-g11",
+    "page_id": "deliverables",
+    "section_id": "missing_files",
+    "title": "示例 · 补齐 US 包装标签的定稿文件",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／包装标签第三版",
+    "owner_id": "design",
+    "reviewer_id": "compliance",
+    "owner_role": "member",
+    "status": "pending_review",
+    "values": {
+      "expected_file": "G11 美国站外箱标签_v3.pdf（示例文件名）",
+      "missing_reason": "资料不完整",
+      "promised_date": "2026-11-25"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "design",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "design",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:process",
+    "product_id": "demo-g11",
+    "page_id": "process",
+    "section_id": "handoff",
+    "title": "示例 · 设计把标签三版交给合规核范围",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／标签审核交接",
+    "owner_id": "design",
+    "reviewer_id": "compliance",
+    "owner_role": "member",
+    "status": "approved",
+    "values": {
+      "from_stage": "设计定稿",
+      "to_stage": "站点合规检查",
+      "handoff_material": "示例三版标签含型号、责任方位置和条码区；需要合规对照 G11-US 与包装打样批次。此次批准只同意交接安排。",
+      "promised_date": "2026-11-25"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "design",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "design",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      },
+      {
+        "action": "approve",
+        "actor_id": "compliance",
+        "created_at": "2026-11-24T17:00:00Z",
+        "note": "示例 · 示范审核决定：批准表单所述办理计划。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:workflow",
+    "product_id": "demo-g11",
+    "page_id": "workflow",
+    "section_id": "applicability",
+    "title": "示例 · 核对透明计划资格后确定 SOP 适用性",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／透明计划资格",
+    "owner_id": "product",
+    "reviewer_id": "op",
+    "owner_role": "member",
+    "status": "draft",
+    "values": {
+      "sop_name": "核对透明计划资格与标签授权",
+      "applicable": "需补证",
+      "basis": "本示例只有产品型号和品牌档案，未取得该站点授权资料。",
+      "verify_plan": "由产品经办人核对品牌资格和标签授权范围，写明依据后请指定审批人复核。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "product",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:team",
+    "product_id": "demo-g11",
+    "page_id": "team",
+    "section_id": "assignment",
+    "title": "示例 · 把入仓差异核对交给当班供应链",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／差异登记值班交接",
+    "owner_id": "op",
+    "reviewer_id": "supply",
+    "owner_role": "admin",
+    "status": "pending_review",
+    "values": {
+      "unassigned_ref": "DEMO-RECEIVING-01（试算批次）",
+      "suggested_owner": "供应链示例",
+      "capacity_reason": "收货回执与装箱明细由同一岗位掌握。运营整理数据，供应链核差额，主管复核结果。",
+      "accept_by": "2026-11-25"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "op",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:shop",
+    "product_id": "demo-g11",
+    "page_id": "shop",
+    "section_id": "notice",
+    "title": "示例 · 确认店铺通知所涉型号和回复时限",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／虚构店铺通知 DEMO-N01",
+    "owner_id": "op",
+    "reviewer_id": "compliance",
+    "owner_role": "admin",
+    "status": "draft",
+    "values": {
+      "notice_ref": "DEMO-N01（虚构编号）",
+      "notice_date": "2026-11-23",
+      "affected_scope": "演练店铺美国站 G11 的商品页，核实通知所列型号与标识范围。",
+      "platform_deadline": "2026-11-26",
+      "deadline_detail": "演练时限为洛杉矶时间 11 月 26 日 17:00。",
+      "next_follow_up": "2026-11-25",
+      "notice_evidence": "模拟通知仅用于训练材料核对，真实办理须引用原平台通知和回执。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:listing",
+    "product_id": "demo-g11",
+    "page_id": "listing",
+    "section_id": "brief",
+    "title": "示例 · 改版安装引导附图以减少误配",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／附图二／布局稿 B",
+    "owner_id": "design",
+    "reviewer_id": "product",
+    "owner_role": "member",
+    "status": "approved",
+    "values": {
+      "asin": "B0GXZ848Q1",
+      "content_area": "附图或视频",
+      "current_version": "演练现版 A，候选稿 B",
+      "hypothesis": "将连接要求移至第二张附图，减少购买后对安装条件的误解；上线后观察相近流量及价格条件下的变化。",
+      "product_proof": "示例规格卡 DEMO-SPEC-G11：拍摄首稿前需产品负责人核对安装条件。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "design",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "design",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      },
+      {
+        "action": "approve",
+        "actor_id": "product",
+        "created_at": "2026-11-24T17:00:00Z",
+        "note": "示例 · 示范审核决定：批准表单所述办理计划。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:ads",
+    "product_id": "demo-g11",
+    "page_id": "ads",
+    "section_id": "investigation",
+    "title": "示例 · SP 商品投放的归因窗口仍待成熟",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／SP 商品投放／七日窗口",
+    "owner_id": "ads",
+    "reviewer_id": "op",
+    "owner_role": "member",
+    "status": "draft",
+    "values": {
+      "report_ref": "演练数据，G11-US 单商品 SP；11 月 17–23 日，洛杉矶时区，美元，七日归因。",
+      "maturity": "窗口内",
+      "spend": 60,
+      "attributed_sales": 150,
+      "target_acos": 30,
+      "review_date": "2026-12-01"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "ads",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:calendar",
+    "product_id": "demo-g11",
+    "page_id": "calendar",
+    "section_id": "readiness",
+    "title": "示例 · 核对活动库存能否覆盖预计需求",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／十二月优惠情景",
+    "owner_id": "op",
+    "reviewer_id": "finance",
+    "owner_role": "admin",
+    "status": "pending_review",
+    "values": {
+      "forecast_units": 100,
+      "available_units": 80,
+      "promo_price": 24,
+      "unit_cost_total": 18,
+      "floor_ref": "模拟美元同口径底线：财务要求单件已知贡献至少 5 美元；先确认缺口 20 件的库存与促销费。",
+      "creative_ref": "示例素材 DEMO-PROMO-B；促销申报前由经办人核验实际配置。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "op",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:inventory",
+    "product_id": "demo-g11",
+    "page_id": "inventory",
+    "section_id": "replenish",
+    "title": "示例 · 可售约 9 天，复核 168 件补货申请",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／演练采购批次 R01",
+    "owner_id": "supply",
+    "reviewer_id": "op",
+    "owner_role": "member",
+    "status": "pending_review",
+    "values": {
+      "suggested_qty": 168,
+      "requested_qty": 168,
+      "adjustment": "按建议量",
+      "order_by": "2026-11-25",
+      "quote_ref": "演练报价 R01，MOQ 96 件，整箱 24 件。另有 48 件在途，ETA 尚未确认，未抵减本次需求。",
+      "scenario_basis": "完整销售日及新鲜快照已核实",
+      "sold_qty": 140,
+      "closed_days": 14,
+      "available_qty": 90,
+      "eligible_inbound": 0,
+      "lead_days": 14,
+      "safety_days": 3,
+      "review_days": 7,
+      "min_order": 96,
+      "pack_size": 24
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "supply",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "supply",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:finance",
+    "product_id": "demo-g11",
+    "page_id": "finance",
+    "section_id": "contribution",
+    "title": "示例 · 核对 G11 成本版本并分列 SP 花费",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／11 月样例结算窗口",
+    "owner_id": "finance",
+    "reviewer_id": "op",
+    "owner_role": "member",
+    "status": "executed",
+    "values": {
+      "period_start": "2026-11-09",
+      "period_end": "2026-11-10",
+      "sold_units": 5,
+      "matched_units": 5,
+      "expense_scope": "演练：9日卖2件、有效单件成本10美元；10日卖3件、有效成本12美元。仅纳入 SP 花费，退款及期间费用待核。",
+      "currency": "USD",
+      "ordered_revenue": 100,
+      "matched_cost": 56,
+      "ad_spend": 14
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "finance",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "finance",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      },
+      {
+        "action": "approve",
+        "actor_id": "op",
+        "created_at": "2026-11-24T17:00:00Z",
+        "note": "示例 · 示范审核决定：批准表单所述办理计划。",
+        "evidence": ""
+      },
+      {
+        "action": "execute",
+        "actor_id": "finance",
+        "created_at": "2026-11-24T18:00:00Z",
+        "note": "示例 · 演练回执已经登记，等待复核。",
+        "evidence": "虚构演练回执 DEMO-11；未执行任何外部操作。"
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:service",
+    "product_id": "demo-g11",
+    "page_id": "service",
+    "section_id": "case_intake",
+    "title": "示例 · 客服跟进 G11 首次连接失败",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／脱敏工单 DEMO-CS03",
+    "owner_id": "service",
+    "reviewer_id": "product",
+    "owner_role": "member",
+    "status": "approved",
+    "values": {
+      "order_ref": "DEMO-CS03（脱敏演练编号）",
+      "issue_type": "安装连接",
+      "reply_due": "2026-11-25",
+      "promise": "客服在演练时限 11 月 25 日 15:00（洛杉矶时间）确认手机系统、网络条件与操作步骤；必要时升级产品岗。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "service",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "service",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      },
+      {
+        "action": "approve",
+        "actor_id": "product",
+        "created_at": "2026-11-24T17:00:00Z",
+        "note": "示例 · 示范审核决定：批准表单所述办理计划。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:compliance",
+    "product_id": "demo-g11",
+    "page_id": "compliance",
+    "section_id": "certificate",
+    "title": "示例 · 核实 US 型号证件草稿的覆盖范围",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／认证草稿第二版",
+    "owner_id": "compliance",
+    "reviewer_id": "product",
+    "owner_role": "member",
+    "status": "draft",
+    "values": {
+      "issuer": "演练机构（虚构）",
+      "scope_model": "美国站 G11，硬件修订 B",
+      "phase": "待修订",
+      "follow_up": "2026-11-25",
+      "validity": "模拟草稿未列硬件修订版本，待机构确认。正本及有效期尚无依据，发运放行需另行核验。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "compliance",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:ranking",
+    "product_id": "demo-g11",
+    "page_id": "ranking",
+    "section_id": "rank_review",
+    "title": "示例 · 复测自然位从 42 到 36 的变化",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／indoor security camera 自然位",
+    "owner_id": "ads",
+    "reviewer_id": "op",
+    "owner_role": "member",
+    "status": "executed",
+    "values": {
+      "pair_ref": "样例自然位快照 O1 与 O2，ASIN B0GXZ848Q1；美国站桌面端，配送地区 10001，10:00 同窗。",
+      "old_rank": 42,
+      "new_rank": 36,
+      "recheck_on": "2026-11-26",
+      "factors": "同条件样例上升 6 位；库存、价格和页面露出需复核，尚无因果依据。",
+      "before_series": "DEMO-US-G11-ORG-01",
+      "after_series": "DEMO-US-G11-ORG-01",
+      "pair_state": "连续有效观测"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "ads",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "ads",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      },
+      {
+        "action": "approve",
+        "actor_id": "op",
+        "created_at": "2026-11-24T17:00:00Z",
+        "note": "示例 · 示范审核决定：批准表单所述办理计划。",
+        "evidence": ""
+      },
+      {
+        "action": "execute",
+        "actor_id": "ads",
+        "created_at": "2026-11-24T18:00:00Z",
+        "note": "示例 · 演练回执已经登记，等待复核。",
+        "evidence": "虚构演练回执 DEMO-14；未执行任何外部操作。"
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:agent",
+    "product_id": "demo-g11",
+    "page_id": "agent",
+    "section_id": "evidence_review",
+    "title": "示例 · 是否在补货到仓前放量广告",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／库存与投放联动复核",
+    "owner_id": "op",
+    "reviewer_id": "ads",
+    "owner_role": "admin",
+    "status": "draft",
+    "values": {
+      "question": "现有 90 件可售且补货交期 14 天，现在要不要扩大 SP 预算？",
+      "evidence_ref": "引用演练采购申请 R01 与 SP 商品调查表；前者覆盖约 9 天，后者归因未成熟。",
+      "readiness": "缺少输入",
+      "missing_inputs": "供应链补 48 件在途 ETA，广告岗待成熟报告最终刷新，财务核可用预算。",
+      "decision_by": "2026-11-26"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:imports",
+    "product_id": "demo-g11",
+    "page_id": "imports",
+    "section_id": "validate_file",
+    "title": "示例 · 修正销售模板中的一行非法日期",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／11 月销售 CSV 预检",
+    "owner_id": "op",
+    "reviewer_id": "finance",
+    "owner_role": "admin",
+    "status": "closed",
+    "values": {
+      "dataset": "销售",
+      "file_ref": "DEMO-G11-sales-v1.csv（虚构文件）",
+      "total_rows": 3,
+      "valid_rows": 2,
+      "mapping": "样例映射到 US 的 G11-US 和美元；第 3 个数据行日期无效，另两行通过。这里只演示预检与复核，未上传文件。"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      },
+      {
+        "action": "submit",
+        "actor_id": "op",
+        "created_at": "2026-11-24T16:00:00Z",
+        "note": "示例 · 经办人提交本版演练材料，请指定审核人复核。",
+        "evidence": ""
+      },
+      {
+        "action": "approve",
+        "actor_id": "finance",
+        "created_at": "2026-11-24T17:00:00Z",
+        "note": "示例 · 示范审核决定：批准表单所述办理计划。",
+        "evidence": ""
+      },
+      {
+        "action": "execute",
+        "actor_id": "op",
+        "created_at": "2026-11-24T18:00:00Z",
+        "note": "示例 · 演练回执已经登记，等待复核。",
+        "evidence": "虚构演练回执 DEMO-16；未执行任何外部操作。"
+      },
+      {
+        "action": "verify",
+        "actor_id": "finance",
+        "created_at": "2026-11-24T19:00:00Z",
+        "note": "示例 · 复核示范的执行依据与结果后归档。",
+        "evidence": ""
+      }
+    ]
+  },
+  {
+    "id": "demo-sample:settings",
+    "product_id": "demo-g11",
+    "page_id": "settings",
+    "section_id": "connection_health",
+    "title": "示例 · 核实 SP 广告授权与首次有效分区",
+    "site": "US",
+    "account_ref": "演练美国店铺",
+    "business_timezone": "America/Los_Angeles",
+    "record_scope": "product",
+    "object_ref": "G11-US／演练广告连接",
+    "owner_id": "op",
+    "reviewer_id": "ads",
+    "owner_role": "admin",
+    "status": "draft",
+    "values": {
+      "source_type": "广告报告",
+      "connection_ref": "DEMO-US-ADS（未绑定真实账号）",
+      "check_result": "仅保存了示例来源标识；需要授权账号、匹配站点/币种和成功分区后才可标记同步成功。",
+      "health_status": "尚无成功分区"
+    },
+    "data_source": "sample",
+    "history": [
+      {
+        "action": "create",
+        "actor_id": "op",
+        "created_at": "2026-11-24T15:00:00Z",
+        "note": "示例 · 建立演练工作单，登记业务对象与初步依据。",
+        "evidence": ""
+      }
+    ]
+  }
+]

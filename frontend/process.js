@@ -19,7 +19,7 @@ window.processUI = (() => {
     authBusy=true;authAttempted=true;
     try{auth=await api('/api/workflow-auth/session');authReady=true;}
     catch(err){authReady=false;toast('流程登录服务暂不可用：'+err.message)}
-    finally{authBusy=false;identity();if(view==='process'&&loadedProduct||view==='workflow')render();}
+    finally{authBusy=false;identity();window.dispatchEvent(new Event('homa-session'));if(view==='process'&&loadedProduct||view==='workflow')render();}
   }
   function identity(){
     const el=$('#workflowIdentity');if(!el)return;
@@ -36,7 +36,7 @@ window.processUI = (() => {
   const $$=s=>Array.from(document.querySelectorAll(s));
   async function loadGraph(force=false){
     if(mode!=='server')return;
-    const selected=productId==='all'?ws.products[0]?.id:productId;
+    const selected=productId==='all'?null:productId;
     if(!selected)return;
     if(!force&&loadingProduct===selected)return;
     const run=++generation;loadingProduct=selected;loadError='';
@@ -49,7 +49,8 @@ window.processUI = (() => {
       (scope==='all'||scope==='mine'&&(n.owner_id===auth.user?.id||n.config.collaborator_ids.includes(auth.user?.id))||scope==='review'&&n.status==='pending_approval'&&n.config.reviewer_ids.includes(auth.user?.id)||scope==='overdue'&&overdue(n)));
   }
   function renderPage(){
-    const selected=productId==='all'?ws.products[0]?.id:productId;
+    const selected=productId==='all'?null:productId;
+    if(!selected&&ws.products.length)return empty('请选择具体产品型号','选择上方工作范围后，可查看和处理此产品的流程节点。');
     if(!selected)return empty('先建立产品档案','建立产品后，可在这里安排流程、填写项目与审核人员。',auth.user?.is_admin?button('建立产品','new-product',true):'');
     if(errorProduct!==selected)loadError='';
     if(mode==='demo'){
@@ -262,5 +263,5 @@ window.processUI = (() => {
   });
   window.addEventListener('beforeunload',ev=>{if(dirty){ev.preventDefault();ev.returnValue='';}});
   window.addEventListener('resize',()=>requestAnimationFrame(drawEdges));
-  return {render:renderPage,decorate,openNode,invalidate,isAdmin:()=>!!auth.user?.is_admin,login:async()=>{if(!authReady)await session();authDialog();}};
+  return {render:renderPage,decorate,openNode,invalidate,currentUser:()=>auth.user,isAdmin:()=>!!auth.user?.is_admin,login:async()=>{if(!authReady)await session();authDialog();}};
 })();

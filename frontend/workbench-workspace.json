@@ -1,0 +1,1507 @@
+[
+  {
+    "id": "overview",
+    "title": "产品总览",
+    "purpose": "项目负责人用同一张风险清单判断今天先处理什么，并把工作交给有权办理的人。",
+    "roles": [
+      "产品负责人",
+      "运营主管",
+      "专业经办人"
+    ],
+    "scope": "跨型号矩阵读取项目任务和前置关系。填写办理单时选定一个产品、站点与来源对象；经营影响须附指标周期和来源。",
+    "sections": [
+      {
+        "id": "risk_triage",
+        "title": "当日风险分派",
+        "purpose": "把总览中发现的一项风险转为可核验的跟进。",
+        "source": "任务截止、审批摘要、库存或销售数据的最近有效快照；平台硬截止由经办人核实。",
+        "action": "登记待处置风险",
+        "output": "负责人收到一张含最后行动日和证据的处置单，可进入对应专业工作台。",
+        "fields": [
+          {
+            "key": "risk_kind",
+            "label": "触发原因",
+            "type": "select",
+            "required": true,
+            "help": "选择本次优先处理的主要原因。",
+            "options": [
+              "平台截止",
+              "下游受阻",
+              "供货风险",
+              "数据异常"
+            ]
+          },
+          {
+            "key": "last_action_date",
+            "label": "最迟行动日",
+            "type": "date",
+            "required": true,
+            "help": "记录仍能避免该影响的最后日期。"
+          },
+          {
+            "key": "evidence_summary",
+            "label": "证据与影响范围",
+            "type": "textarea",
+            "required": true,
+            "help": "写明来源记录、采样时间、受影响型号和待核实之处。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "last_action_date"
+            ],
+            "label": "行动剩余时间",
+            "message": "结合平台截止和业务时区安排负责人。"
+          }
+        ]
+      },
+      {
+        "id": "launch_gate",
+        "title": "上线里程碑核验",
+        "purpose": "上线前确认尚未通过的关键事项及负责人。",
+        "source": "产品目标上线日期、任务前置项、审批单最新状态。",
+        "action": "发起里程碑核验",
+        "output": "形成未完成项清单和建议上线窗口，供产品负责人决策。",
+        "fields": [
+          {
+            "key": "launch_date",
+            "label": "目标上线日",
+            "type": "date",
+            "required": true,
+            "help": "取产品已确认的上市计划。"
+          },
+          {
+            "key": "blocking_refs",
+            "label": "关键事项及状态",
+            "type": "textarea",
+            "required": true,
+            "help": "逐项列出任务编号、责任人、当前阶段和证据。"
+          },
+          {
+            "key": "gate_result",
+            "label": "核验建议",
+            "type": "select",
+            "required": true,
+            "help": "负责人审核后记录决策及依据。",
+            "options": [
+              "如期推进",
+              "补证后再定",
+              "建议改期"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "launch_date"
+            ],
+            "label": "目标上线窗口",
+            "message": "核对前置事项与上线窗口。"
+          }
+        ]
+      },
+      {
+        "id": "handoff_check",
+        "title": "处置结果回访",
+        "purpose": "回访已分派风险是否解除，决定关闭或继续跟进。",
+        "source": "处置单、专业工作台执行凭证和最新状态。",
+        "action": "登记风险回访",
+        "output": "复核人据原风险标准验收，并记录遗留影响与下一步。",
+        "fields": [
+          {
+            "key": "followup_ref",
+            "label": "处置记录编号",
+            "type": "text",
+            "required": true,
+            "help": "填写原风险或专业办理单编号。"
+          },
+          {
+            "key": "observed_result",
+            "label": "前后变化",
+            "type": "textarea",
+            "required": true,
+            "help": "对照原条件，注明复核数据时间和仍存在的影响。"
+          },
+          {
+            "key": "followup_result",
+            "label": "回访结论",
+            "type": "select",
+            "required": true,
+            "help": "仍有影响时交回责任人。",
+            "options": [
+              "已解除",
+              "部分解除",
+              "仍需处置"
+            ]
+          },
+          {
+            "key": "unresolved_next",
+            "label": "遗留事项与责任人",
+            "type": "textarea",
+            "required": false,
+            "help": "仍需处置时填写。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "followup_result",
+              "unresolved_next"
+            ],
+            "label": "遗留事项",
+            "message": "回访仍需处置时写明下一步责任人和动作。",
+            "when": "仍需处置"
+          }
+        ]
+      },
+      {
+        "id": "opportunity",
+        "title": "产品机会与可行性",
+        "purpose": "判断需求是否值得进入验证，明确通过或终止条件。",
+        "source": "运营手工登记客户场景、竞品证据、价格带、供应商报价和验证结论；各项注明来源与日期。",
+        "action": "登记产品机会",
+        "output": "产品负责人得到验证任务、所需预算和复查日期，决定是否进入新品筹备。",
+        "fields": [
+          {
+            "key": "target_segment",
+            "label": "目标人群与场景",
+            "type": "textarea",
+            "required": true,
+            "help": "写出要解决的问题、站点和现有替代方案。"
+          },
+          {
+            "key": "opportunity_evidence",
+            "label": "机会证据",
+            "type": "textarea",
+            "required": true,
+            "help": "给出需求来源、观察日期、已有样本与仍需验证的假设。"
+          },
+          {
+            "key": "pilot_criteria",
+            "label": "验证通过条件",
+            "type": "textarea",
+            "required": true,
+            "help": "预先写明样本、口径和继续或中止的阈值。"
+          },
+          {
+            "key": "review_date",
+            "label": "验证复查日",
+            "type": "date",
+            "required": true,
+            "help": "约定验证结果回到产品会的日期。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "review_date"
+            ],
+            "label": "机会验证窗口",
+            "message": "到期复查证据并决定继续验证或终止。"
+          }
+        ]
+      },
+      {
+        "id": "quarter_portfolio",
+        "title": "季度目标与组合取舍",
+        "purpose": "给总览中的型号设定可比较的季度目标，并记录资源的投向与放弃项。",
+        "source": "主管手工录入已批准预算和目标，引用销售、已知成本贡献、库存占用及来源周期；多币种先分别核算。",
+        "action": "登记季度资源决策",
+        "output": "主管得到带执行责任和复盘日的投入、试投、维持或退出决议。",
+        "fields": [
+          {
+            "key": "quarter_target",
+            "label": "目标与考核口径",
+            "type": "textarea",
+            "required": true,
+            "help": "记录季度起止、目标指标、基线和目标值；不可用真实净利润代替已知成本贡献。"
+          },
+          {
+            "key": "approved_budget",
+            "label": "已批准预算",
+            "type": "number",
+            "required": true,
+            "help": "本次取舍可使用的预算上限。",
+            "min": 0
+          },
+          {
+            "key": "planned_spend",
+            "label": "本次拟投入",
+            "type": "number",
+            "required": true,
+            "help": "填写与预算同币种的预计投入。",
+            "min": 0
+          },
+          {
+            "key": "currency",
+            "label": "预算币种",
+            "type": "text",
+            "required": true,
+            "help": "如 USD 或 EUR，同一记录同一币种。"
+          },
+          {
+            "key": "allocation_decision",
+            "label": "投入决策",
+            "type": "select",
+            "required": true,
+            "help": "按证据写明资源取舍。",
+            "options": [
+              "加大投入",
+              "小额验证",
+              "维持",
+              "收缩退出"
+            ]
+          },
+          {
+            "key": "tradeoff",
+            "label": "资源来源及放弃项",
+            "type": "textarea",
+            "required": true,
+            "help": "列出受影响型号、可用人日或预算、放弃项及依据。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "lte",
+            "keys": [
+              "planned_spend",
+              "approved_budget"
+            ],
+            "label": "预算上限",
+            "message": "本次投入超出已批准预算，请调整投入或先行申请增额。"
+          }
+        ]
+      },
+      {
+        "id": "lifecycle_plan",
+        "title": "新品上市、成熟增长与退市",
+        "purpose": "区分不同生命周期的办理目标、依赖条件、风险和终止条件。",
+        "source": "产品负责人维护生命周期与目标，按需引用上新里程碑、真实经营结果、库存与供应商交期。",
+        "action": "登记生命周期行动计划",
+        "output": "形成一项有明确交付与退出条件的计划，交给对应专业模块办理。",
+        "fields": [
+          {
+            "key": "lifecycle_stage",
+            "label": "产品阶段",
+            "type": "select",
+            "required": true,
+            "help": "选择本次计划对应阶段。",
+            "options": [
+              "新品上市",
+              "成熟增长",
+              "收缩退市"
+            ]
+          },
+          {
+            "key": "stage_plan",
+            "label": "阶段工作与依赖",
+            "type": "textarea",
+            "required": true,
+            "help": "新品列上线前置，成熟期列实验与复盘，退市列清货、停投及售后承接。"
+          },
+          {
+            "key": "entry_exit",
+            "label": "通过或终止条件",
+            "type": "textarea",
+            "required": true,
+            "help": "记录数据来源、判断阈值及承担人。"
+          },
+          {
+            "key": "cutoff_date",
+            "label": "计划核验日期",
+            "type": "date",
+            "required": true,
+            "help": "阶段负责人复查条件并决定下一步。"
+          },
+          {
+            "key": "exit_owner",
+            "label": "售后与库存承接方",
+            "type": "text",
+            "required": false,
+            "help": "退市时须确认在库清理、退换货及售后交接。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "lifecycle_stage",
+              "exit_owner"
+            ],
+            "label": "退市交接",
+            "message": "收缩退市须明确售后与库存承接方。",
+            "when": "收缩退市"
+          },
+          {
+            "op": "deadline",
+            "keys": [
+              "cutoff_date"
+            ],
+            "label": "阶段复查",
+            "message": "记录下一次复查行动。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "运营在产品矩阵选中异常项，固定产品、站点与证据时间。",
+      "经办人记录原因和最后行动日，指定审核人核对分派依据。",
+      "责任人进入专业页处理，回填办理单或平台回执。",
+      "复核人对照最新证据确认是否解除，再决定关闭。"
+    ],
+    "rules": [
+      {
+        "name": "进度分母",
+        "inputs": "所选范围任务状态、权重",
+        "logic": "仅对适用任务求权重和，已完成权重除以适用权重。",
+        "missing": "分母为零时标明没有适用事项。",
+        "output": "产品负责人得到可下钻的进度与明细。"
+      },
+      {
+        "name": "先处理哪一项",
+        "inputs": "平台最后行动日、前置阻塞和下游对象",
+        "logic": "先列硬截止及阻塞事项，同类按最后行动日升序；金额比较须同币种、同口径。",
+        "missing": "缺日期时标记待核实，并指派核实责任人。",
+        "output": "主管确认今日处置顺序。"
+      },
+      {
+        "name": "跨型号归属",
+        "inputs": "产品、站点、任务编号和证据范围",
+        "logic": "从全产品概览登记处置前明确唯一办理对象；跨产品影响作为说明引用。",
+        "missing": "无明确型号时先核对映射。",
+        "output": "每个跟进项有可追溯来源。"
+      }
+    ],
+    "ai": {
+      "inputs": "当前产品适用任务、现有阻塞和来源时间；经营事实取选定期间的指标。",
+      "draft": "生成今日处理顺序和每项依据。",
+      "human": "主管确认优先级和分派，经办人提交办理凭证。",
+      "example": "请按最迟行动日列出这个型号今天要处理的三项工作，逐项写出阻塞对象、证据与缺失信息。"
+    },
+    "tests": [
+      {
+        "input": "三个适用任务权重为二、一、一，仅第一项完成；另有不适用事项。",
+        "action": "按适用任务核算进度并展开明细。",
+        "expect": "分子为二、分母为四，进度为百分之五十。"
+      },
+      {
+        "input": "两个型号有同名备货事项。",
+        "action": "选择其中一个型号登记风险并回看所选对象。",
+        "expect": "处置单明确记录所选产品和对象编号。"
+      },
+      {
+        "input": "缺少库存快照，运营怀疑断货。",
+        "action": "登记数据异常并请求辅助分析。",
+        "expect": "缺少证据列为待核事项；审批人可要求补充快照。"
+      },
+      {
+        "input": "季度批准预算一万元，本次拟投入一万二千元，币种相同。",
+        "action": "填写季度资源决策并提交。",
+        "expect": "预算检查指出超额；缩减拟投入或先取得增额批复后再提交。"
+      }
+    ]
+  },
+  {
+    "id": "deliverables",
+    "title": "产品交付清单",
+    "purpose": "让业务人员知道每件工作应交哪份文件、当前有效版本以及由谁验收。",
+    "roles": [
+      "产品负责人",
+      "运营经办人",
+      "设计与合规交付人",
+      "指定审核人"
+    ],
+    "scope": "按产品和四类交付目录查询同一套事项。资料链接沿用外部平台权限，流程上传文件归属对应审批单及阶段。",
+    "sections": [
+      {
+        "id": "missing_files",
+        "title": "缺件追补",
+        "purpose": "明确缺少的材料和补齐期限。",
+        "source": "清单中的预期交付、任务负责人及现有文件索引。",
+        "action": "登记缺件追补",
+        "output": "经办人获得有截止日和验收口径的补件工作。",
+        "fields": [
+          {
+            "key": "expected_file",
+            "label": "预期文件",
+            "type": "text",
+            "required": true,
+            "help": "写出用途、格式和所需站点或语言。"
+          },
+          {
+            "key": "missing_reason",
+            "label": "缺件原因",
+            "type": "select",
+            "required": true,
+            "help": "选择下一步要解决的问题。",
+            "options": [
+              "尚未制作",
+              "待外部提供",
+              "链接失效",
+              "资料不完整"
+            ]
+          },
+          {
+            "key": "promised_date",
+            "label": "承诺补齐日",
+            "type": "date",
+            "required": true,
+            "help": "由实际交付人确认。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "promised_date"
+            ],
+            "label": "补件时限",
+            "message": "按承诺补齐日安排复核。"
+          }
+        ]
+      },
+      {
+        "id": "revision",
+        "title": "版本替换",
+        "purpose": "跟踪旧版与新版之间的变化及影响。",
+        "source": "原索引、提供方的新版本、变更说明。",
+        "action": "提交版本变更",
+        "output": "审核人核对后在资料索引登记新版本，保留旧版和当时采纳记录。",
+        "fields": [
+          {
+            "key": "previous_version",
+            "label": "原版本标识",
+            "type": "text",
+            "required": true,
+            "help": "来自当前有效资料记录。"
+          },
+          {
+            "key": "new_version",
+            "label": "新版本标识",
+            "type": "text",
+            "required": true,
+            "help": "使用交付方可识别的版本号或日期。"
+          },
+          {
+            "key": "asset_link",
+            "label": "新版本链接",
+            "type": "url",
+            "required": true,
+            "help": "提供可由审核人访问的 HTTP 或 HTTPS 文件或文件夹地址。"
+          },
+          {
+            "key": "change_summary",
+            "label": "改动与受影响环节",
+            "type": "textarea",
+            "required": true,
+            "help": "指出变更页码或素材、语言和需要重新验收的环节。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "neq",
+            "keys": [
+              "previous_version",
+              "new_version"
+            ],
+            "label": "版本可区分",
+            "message": "原版和新版使用不同标识，以便追踪历史。"
+          }
+        ]
+      },
+      {
+        "id": "acceptance",
+        "title": "交付验收",
+        "purpose": "记录审核人核对指定版本后得出的结论。",
+        "source": "当前资料版本、阶段验收标准与有权限的审批单。",
+        "action": "登记交付核验",
+        "output": "形成版本明确的验收记录；正式阶段推进由对应审批单办理。",
+        "fields": [
+          {
+            "key": "reviewed_version",
+            "label": "核对版本",
+            "type": "text",
+            "required": true,
+            "help": "注明链接版本或上传件编号。"
+          },
+          {
+            "key": "criteria",
+            "label": "核验项目",
+            "type": "textarea",
+            "required": true,
+            "help": "逐项列出适用型号、内容完整性及不通过原因。"
+          },
+          {
+            "key": "decision",
+            "label": "验收建议",
+            "type": "select",
+            "required": true,
+            "help": "按实际检查情况选择。",
+            "options": [
+              "可提交阶段验收",
+              "退回补件",
+              "版本有待确认"
+            ]
+          },
+          {
+            "key": "repair_request",
+            "label": "补件要求",
+            "type": "textarea",
+            "required": false,
+            "help": "退回时填写可操作的修改要求。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "decision",
+              "repair_request"
+            ],
+            "label": "具体退回意见",
+            "message": "选择退回补件时写明缺什么、交给谁。",
+            "when": "退回补件"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "产品负责人按型号和缺件筛选定位工作项。",
+      "交付人补资料并说明版本、来源和变更原因。",
+      "指定审核人核对实际可访问文件及所属业务阶段。",
+      "通过后记录验收引用；需修订时保留前一版及退回依据。"
+    ],
+    "rules": [
+      {
+        "name": "准备与完成",
+        "inputs": "当前资料、人工准备状态、任务阶段状态",
+        "logic": "文件已准备但阶段待审时显示文件已备、待验收。",
+        "missing": "没有有效文件则先进入缺件队列。",
+        "output": "产品负责人分别看到文件准备与工作完成情况。"
+      },
+      {
+        "name": "版本引用",
+        "inputs": "产品编号、任务编号、当前版本标记",
+        "logic": "替换版本时核对是否同一产品和事项；历史文件仍可追溯，但不计入当前准备情况。",
+        "missing": "关联不清时提交补证。",
+        "output": "审核人可定位本次采纳版本。"
+      },
+      {
+        "name": "文件访问",
+        "inputs": "外链索引、审批附件号和实际访问结果",
+        "logic": "外链与环节上传件分别登记；检验时记录哪一方核验过内容。",
+        "missing": "无访问权限时标记待授权。",
+        "output": "交付人收到具体补件或授权要求。"
+      }
+    ],
+    "ai": {
+      "inputs": "当前型号及筛选后的清单、文件索引和准备状态。",
+      "draft": "给出缺件催办草稿、版本差异待核清单。",
+      "human": "交付方提供原件，指定审核人打开原件核验。",
+      "example": "把该型号待更新的文件按负责人列出，引用当前版本和任务编号；没有文件正文的项目只列核验问题。"
+    },
+    "tests": [
+      {
+        "input": "工作项 A 有已准备链接，审批仍待审。",
+        "action": "筛选文件已备的项目并打开工作项。",
+        "expect": "可定位 A 的文件，并可见其阶段仍待审核。"
+      },
+      {
+        "input": "标签文件从第一版改为第二版。",
+        "action": "登记替换，并检查现行索引及历史。",
+        "expect": "现行索引指向第二版，第一版仍可追查。"
+      },
+      {
+        "input": "上传件只有文件编号，外部素材只有网址。",
+        "action": "经办人查看两个来源的原记录。",
+        "expect": "上传件定位至对应审批环节，外部素材按原平台授权访问。"
+      }
+    ]
+  },
+  {
+    "id": "process",
+    "title": "流程协作",
+    "purpose": "跨部门查看交接关系、解除前置阻塞并追踪退回后的修订。",
+    "roles": [
+      "项目负责人",
+      "阶段办理人",
+      "指定审核人",
+      "流程管理员"
+    ],
+    "scope": "流程图与 SOP 引用同一产品任务及审批实例。办理权和配置权由服务端校验。",
+    "sections": [
+      {
+        "id": "handoff",
+        "title": "阶段交接",
+        "purpose": "确定上一环节交付内容和下一环节接手条件。",
+        "source": "流程图、现行审批阶段、已确认回执和阶段基线。",
+        "action": "登记阶段交接",
+        "output": "接手人看到资料、预期时点及验收标准。",
+        "fields": [
+          {
+            "key": "from_stage",
+            "label": "交出环节",
+            "type": "text",
+            "required": true,
+            "help": "填写现有阶段名称和编号。"
+          },
+          {
+            "key": "to_stage",
+            "label": "接收环节",
+            "type": "text",
+            "required": true,
+            "help": "填写下游阶段与接手人。"
+          },
+          {
+            "key": "handoff_material",
+            "label": "交接材料",
+            "type": "textarea",
+            "required": true,
+            "help": "列出实际交付文件编号、版本和未决问题。"
+          },
+          {
+            "key": "promised_date",
+            "label": "承诺交接日",
+            "type": "date",
+            "required": true,
+            "help": "写明本次交接承诺日期。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "promised_date"
+            ],
+            "label": "承诺交接时间",
+            "message": "核对接收人的排期。"
+          }
+        ]
+      },
+      {
+        "id": "dependency",
+        "title": "前置阻塞处理",
+        "purpose": "核实当前节点受哪项前置工作影响。",
+        "source": "产品内依赖关系、上游任务状态、下游承诺日期。",
+        "action": "登记依赖处置",
+        "output": "形成上游责任人和受影响对象清单，供管理员核对依赖和日期。",
+        "fields": [
+          {
+            "key": "upstream_task",
+            "label": "前置事项编号",
+            "type": "text",
+            "required": true,
+            "help": "填写阻塞发生处的任务编号。"
+          },
+          {
+            "key": "downstream_task",
+            "label": "受影响事项编号",
+            "type": "text",
+            "required": true,
+            "help": "列明被阻断办理的事项。"
+          },
+          {
+            "key": "unblock_condition",
+            "label": "解除条件",
+            "type": "textarea",
+            "required": true,
+            "help": "记录所需审批或凭证及预计时间。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "neq",
+            "keys": [
+              "upstream_task",
+              "downstream_task"
+            ],
+            "label": "禁止自依赖",
+            "message": "前置和受影响事项须为两个不同任务。"
+          }
+        ]
+      },
+      {
+        "id": "revision_followup",
+        "title": "退回修订跟踪",
+        "purpose": "确保修改意见传到修订环节并保留提交记录。",
+        "source": "审批意见、退回目标、上一版交付物和阶段历史。",
+        "action": "登记修订跟踪",
+        "output": "指定经办人补齐修改后回到同一审批单重新提交。",
+        "fields": [
+          {
+            "key": "return_stage",
+            "label": "修订环节",
+            "type": "text",
+            "required": true,
+            "help": "引用实际退回到的环节。"
+          },
+          {
+            "key": "revision_request",
+            "label": "需修改内容",
+            "type": "textarea",
+            "required": true,
+            "help": "原样引用审核意见并标记文件版本。"
+          },
+          {
+            "key": "revision_due",
+            "label": "预计重新提交日",
+            "type": "date",
+            "required": true,
+            "help": "由经办人确认。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "revision_due"
+            ],
+            "label": "修订截止",
+            "message": "复查是否按承诺日重新提交。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "项目负责人在流程图定位上下游。",
+      "办理人登记前置证据及交接材料；管理员配置角色与依赖。",
+      "指定审核人在原审批单处理，对退回意见明确修订目标。",
+      "下游根据前置实际状态接手，核对已通过版本。"
+    ],
+    "rules": [
+      {
+        "name": "依赖释放",
+        "inputs": "前置任务状态、下游编号",
+        "logic": "前置已完成或不适用后才满足该条依赖；其他未完成前置继续阻塞。",
+        "missing": "缺少关联任务时先核对依赖。",
+        "output": "下游经办人得到可接手结论。"
+      },
+      {
+        "name": "保留基线",
+        "inputs": "原计划、最新预计、实际时间",
+        "logic": "预计晚于基线时保留两者并记录原因及下一步。",
+        "missing": "未排期时要求负责人补充承诺日。",
+        "output": "主管看到可追溯的影响范围。"
+      },
+      {
+        "name": "原审批链办理",
+        "inputs": "任务编号、实例版本、指定办理人和审核人",
+        "logic": "业务跟进单保存交接证据，节点推进由原审批单校验身份和版本。",
+        "missing": "账户或指定人缺失时交管理员分配。",
+        "output": "流程图和 SOP 展示同一事项状态。"
+      }
+    ],
+    "ai": {
+      "inputs": "所选节点、直接上下游任务、现有审批阶段和用户可见的修订意见。",
+      "draft": "整理影响清单与交接说明草稿。",
+      "human": "管理员确定依赖，指定人员办理并审核。",
+      "example": "标签审核退回后，哪些出货环节还在等待？引用任务编号，分别列出上游需补交的材料和下游最迟行动日。"
+    },
+    "tests": [
+      {
+        "input": "出货有标签和检测两项前置，仅标签已完成。",
+        "action": "在流程图查看出货节点。",
+        "expect": "仍列出检测为阻塞，出货未因标签通过自动完成。"
+      },
+      {
+        "input": "计划十五日、预计十八日交接。",
+        "action": "填写预计日期并回看阶段历史。",
+        "expect": "原计划仍为十五日，最新预计为十八日，责任人可查看原因。"
+      },
+      {
+        "input": "设计收到标签第二版的退回意见。",
+        "action": "补交第三版并由指定审核人在原环节验收。",
+        "expect": "能查到第二版意见和第三版提交记录，流程图与 SOP 的阶段一致。"
+      }
+    ]
+  },
+  {
+    "id": "workflow",
+    "title": "全流程 SOP",
+    "purpose": "让经办人按同一事项的申请、办理、审核与验收要求完成工作。",
+    "roles": [
+      "流程管理员",
+      "申请人",
+      "阶段办理人",
+      "指定审核人"
+    ],
+    "scope": "所选产品的标准 SOP 与自定义事项复用任务编号；模板用于定义要求，在办实例保留办理时的依据。 按模板事项及模块交叉查询全部 79 项，使用事项编号关联分工、交付和原审批链。",
+    "sections": [
+      {
+        "id": "applicability",
+        "title": "适用性核对",
+        "purpose": "先确定事项是否适用于本产品与站点。",
+        "source": "任务模板、产品特性、申报资料及负责人判断。",
+        "action": "登记适用性核对",
+        "output": "向流程管理员提交带证据的适用性建议。",
+        "fields": [
+          {
+            "key": "sop_name",
+            "label": "标准事项名称",
+            "type": "text",
+            "required": true,
+            "help": "引用标准工作项或自定义事项编号。"
+          },
+          {
+            "key": "applicable",
+            "label": "适用建议",
+            "type": "select",
+            "required": true,
+            "help": "依据产品特征提出建议。",
+            "options": [
+              "适用",
+              "建议不适用",
+              "需补证"
+            ]
+          },
+          {
+            "key": "basis",
+            "label": "判断依据",
+            "type": "textarea",
+            "required": true,
+            "help": "列明适用站点、产品特性、文件来源和复查条件。"
+          },
+          {
+            "key": "verify_plan",
+            "label": "补证计划",
+            "type": "textarea",
+            "required": false,
+            "help": "记录缺失的证据和补证责任人。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "applicable",
+              "verify_plan"
+            ],
+            "label": "待补证事项",
+            "message": "选择需补证时明确需要核验的材料或联系人。",
+            "when": "需补证"
+          }
+        ]
+      },
+      {
+        "id": "application_check",
+        "title": "申请材料核对",
+        "purpose": "发起流程前把必填业务字段和人员补齐。",
+        "source": "当前模板定义、指定经办人、审核人和依赖状态。",
+        "action": "登记申请前核对",
+        "output": "申请人获得待补项与可发起条件。",
+        "fields": [
+          {
+            "key": "template_ref",
+            "label": "审批模板或事项编号",
+            "type": "text",
+            "required": true,
+            "help": "记录此产品将使用的审批模板版本或事项编号。"
+          },
+          {
+            "key": "required_inputs",
+            "label": "本次必填资料",
+            "type": "textarea",
+            "required": true,
+            "help": "列出已核对字段、附件编号和来源。"
+          },
+          {
+            "key": "assignment_check",
+            "label": "人员核对",
+            "type": "select",
+            "required": true,
+            "help": "查看关键阶段人员及登录账户。",
+            "options": [
+              "均已指定",
+              "待定办理人",
+              "待定审核人"
+            ]
+          },
+          {
+            "key": "assign_contact",
+            "label": "分工协调人",
+            "type": "text",
+            "required": false,
+            "help": "未定审核人时填写实际联系人。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "assignment_check",
+              "assign_contact"
+            ],
+            "label": "未定审核人的协调人",
+            "message": "待定审核人时明确由谁协调分配。",
+            "when": "待定审核人"
+          }
+        ]
+      },
+      {
+        "id": "reopen_review",
+        "title": "重开与复验",
+        "purpose": "确认已完成事项因何重新办理及哪些结论需重验。",
+        "source": "原审批编号、已归档版本、变更事实及下游影响。",
+        "action": "提交重开评估",
+        "output": "管理员审查后在原事项记录重开原因，并安排重新验收。",
+        "fields": [
+          {
+            "key": "archived_case",
+            "label": "原审批编号",
+            "type": "text",
+            "required": true,
+            "help": "能够定位前一次归档实例。"
+          },
+          {
+            "key": "change_reason",
+            "label": "重开原因",
+            "type": "textarea",
+            "required": true,
+            "help": "说明新要求、变更文件及旧结论的影响。"
+          },
+          {
+            "key": "repeat_checks",
+            "label": "重新验收范围",
+            "type": "textarea",
+            "required": true,
+            "help": "列出需重做环节、责任人和证据。"
+          },
+          {
+            "key": "repeat_date",
+            "label": "复验日期",
+            "type": "date",
+            "required": true,
+            "help": "由复验负责人约定。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "repeat_date"
+            ],
+            "label": "复验日期",
+            "message": "安排下一次验收。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "执行人按产品、阶段和人员筛选工作项，查看预设业务表单。",
+      "申请人核对必填项并在原审批单提交。",
+      "按指定人和审核方式逐阶段办理，退回时保留历史版本。",
+      "最终验收归档后复核 SOP 状态；重开由管理员记录理由。"
+    ],
+    "rules": [
+      {
+        "name": "事项唯一",
+        "inputs": "产品任务编号、审批编号",
+        "logic": "从清单或流程图打开同一任务，引用同一生命周期。",
+        "missing": "未发起时展示预设阶段，不虚构审批单号。",
+        "output": "经办人能随入口切换继续办理。"
+      },
+      {
+        "name": "阶段权限",
+        "inputs": "登录人员、当前步骤角色、审批版本",
+        "logic": "仅指定人执行对应动作；配置管理员不能凭配置权替人审批。",
+        "missing": "未分配有效账户时先处置人员配置。",
+        "output": "每次操作留有真实身份和时间。"
+      },
+      {
+        "name": "终验与重办",
+        "inputs": "最终环节状态、修订意见、提交快照",
+        "logic": "阶段通过仅推进下一环节，最终验收归档后标完成；重开保留原变更依据。",
+        "missing": "必要证据不齐时返回补交。",
+        "output": "产品负责人核对已验收事项数。"
+      }
+    ],
+    "ai": {
+      "inputs": "所选 SOP 的预设输入、当前阶段和可见证据。",
+      "draft": "列出提交前检查项、版本差异和下一步操作。",
+      "human": "办理人确认材料，审核人验收，管理员决定是否重开。",
+      "example": "根据当前 FCC 事项列出申请仍缺的资料和指定审核人。将机构出具的正本、内部录入日期与录入人分别说明。"
+    },
+    "tests": [
+      {
+        "input": "新任务有模板但无实例。",
+        "action": "打开审批详情。",
+        "expect": "可查字段与各阶段，未分配人员显示待分配。"
+      },
+      {
+        "input": "非指定审核人尝试同意审批。",
+        "action": "提交审批动作后刷新。",
+        "expect": "服务端拒绝，阶段与历史审批结果不变。"
+      },
+      {
+        "input": "已完成标签事项因新稿重开。",
+        "action": "管理员填写理由并查看历史。",
+        "expect": "旧版流程和依据可追溯，修订需重新办理验收。"
+      }
+    ]
+  },
+  {
+    "id": "team",
+    "title": "团队与审批",
+    "purpose": "以真实登录身份区分我的办理、等我审核与主管需协调的积压。",
+    "roles": [
+      "执行成员",
+      "指定审核人",
+      "部门主管",
+      "流程管理员"
+    ],
+    "scope": "工作负载按负责人和项目汇总；审批待办按当前环节指定人员判断。业务头衔与系统身份分别记录。",
+    "sections": [
+      {
+        "id": "assignment",
+        "title": "未分配事项分工",
+        "purpose": "把无人接手的事项归到已有有效成员。",
+        "source": "未分配清单、成员有效账户、当前部门负载。",
+        "action": "登记分工建议",
+        "output": "管理员核对后在原任务或审批配置中指定经办人。",
+        "fields": [
+          {
+            "key": "unassigned_ref",
+            "label": "待分配事项编号",
+            "type": "text",
+            "required": true,
+            "help": "引用项目和具体任务。"
+          },
+          {
+            "key": "suggested_owner",
+            "label": "建议经办人",
+            "type": "text",
+            "required": true,
+            "help": "填写目标成员与部门，由管理员核对成员身份。"
+          },
+          {
+            "key": "capacity_reason",
+            "label": "负载与理由",
+            "type": "textarea",
+            "required": true,
+            "help": "列明候选人并行事项数、截止日和接手条件。"
+          },
+          {
+            "key": "accept_by",
+            "label": "计划接手日",
+            "type": "date",
+            "required": true,
+            "help": "约定目标成员确认接手的日期。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "accept_by"
+            ],
+            "label": "接手确认日",
+            "message": "提醒管理员核实接手人并完成原任务分配。"
+          }
+        ]
+      },
+      {
+        "id": "review_packet",
+        "title": "待审材料核对",
+        "purpose": "让指定审核人看清本次申请与上次意见的差别。",
+        "source": "审批单、当前阶段、前版提交及此次材料。",
+        "action": "登记审核材料核对",
+        "output": "生成可追溯的待审摘要，正式审批由指定审核人在对应审批单完成。",
+        "fields": [
+          {
+            "key": "case_number",
+            "label": "审批单号",
+            "type": "text",
+            "required": true,
+            "help": "引用原单据。"
+          },
+          {
+            "key": "review_stage",
+            "label": "待审核环节",
+            "type": "text",
+            "required": true,
+            "help": "核对当前环节及审批方式。"
+          },
+          {
+            "key": "revision_delta",
+            "label": "本次变化与证据",
+            "type": "textarea",
+            "required": true,
+            "help": "列出前次退回原因、当前版本及回应。"
+          },
+          {
+            "key": "has_return",
+            "label": "是否有前次退回",
+            "type": "select",
+            "required": true,
+            "help": "核对原审批流转记录。",
+            "options": [
+              "首次送审",
+              "有退回"
+            ]
+          },
+          {
+            "key": "prior_comment",
+            "label": "前次退回意见",
+            "type": "textarea",
+            "required": false,
+            "help": "有退回时摘录审批意见。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "has_return",
+              "prior_comment"
+            ],
+            "label": "保留上次退回意见",
+            "message": "发生过退回时，需写明前次意见。",
+            "when": "有退回"
+          }
+        ]
+      },
+      {
+        "id": "backlog",
+        "title": "积压协调",
+        "purpose": "定位影响团队交付的超期事项和可行的处置。",
+        "source": "成员负载、阶段最新预计、逾期日期和依赖。",
+        "action": "登记队列协调",
+        "output": "主管确认协调方案，分配人回填处理结果。",
+        "fields": [
+          {
+            "key": "bottleneck",
+            "label": "阻塞环节",
+            "type": "text",
+            "required": true,
+            "help": "指出积压的具体审批段或业务事项。"
+          },
+          {
+            "key": "queued_count",
+            "label": "受影响事项数",
+            "type": "number",
+            "required": true,
+            "help": "以同一时间点的去重任务数计算。",
+            "min": 1
+          },
+          {
+            "key": "next_action",
+            "label": "协调动作",
+            "type": "textarea",
+            "required": true,
+            "help": "记录责任人、拟调整的任务与交接安排。"
+          },
+          {
+            "key": "response_due",
+            "label": "回复截止日",
+            "type": "date",
+            "required": true,
+            "help": "由负责人确认。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "response_due"
+            ],
+            "label": "队列回复期限",
+            "message": "对超期待办核实处理人。"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "主管检查未分配与逾期分布，经办人按本人范围进入。",
+      "业务负责人登记分工或积压建议；管理员在原系统确认授权。",
+      "审核人从队列打开原单查阅变更并办理。",
+      "核对下一阶段待办归属及原任务记录，复查积压是否解除。"
+    ],
+    "rules": [
+      {
+        "name": "一项只计一次",
+        "inputs": "任务编号、当前负责人、状态和日期",
+        "logic": "按人员统计进行中、逾期及已交付；多人审核的同一任务只计一个团队事项。",
+        "missing": "未分配项单独列出。",
+        "output": "主管可核对队列数与任务明细。"
+      },
+      {
+        "name": "判断待我审核",
+        "inputs": "个人账户、当前环节和指定审核人顺序",
+        "logic": "仅在本人有权处理的环节展示审核动作，按会签、或签或顺序方式计算剩余人。",
+        "missing": "身份未验证时先登录。",
+        "output": "审核人看到需要本人动作的清单。"
+      },
+      {
+        "name": "换人与审计",
+        "inputs": "原经办人、拟交接人、配置版本、变更原因",
+        "logic": "先登记交接计划，再由有权管理员修改配置，历史操作人保持原值。",
+        "missing": "成员无有效账户时退回补充。",
+        "output": "新经办人能接手且旧记录可查。"
+      }
+    ],
+    "ai": {
+      "inputs": "本人或授权范围的团队任务数、逾期明细、审批归属和最近提交。",
+      "draft": "识别疑似积压，草拟交接清单和审核问题。",
+      "human": "主管确认资源安排，只有指定审核人批准或退回。",
+      "example": "列出本周等我审核且影响其他成员的事项；给出原审批号、受影响任务和仍缺的证据。"
+    },
+    "tests": [
+      {
+        "input": "一单需两人会签。",
+        "action": "第一位指定审核人同意并刷新团队队列。",
+        "expect": "仍待第二人审核；团队不把同一单重复计算成两项交付。"
+      },
+      {
+        "input": "管理员不在本环节审核人名单。",
+        "action": "从团队页尝试代审。",
+        "expect": "配置权限不提供代审权，原单没有新增同意记录。"
+      },
+      {
+        "input": "采购审批通过但尚未下单。",
+        "action": "经办人查看移交后的任务。",
+        "expect": "可查已通过的审批阶段，后续下单回执待办理。"
+      }
+    ]
+  },
+  {
+    "id": "settings",
+    "title": "功能覆盖与系统设置",
+    "purpose": "管理员在可核验的连接、参数与发布记录上维护系统，业务人员查看来源健康及能力范围。",
+    "roles": [
+      "运营查看人",
+      "数据连接管理员",
+      "流程管理员",
+      "部署维护人"
+    ],
+    "scope": "适用于当前部署环境和已授权的产品、账号与站点。产品办理单用于登记影响范围及证据，系统配置变更走正式管理接口。",
+    "sections": [
+      {
+        "id": "connection_health",
+        "title": "连接健康核查",
+        "purpose": "分辨已配置、已验证、同步失败以及最后可用数据日期。",
+        "source": "后台连接记录、映射、同步作业、数据覆盖时间。",
+        "action": "登记连接核查",
+        "output": "管理员获得待校验账号、报错和需要重试的作业编号。",
+        "fields": [
+          {
+            "key": "source_type",
+            "label": "数据来源",
+            "type": "select",
+            "required": true,
+            "help": "明确要核对的连接。",
+            "options": [
+              "销售与流量",
+              "库存快照",
+              "广告报告"
+            ]
+          },
+          {
+            "key": "connection_ref",
+            "label": "连接或同步作业编号",
+            "type": "text",
+            "required": true,
+            "help": "填写后台返回的非密钥标识。"
+          },
+          {
+            "key": "coverage_day",
+            "label": "最近有效数据日",
+            "type": "date",
+            "required": false,
+            "help": "无成功分区时留空并说明。"
+          },
+          {
+            "key": "check_result",
+            "label": "状态与缺失原因",
+            "type": "textarea",
+            "required": true,
+            "help": "记录范围、最后成功时间或错误类别；只录入排查所需公开信息。"
+          },
+          {
+            "key": "health_status",
+            "label": "覆盖核对状态",
+            "type": "select",
+            "required": true,
+            "help": "依据已发布分区核实。",
+            "options": [
+              "待核实",
+              "尚无成功分区",
+              "已有有效数据"
+            ]
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "health_status",
+              "coverage_day"
+            ],
+            "label": "成功分区日期",
+            "message": "标记已有有效数据时须给出最近有效数据日。",
+            "when": "已有有效数据"
+          }
+        ]
+      },
+      {
+        "id": "policy_change",
+        "title": "计算参数变更",
+        "purpose": "复核阈值或映射变化对后续指标的影响。",
+        "source": "当前产品策略版本、有效日期和来源映射。",
+        "action": "登记参数变更",
+        "output": "管理员核对旧值、新值、单位与生效期后通过参数设置执行。",
+        "fields": [
+          {
+            "key": "parameter_name",
+            "label": "参数或映射项",
+            "type": "text",
+            "required": true,
+            "help": "如安全库存天数、补货交期或产品映射。"
+          },
+          {
+            "key": "old_new_values",
+            "label": "旧值与拟设值",
+            "type": "textarea",
+            "required": true,
+            "help": "逐项注明数值、单位及原因，账号仅记录公开标识。"
+          },
+          {
+            "key": "effective_date",
+            "label": "计划生效日",
+            "type": "date",
+            "required": true,
+            "help": "按产品、站点和业务时区确定。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "deadline",
+            "keys": [
+              "effective_date"
+            ],
+            "label": "参数生效时间",
+            "message": "确认业务日期及对历史计算的影响。"
+          }
+        ]
+      },
+      {
+        "id": "upgrade_check",
+        "title": "升级与恢复核查",
+        "purpose": "明确版本、备份以及升级后服务验证责任。",
+        "source": "系统版本、升级工作进程状态、作业、备份结果及健康检查。",
+        "action": "登记升级核查",
+        "output": "维护人据真实作业结果记录新版本和验证证据。",
+        "fields": [
+          {
+            "key": "target_revision",
+            "label": "目标版本",
+            "type": "text",
+            "required": true,
+            "help": "填写计划升级的提交号或版本。"
+          },
+          {
+            "key": "backup_check",
+            "label": "备份核对",
+            "type": "textarea",
+            "required": true,
+            "help": "分别记录数据库、流程附件和配置码备份结果，使用非敏感作业编号。"
+          },
+          {
+            "key": "health_check",
+            "label": "服务复核项",
+            "type": "textarea",
+            "required": true,
+            "help": "列出登录、业务数据、任务附件的读取和版本核对步骤。"
+          },
+          {
+            "key": "recovery_status",
+            "label": "恢复检查结果",
+            "type": "select",
+            "required": true,
+            "help": "按实际验证情况记录。",
+            "options": [
+              "待演练",
+              "演练通过",
+              "演练未通过"
+            ]
+          },
+          {
+            "key": "recovery_action",
+            "label": "修复与复查安排",
+            "type": "textarea",
+            "required": false,
+            "help": "演练未通过时填写处理人及安排。"
+          }
+        ],
+        "checks": [
+          {
+            "op": "required_if",
+            "keys": [
+              "recovery_status",
+              "recovery_action"
+            ],
+            "label": "异常恢复安排",
+            "message": "恢复演练未通过时写明修复与复查方案。",
+            "when": "演练未通过"
+          }
+        ]
+      }
+    ],
+    "flow": [
+      "运营查看来源状态，管理员按异常定位连接、参数或部署工作。",
+      "复核涉及的账号、站点、产品、时间范围与当前版本。",
+      "有权人员通过正式管理入口执行同步、参数更新或升级。",
+      "核对最新成功时间、指标覆盖及健康检查，保留审计与恢复依据。"
+    ],
+    "rules": [
+      {
+        "name": "授权与数据就绪",
+        "inputs": "连接标识、授权验证结果、最近成功作业和覆盖日期",
+        "logic": "逐项展示；已录入配置不足以证明已取得真实数据。",
+        "missing": "无有效分区显示待接通或缺失原因。",
+        "output": "运营按来源新鲜度决定是否引用指标。"
+      },
+      {
+        "name": "参数版本",
+        "inputs": "产品、参数值、单位、生效日期及变更人",
+        "logic": "按业务日期使用有效版本，记录变更前后可比较范围。",
+        "missing": "缺少单位或生效日期时要求补充。",
+        "output": "管理员可回溯指标使用的口径。"
+      },
+      {
+        "name": "升级验收",
+        "inputs": "更新工作进程、数据库与附件备份、版本和健康检查",
+        "logic": "已登录管理员启动升级；重复请求跟踪同一进行中作业，检查重启后的版本和服务。",
+        "missing": "升级服务离线显示阻塞；迁移后数据库恢复须单独演练。",
+        "output": "维护人依据实际作业及检查结果登记是否验收。"
+      }
+    ],
+    "ai": {
+      "inputs": "当前环境标记、来源状态、覆盖日期、作业错误、参数版本及权限允许的更新摘要。",
+      "draft": "按阻塞原因整理排查顺序与复核清单。",
+      "human": "管理员验证权限并实际执行；密钥及初始化口令由专用配置管理。",
+      "example": "当前库存连接显示已配置但覆盖日期为空，请先列需要核对的授权、映射、作业状态与最新分区，逐项注明查证入口。"
+    },
+    "tests": [
+      {
+        "input": "库存连接配置已保存但首次同步尚未成功。",
+        "action": "查看来源状态并登记健康核查。",
+        "expect": "能区分配置完成与无有效快照，库存不能用零值替代缺失。"
+      },
+      {
+        "input": "普通成员尝试改动参数。",
+        "action": "调用受限管理入口并刷新。",
+        "expect": "无管理员授权的修改被拒绝，原参数版本保留。"
+      },
+      {
+        "input": "正在执行升级，管理员再次打开进度。",
+        "action": "查询作业并对照当前版本与健康状态。",
+        "expect": "继续查看同一作业；只有真实的版本及健康检查结果才能作为验收依据。"
+      }
+    ]
+  }
+]

@@ -22,6 +22,8 @@ from .workspace import router as workspace_router, initialize_sop
 from .updater import read_state, start_update, version_info
 from .workflow_auth import router as auth_router, require_admin, require_user
 from .process import router as process_router, reject_legacy_process_write
+from .workbench import router as workbench_router
+from .workbench_insights import router as workbench_insights_router
 from .approvals import router as approvals_router
 from .data_automation import router as data_router, load_product_analytics, _audit, _json
 
@@ -40,13 +42,15 @@ app.include_router(workspace_router)
 app.include_router(auth_router)
 app.include_router(process_router)
 app.include_router(approvals_router)
+app.include_router(workbench_router)
+app.include_router(workbench_insights_router)
 app.include_router(data_router)
 
 
 @app.middleware('http')
 async def private_process_responses(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/analytics','/imports','/operating-summary','/records')):
+    if request.url.path.startswith(('/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/analytics','/imports','/operating-summary','/records')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 app.add_middleware(
