@@ -1,0 +1,18 @@
+.ap-dialog {width:min(920px,96vw)}
+.ap-dialog .ap-controls,.ap-dialog .ap-actions {display:flex;align-items:end;gap:8px;flex-wrap:wrap}
+.ap-actions {margin:12px 0}
+.ap-controls {justify-content:space-between;margin-bottom:12px}
+.ap-controls label {flex:1;min-width:min(240px,100%)}
+.ap-dialog h3 {margin:12px 0 5px;font-size:16px}
+.ap-note {color:#566579;line-height:1.6;margin:4px 0 10px;font-size:12px}
+.ap-dialog .ap-fields {display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(150px,100%),1fr))}
+.ap-money {display:flex;flex-wrap:wrap;gap:15px;margin:12px 0}
+.ap-money div {display:grid;gap:3px;border-left:3px solid #dcd9ed;padding-left:12px}
+.ap-money dt,.ap-money dd {margin:0}
+.ap-money dt {font-size:12px;color:#526078}
+.ap-money dd {font-size:20px;font-weight:650;font-variant-numeric:tabular-nums}
+.ap-dialog .wb-table th,.ap-dialog .wb-table td {padding:8px 10px}
+.ap-dialog .ap-message {padding:8px 11px;background:#eaf6f1;color:#19694e;border-radius:6px;line-height:1.45}
+.ap-dialog .ap-message[role=alert] {color:#8f3324;background:#fff0ea}
+.ap-dialog .ap-message[hidden] {display:none}
+.ap-dialog .ap-bill-link {color:var(--accent);font:inherit;font-weight:600;background:none;border:none;cursor:pointer;padding:4px 0;text-align:left}

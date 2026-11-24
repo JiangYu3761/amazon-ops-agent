@@ -32,7 +32,7 @@ def serve():
     server.run(sockets=[listener])
 
 
-def run(backend=False):
+def run(backend=False, browser_script=None):
     admin_dsn = os.environ["WORKBENCH_TEST_PG"]
     parts = urlsplit(admin_dsn)
     if parts.scheme not in ("postgres", "postgresql") or parts.hostname not in {"127.0.0.1", "localhost", "::1"}:
@@ -77,7 +77,7 @@ def run(backend=False):
                             time.sleep(0.1)
                     else:
                         raise RuntimeError("Isolated test API did not start.")
-                    subprocess.run(["node", "scripts/check_workbench.cjs"], check=True, env=env, cwd=ROOT)
+                    subprocess.run(["node", browser_script or env.get("WORKBENCH_BROWSER_SCRIPT", "scripts/check_workbench.cjs")], check=True, env=env, cwd=ROOT)
                 finally:
                     service.terminate()
                     service.wait(timeout=30)
@@ -90,5 +90,14 @@ if __name__ == "__main__":
         serve()
     elif sys.argv[1:] in ([], ["--backend"]):
         run(backend="--backend" in sys.argv)
+    elif sys.argv[1:] == ["--erp-ui"]:
+        suites = sorted((ROOT / "frontend/tests").glob("erp_*.cjs")) + sorted((ROOT / "scripts").glob("check_erp_*.cjs"))
+        if not suites:
+            raise SystemExit("No ERP browser tests were found.")
+        for suite in suites:
+            script = str(suite.relative_to(ROOT))
+            print(f"Running {script}", flush=True)
+            run(browser_script=script)
+        print(f"Passed {len(suites)} ERP browser suites.", flush=True)
     else:
-        raise SystemExit("usage: python scripts/check_workbench.py [--backend]")
+        raise SystemExit("usage: python scripts/check_workbench.py [--backend | --erp-ui]")
