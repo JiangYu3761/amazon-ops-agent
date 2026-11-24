@@ -69,3 +69,50 @@
 @media(max-width:640px){.wb-cal-grid .calendar-day{padding:2px;min-height:calc(66px * var(--wb-cal-zoom))}.wb-cal-grid .calendar-event{padding:2px;font-size:calc(9px * var(--wb-cal-zoom))}.wb-cal-options{padding:4px 8px}.wb-cal-agenda>div{grid-template-columns:95px minmax(0,1fr)}.wb-cal-agenda>div>span{display:none}}
 
 .wb-dialog [hidden]{display:none!important}
+
+/* Keep the case queue and its review panel on the same verification tab. */
+#workbenchRoot:has(>#adsReviewRoot){display:flex;flex-direction:column}
+#workbenchRoot:has(>#adsReviewRoot)>.wb-content{display:contents}
+#workbenchRoot:has(>#adsReviewRoot)>.wb-content>*{order:2}
+#workbenchRoot:has(>#adsReviewRoot)>.wb-content>.wb-nav{order:0}
+#adsReviewRoot{order:1;min-width:0}
+.ar-panel .ar-tabs,.ar-head,.ar-actions,.ar-checks{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ar-panel .ar-tabs{padding:12px 20px;border-bottom:1px solid var(--line)}
+.ar-panel .ar-detail,.ar-panel .ar-blank{padding:14px 20px}
+.ar-panel .ar-head{justify-content:space-between}
+.ar-panel h3{margin:12px 0;font-size:15px}
+.ar-panel .ar-note,.ar-panel .ar-message{padding:10px 14px;border-left:3px solid #7c77ad;background:#f4f3fa;color:#3f405c}
+.ar-panel .ar-message{margin:12px 20px 0}
+.ar-panel .ar-error{border-color:#b85236;background:#fff5ef;color:#873b27}
+.ar-panel .ar-actions{padding:8px 0}
+.ar-panel .ar-back{margin-bottom:6px}
+.ar-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px 20px;margin:14px 0}
+.ar-facts>div{min-width:0}
+.ar-facts dt{font-size:12px;color:#5a6475}
+.ar-facts dd{margin:3px 0;overflow-wrap:anywhere;white-space:pre-line}
+.ar-history{margin:10px 0;border-top:1px solid var(--line);padding:11px 0 0}
+.ar-history summary{cursor:pointer;font-weight:600}
+.ar-history li{margin:8px 0}
+.ar-history li>p{margin:4px 0}
+.ar-form{max-width:780px}
+.ar-form fieldset{display:grid;gap:11px;border:0;margin:0;padding:0;min-width:0}
+.ar-form label{display:grid;gap:4px;color:#41495a;font-size:13px}
+.ar-form :is(input,select,textarea){width:100%;min-width:0;padding:7px 9px;border:1px solid #c7ced9;border-radius:6px;background:white;color:var(--ink);font:inherit}
+.ar-form textarea{resize:vertical}
+.ar-form .ar-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(180px,100%),1fr));gap:10px}
+.ar-form .ar-checkbox,.ar-form .ar-checks label{display:flex;align-items:center;gap:6px}
+.ar-form input[type=checkbox]{width:16px;height:16px}
+.ar-form [hidden]{display:none!important}
+@media(max-width:600px){.ar-panel .ar-detail,.ar-panel .ar-blank,.ar-panel .ar-tabs{padding:12px}.ar-panel .ar-message{margin:8px 12px 0}}
+.ar-rollups{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:14px 0 18px}
+.ar-rollups>div{border-left:2px solid var(--line);padding-left:10px}
+.ar-rollups dt,.ar-rollups small{color:#566376;font-size:12px}
+.ar-rollups dd{margin:4px 0;font-size:20px;font-weight:650}
+.ar-period .btn{margin-left:0}
+.ar-prior{border:1px solid var(--line);border-radius:8px;padding:0 12px 10px;margin:14px 0}
+.ar-prior p{margin:7px 0}
+.ar-choice{display:inline-flex;align-items:center;gap:6px;margin:8px}
+
+@media(max-width:1000px){.ar-rollups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:450px){.ar-rollups{grid-template-columns:1fr}}
+.ar-period input[type=date]{padding:5px 7px;border:1px solid #c7ced9;border-radius:6px;min-height:32px;color:var(--ink);font:inherit}
