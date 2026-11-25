@@ -60,6 +60,10 @@ async function load(){
  catch(err){if(err.noBackend||err.status===404){mode='demo';try{const saved=JSON.parse(localStorage.getItem(STORE)||'null');ws=saved?.schema===4?saved:makeDemo()}catch{ws=makeDemo()}}
  else{mode='error';ws={products:[],tasks:[],people:[],dependencies:[],events:[],rankings:[],queries:[],imports:[]};toast('后端读取失败，未自动切换为示例数据。')}}
  const requested=location.hash.slice(1);if(requested&&[...nav.flatMap(x=>x[1].map(y=>y[0])),'settings'].includes(requested))view=requested;
+ if(view==='ads'&&mode==='server'){
+   const restored=window.adsDecisionReview?.savedRoute()?.product;
+   if(ws.products.some(p=>p.id===restored))productId=restored;
+ }
  renderShell();render();
 }
 function renderShell(){

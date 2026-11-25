@@ -25,7 +25,10 @@ window.workbenchUI = (() => {
   const currentUser = () => mode==='demo' ? ws.people.find(p=>p.id===demoActor) || ws.people[0] : window.processUI?.currentUser();
   const admin = () => mode==='demo' ? currentUser()?.id===ws.people[0]?.id : Boolean(currentUser()?.is_admin);
   function pane(){
-    if(!panes.has(view)) panes.set(view,{section:'',status:'',mine:view==='overview'?'mine':'',legacy:false});
+    if(!panes.has(view)){
+      const resume=view==='ads'&&mode==='server'&&window.adsDecisionReview?.savedRoute()?.product===productId;
+      panes.set(view,{section:resume?'verification':'',status:'',mine:view==='overview'?'mine':'',legacy:false});
+    }
     return panes.get(view);
   }
   function getStored(key, fallback) {
@@ -140,6 +143,7 @@ window.workbenchUI = (() => {
     const receiving=view==='inventory' && p.receiving;
     const comparison=view==='overview' && p.comparison;
     const searchTerms=view==='ads' && p.searchTerms;
+    const adReview=view==='ads' && p.section==='verification' && !p.legacy && !searchTerms;
     q('#viewRoot').hidden=!p.legacy;
     q('#pageActions').hidden=!p.legacy;
     q('#pageTitle').textContent=page.title;
@@ -205,6 +209,14 @@ window.workbenchUI = (() => {
       window.erpSearchTerms?.mount(searchRoot,{mode,product:ws.products.find(x=>x.id===productId),user:who,api,login:()=>window.processUI?.login()});
     }else if(searchRoot){
       window.erpSearchTerms?.unmount();searchRoot.remove();
+    }
+    let reviewRoot=root.querySelector('#adsReviewRoot');
+    if(adReview){
+      if(!reviewRoot){reviewRoot=document.createElement('div');reviewRoot.id='adsReviewRoot';root.append(reviewRoot);}
+      window.adsDecisionReview?.mount(reviewRoot,{mode,product:ws.products.find(x=>x.id===productId),user:who,api,
+        personName,login:()=>window.processUI?.login(),openItem:openRow,createChild:openSignal});
+    }else if(reviewRoot){
+      window.adsDecisionReview?.unmount(true);reviewRoot.remove();
     }
     const triageScope=[mode,currentUser()?.id,productId].join('|');
     let triage=root.querySelector('#wb-routing');

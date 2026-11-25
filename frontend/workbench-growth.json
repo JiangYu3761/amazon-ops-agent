@@ -733,7 +733,7 @@
             "label": "拟改对象 ID 与层级",
             "type": "text",
             "required": true,
-            "help": "如 Campaign／广告组／Target；避免凭名称匹配。"
+            "help": "要在下次调整中引用这次复盘，请填写完整广告账户和对象 ID，例如 profile:123/target:456。支持 campaign、adgroup、keyword、target 四个层级。"
           },
           {
             "key": "change_kind",

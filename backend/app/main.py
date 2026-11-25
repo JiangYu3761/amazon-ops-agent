@@ -35,6 +35,9 @@ from .erp_comparison import router as erp_comparison_router
 from .erp_payables import router as payables_router
 from .erp_procurement import router as procurement_router
 from .erp_receiving import router as receiving_router
+from .ads_reviews import router as ads_reviews_router
+from .ad_review_periods import router as ad_review_periods_router
+from .ad_review_feedback import router as ad_review_feedback_router
 from .workbench import router as workbench_router
 from .workbench_insights import router as workbench_insights_router
 from .approvals import router as approvals_router
@@ -68,6 +71,9 @@ app.include_router(erp_comparison_router)
 app.include_router(receiving_router)
 app.include_router(procurement_router)
 app.include_router(payables_router)
+app.include_router(ads_reviews_router)
+app.include_router(ad_review_periods_router)
+app.include_router(ad_review_feedback_router)
 app.include_router(workbench_router)
 app.include_router(workbench_insights_router)
 app.include_router(data_router)
@@ -76,7 +82,7 @@ app.include_router(data_router)
 @app.middleware('http')
 async def private_process_responses(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/erp-', '/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/analytics','/erp/','/imports','/operating-summary','/records')):
+    if request.url.path.startswith(('/api/erp-', '/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/ads-review','/analytics','/erp/','/imports','/operating-summary','/records')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 app.add_middleware(
