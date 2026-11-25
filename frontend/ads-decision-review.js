@@ -202,12 +202,36 @@ window.adsDecisionReview = (() => {
   function readable(error) {
     return error.status===409?error.message+'。可刷新读取最新版本。':error.message;
   }
+  function openTraining(state, trigger) {
+    if(state.ctx.mode!=='demo'||state.node.querySelector('.ar-training-dialog'))return;
+    const dialog=document.createElement('dialog');
+    dialog.className='ar-training-dialog';
+    dialog.setAttribute('aria-labelledby','ar-training-title');
+    dialog.innerHTML='<header><h2 id="ar-training-title">广告复盘示例演练</h2>'+
+      '<button type="button" class="btn" autofocus>关闭演练</button></header>'+
+      '<iframe title="使用假设数据练习广告复盘"></iframe>';
+    const training=dialog.querySelector('iframe');
+    if(typeof window.homaAdReviewTrainingDocument==='string')training.srcdoc=window.homaAdReviewTrainingDocument;
+    else training.src='ads-review-training.html#reviews';
+    state.node.append(dialog);
+    dialog.querySelector('button').onclick=()=>dialog.close();
+    dialog.addEventListener('close',()=>{
+      dialog.remove();
+      if(trigger.isConnected)trigger.focus();
+    },{once:true});
+    dialog.showModal();
+  }
   function draw(state) {
     if(active!==state)return;
     const {ctx,body}=state;
     remember(state);
     state.tools.innerHTML=ctx.mode==='server'&&ctx.user&&ctx.product?button('refresh','刷新复盘'):'';
-    if(ctx.mode!=='server'){body.innerHTML='<p class="wb-empty">连接工作台服务器后，可使用真实变更单办理复盘。</p>';return;}
+    if(ctx.mode==='demo'){
+      body.innerHTML='<div class="ar-blank"><p>用模拟回执核对调价，观察经营结果并签署示例结论。进度保存在当前浏览器。</p>'+
+        button('training','用示例练习广告复盘','',true)+'<p>连接工作台服务器后，可使用真实变更单办理复盘。</p></div>';
+      return;
+    }
+    if(ctx.mode!=='server'){body.innerHTML='<p class="wb-empty">等待工作台服务恢复。</p>';return;}
     if(!ctx.user){body.innerHTML='<p class="wb-empty">登录后查看你经办或审核的广告变更。 '+button('login','登录')+'</p>';return;}
     if(!ctx.product){body.innerHTML='<p class="wb-empty">请在顶部选择具体产品，查看该产品的广告复盘。</p>';return;}
     if(state.view==='list') {
@@ -358,6 +382,7 @@ window.adsDecisionReview = (() => {
       const el=ev.target.closest('button[data-ar]');
       if(!el||state.writing)return;
       const {ar:act,id}=el.dataset;
+      if(act==='training')return openTraining(state,el);
       if(act==='login')return ctx.login();
       if(act==='workitem')return ctx.openItem(id);
       if(act==='child'){

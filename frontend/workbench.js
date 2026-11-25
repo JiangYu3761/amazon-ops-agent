@@ -24,12 +24,12 @@ window.workbenchUI = (() => {
   const dt = value => value ? new Date(value).toLocaleString('zh-CN',{hour12:false}) : '';
   const currentUser = () => mode==='demo' ? ws.people.find(p=>p.id===demoActor) || ws.people[0] : window.processUI?.currentUser();
   const admin = () => mode==='demo' ? currentUser()?.id===ws.people[0]?.id : Boolean(currentUser()?.is_admin);
-  function pane(){
-    if(!panes.has(view)){
-      const resume=view==='ads'&&mode==='server'&&window.adsDecisionReview?.savedRoute()?.product===productId;
-      panes.set(view,{section:resume?'verification':'',status:'',mine:view==='overview'?'mine':'',legacy:false});
+  function pane(pageId=view){
+    if(!panes.has(pageId)){
+      const resume=pageId==='ads'&&mode==='server'&&window.adsDecisionReview?.savedRoute()?.product===productId;
+      panes.set(pageId,{section:resume?'verification':'',status:'',mine:pageId==='overview'?'mine':'',legacy:false});
     }
-    return panes.get(view);
+    return panes.get(pageId);
   }
   function getStored(key, fallback) {
     const raw = localStorage.getItem(key);
@@ -157,7 +157,7 @@ window.workbenchUI = (() => {
     const root=q('#workbenchRoot');
     let content=root.querySelector('.wb-content');
     if(!content){content=document.createElement('div');content.className='wb-content';root.replaceChildren(content);}
-    content.innerHTML=`${previousQueue ? control('返回来源队列','back'):''}<div class="wb-nav">
+    content.innerHTML=`${view==='overview'&&!p.legacy&&!p.section&&!comparison?renderTodayDashboard():''}${previousQueue ? control('返回来源队列','back'):''}<div class="wb-nav">
       <button class="wb-tab ${!p.legacy&&!p.section&&!receiving&&!comparison&&!searchTerms?'selected':''}" data-wb-section="">${['overview','team','agent'].includes(view)?'跨模块队列':'办理队列'}</button>
       ${view==='overview'?'<button class="wb-tab" data-erp-queue-open>ERP 待办</button><button class="wb-tab" data-erp-shop-sales-open>多店经营</button>':''}
       ${view==='inventory'?'<button class="wb-tab" data-erp-procurement-open>采购申请</button>':''}
@@ -169,7 +169,7 @@ window.workbenchUI = (() => {
       ${page.sections.map(s=>`<button class="wb-tab ${!p.legacy&&!receiving&&!comparison&&!searchTerms&&p.section===s.id?'selected':''}" data-wb-section="${escape(s.id)}">${escape(s.title)}</button>`).join('')}
       <button class="wb-tab ${p.legacy?'selected':''}" data-wb="legacy">${escape(legacyNames[view]||'指标与 SOP')}</button></div>
       ${p.legacy||receiving||comparison||searchTerms?'':`<section class="wb-queue panel">
-      <header><div><h2>${escape(chosen?.title||(['overview','team'].includes(view)?'今日工作':'业务办理队列'))}</h2>
+      <header><div><h2>${escape(chosen?.title||(view==='overview'?'跨模块办理队列':view==='team'?'今日工作':'业务办理队列'))}</h2>
       <p>${chosen?escape(chosen.purpose):`待审核 ${count('pending_review')}　待执行 ${count('approved')}　待复核 ${count('executed')}`}</p></div>
       ${control(chosen?.action||'新建业务单','new',true,canWrite?'':'disabled')}</header>
       <div class="wb-toolbar">${view==='shop'?`<label>单据范围<select data-wb-shop-filter><option value="">当前产品范围</option><option value="shop" ${p.shopOnly?'selected':''}>仅店铺级记录</option></select></label>`:''}<label>进度<select data-wb-filter="status"><option value="">全部进度</option>${selectOptions}</select></label>
@@ -719,6 +719,32 @@ window.workbenchUI = (() => {
     openEditor(blank(section,{...shopDefault,...seed}));
   }
   document.addEventListener('click',async event=>{
+    const shortcut=event.target.closest('[data-wb-desk]');
+    if(shortcut && view==='overview'){
+      const pageId=shortcut.dataset.wbDesk;
+      if(!['service','inventory','ads'].includes(pageId))return;
+      Object.assign(pane(pageId),{section:pageId==='ads'?'verification':'',legacy:false,receiving:pageId==='inventory',comparison:false,searchTerms:false});
+      navigate(pageId);
+      if(pageId==='service'){
+        window.erpFulfillment?.openOrder();
+        const dialog=q('#erpFbmDesk');
+        if(dialog){
+          const leave=()=>{if(location.hash!=='#service'&&dialog.open)dialog.close();};
+          window.addEventListener('hashchange',leave);
+          dialog.addEventListener('close',()=>window.removeEventListener('hashchange',leave),{once:true});
+        }
+        return;
+      }
+      requestAnimationFrame(()=>{
+        if(view!==pageId)return;
+        const needsProduct=pageId==='ads'&&mode==='server'&&currentUser()&&productId==='all';
+        const target=q(pageId==='inventory'?'#erpReceivingRoot':needsProduct?'#productSelect':'#adsReviewRoot');
+        if(!target)return;
+        if(target.tagName!=='SELECT')target.tabIndex=-1;
+        target.focus({preventScroll:true});target.scrollIntoView({block:needsProduct?'center':'start'});
+      });
+      return;
+    }
     const el=event.target.closest('[data-wb],[data-wb-section],[data-wb-id],[data-wb-signal]');
     if(!el||el.disabled)return;
     if(el.hasAttribute('data-wb-section')){pane().section=el.dataset.wbSection;pane().legacy=false;pane().receiving=false;pane().comparison=false;pane().searchTerms=false;clearQueue();mount();return;}

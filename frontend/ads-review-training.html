@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'"><title>HOMA 广告复盘 · 示例演练</title><style>
+:root{--ink:#192e32;--muted:#4d6265;--accent:#056e66;--panel:#fff;--bg:#f3f5f4;--rule:#d6dfdc;--dark:#163b3c;--amber:#81561b}*{box-sizing:border-box}body{margin:0;font:15px/1.55 Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--ink)}button,select,input{font:inherit}button{cursor:pointer}button:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #b26c20;outline-offset:3px}header{border-bottom:1px solid var(--rule);background:#fff}.frame{width:min(1440px,95%);margin:auto}.bar{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:12px 0}.wordmark{font-weight:730;font-size:20px;white-space:nowrap}.wordmark b{font:700 21px/1.2 Georgia,serif;letter-spacing:.05em;color:var(--accent);border-right:1px solid var(--rule);padding-right:12px;margin-right:10px}.mode{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#42615b}.dot{height:8px;width:8px;border-radius:50%;background:#498977}nav{display:flex;gap:8px;margin-top:5px}nav button,.toggle,.link,.task,.ghost{border:0;background:transparent;color:inherit}nav button{border-bottom:3px solid transparent;padding:8px 14px 10px;font-weight:600;color:var(--muted)}nav button:first-child{padding-left:0}nav button.active{border-color:var(--accent);color:var(--accent)}main{padding:21px 0 48px}.intro{background:var(--dark);color:#fff;padding:17px 22px;border-radius:10px;margin-bottom:15px;display:flex;align-items:center;justify-content:space-between;gap:14px}.intro p{color:#cbe1dc;margin:1px 0;font-size:13px}.intro h1{font-size:clamp(21px,2.2vw,30px);font-weight:640;margin:0}.intro button{color:#fff;border:1px solid #779794;background:transparent;border-radius:5px;padding:5px 10px;white-space:nowrap}.grid{display:grid;grid-template-columns:minmax(255px,.76fr) minmax(0,2.15fr);gap:15px;align-items:start}.panel{background:white;border:1px solid var(--rule);border-radius:9px;padding:19px;margin-bottom:13px}aside h2,.panel h2{margin:0;font-size:20px}.panel h3{font-size:16px;margin:0 0 7px}.panel p{margin:7px 0}.muted,.path,small{color:var(--muted)}.path,small{font-size:12px}.path{margin:2px 0 9px!important}.side{padding:16px 12px}.side h2{padding-left:5px}.filters{display:flex;gap:4px;flex-wrap:wrap;margin:9px 0 12px}.toggle{border:1px solid var(--rule);border-radius:5px;padding:4px 7px;font-size:12px}.toggle.active{background:#d9eee7;border-color:#87b6aa;color:#1d5a4b}.task{display:block;width:100%;padding:12px 9px;text-align:left;border-radius:6px;margin:3px 0;border-left:3px solid transparent}.task:hover{background:#f0f5f2}.task.active{background:#e7f2ec;border-left-color:var(--accent)}.task strong,.task small{display:block}.task strong{font-size:14px;line-height:1.45;margin:5px 0 2px}.chip{display:inline-block;font-size:11px;border-radius:4px;padding:1px 6px;font-weight:600;background:#e9efed;color:#495d5b}.chip.ready,.chip.ok{background:#dbefe3;color:#225e42}.chip.wait,.chip.bad{background:#fff0da;color:#7e511f}.chip.review{background:#e5eafb;color:#43547f}.rowhead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}.smallNote{font-size:13px}.cardline{border-top:1px solid var(--rule);padding-top:12px;margin-top:13px}.meters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:14px 0}.meter{border:1px solid var(--rule);padding:9px;border-radius:6px}.meter small,.meter b{display:block}.meter b{font-size:21px;font-variant-numeric:tabular-nums}.meter em{font-size:11px;color:var(--muted);font-style:normal}.evidence{display:grid;grid-template-columns:1fr 1fr;gap:9px}.evidence div,.note{padding:10px 12px;border-radius:5px;background:#f2f6f3;font-size:13px}.note.warn{background:#fff4e1;color:#754e17}.note{margin:9px 0}.evidence b{display:block}.actions{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 3px}.btn{display:inline-block;border:1px solid #9db3ad;border-radius:5px;background:#fff;padding:7px 12px;font-size:13px;color:var(--ink)}.btn.primary{color:white;border-color:var(--accent);background:var(--accent)}button:hover:not(:disabled){filter:brightness(.96)}button:disabled{opacity:.48;cursor:not-allowed}.statusline{margin:7px 0 0;color:var(--muted);font-size:13px}.scroll{overflow-x:auto}table{width:100%;border-collapse:collapse;font-size:13px}th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--rule);vertical-align:top}th{font-weight:630;color:var(--muted)}td small{display:block}.check{display:flex;align-items:start;gap:8px;font-size:13px;margin:11px 0}.check input{margin-top:4px}.stage{display:flex;gap:6px;align-items:center;flex-wrap:wrap;font-size:12px;margin:10px 0;color:var(--muted)}.stage .now{color:#0b6358;font-weight:700}.detailbtn{color:var(--accent);font:inherit;background:none;border:0;text-decoration:underline}.log{padding-left:18px;font-size:13px}.log li{padding:3px}.receipt{font-variant-numeric:tabular-nums}.empty{padding:13px 3px;color:var(--muted);font-size:13px}.focusTitle:focus{outline:0}dialog{width:min(440px,92vw);color:var(--ink);border-radius:8px;border:1px solid #95afa7;padding:18px}dialog::backdrop{background:#17373269}dialog h2{font-size:19px;margin:0}summary{cursor:pointer;color:#315a51;font-size:13px}details{margin-top:11px}code{font:12px "IBM Plex Mono",monospace;overflow-wrap:anywhere}.foot{margin:6px 0;color:var(--muted);font-size:12px}#announce{position:absolute;left:-9999px}.skip{position:fixed;left:8px;top:-90px;background:white;color:var(--accent);padding:6px;z-index:3}.skip:focus{top:8px}@media(max-width:850px){.grid{grid-template-columns:minmax(210px,.64fr) minmax(0,1.4fr)}.meters{grid-template-columns:1fr 1fr}.panel{padding:14px}.side{padding:12px 8px}.evidence{grid-template-columns:1fr}}@media(max-width:650px){.frame{width:94%}.grid{display:block}.intro{padding:12px}.bar{gap:8px}.wordmark{font-size:16px}.wordmark b{font-size:18px}.mode{font-size:10px}.intro h1{font-size:21px}.intro p{font-size:12px}.task{padding:7px 8px}.side{margin-bottom:10px}.filters{margin-bottom:6px}.evidence{grid-template-columns:1fr}main{padding-top:11px}.stage{gap:4px}}
+.audit-key{margin:8px 0;font-size:13px;color:var(--muted)}.rgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.rgrid>div{padding:9px 11px;background:#f2f6f3;border-radius:5px;font-size:13px}.rgrid b{display:block}.r-select{padding:6px;border:1px solid #9db3ad;border-radius:5px;max-width:100%;background:#fff}.r-label{display:block;color:var(--muted);font-size:13px;margin-bottom:4px}.r-table th,.r-table td{white-space:normal;overflow-wrap:anywhere}.r-title{font-weight:650}.rv-next{padding:9px 0;border-top:1px solid var(--rule)}.rv-next small{display:block}.review-cycles button{font-weight:600}.rv-summary{margin:0;color:var(--muted);font-size:13px}@media(max-width:650px){.rgrid{grid-template-columns:1fr}nav button{padding-left:8px;padding-right:8px}.r-table th,.r-table td{font-size:12px}}
+</style></head><body>
+<a class="skip" href="#main">跳至工作区</a><header><div class="frame"><div class="bar"><div class="wordmark"><b>HOMA</b>广告工作台</div><div class="mode"><span class="dot"></span>示例演练 · 假设数据</div></div><nav aria-label="工作区"><button data-nav="queue">今日待办</button><button data-nav="changes">变更与回执</button><button data-nav="reviews">复盘中心</button></nav></div></header>
+<main class="frame" id="main" tabindex="-1"><section class="intro"><div><h1 id="pageTitle"></h1><p>美国站 · USD · 示例运营日 2026-11-24　／　所有对象、观察与回执均为本地模拟</p></div><button data-act="reset">重置示例</button></section><div class="grid"><aside class="panel side" id="left"></aside><div id="content"></div></div><p class="foot" id="saveNote"></p></main>
+<div id="announce" role="status" aria-live="polite"></div><dialog id="confirm"><h2>重新开始这次演练？</h2><p>将清空本机保存的草案、观察、模拟回执和复盘记录，恢复示例起点。</p><div class="actions"><button class="btn" data-act="cancelReset">保留当前进度</button><button class="btn primary" data-act="doReset">重置示例</button></div></dialog>
+<script>
+'use strict';
+const el=id=>document.getElementById(id), content=el('content'), left=el('left');
+const chip=(text,c='')=>'<span class="chip '+c+'">'+text+'</span>',btn=(text,action,primary=false,disabled=false)=>'<button class="btn '+(primary?'primary':'')+'" data-act="'+action+'"'+(disabled?' disabled':'')+'>'+text+'</button>';
+const note=(text,warn=false)=>'<div class="note '+(warn?'warn':'')+'">'+text+'</div>', card=html=>'<section class="panel">'+html+'</section>';
+const metric=(label,val,caption)=>'<div class="meter"><small>'+label+'</small><b>'+val+'</b><em>'+caption+'</em></div>';
+const evidence=(a,b)=>'<div class="evidence"><div>'+a+'</div><div>'+b+'</div></div>';
+const readyBid=()=>({id:'B-01',kind:'bid',title:'复核两条独立关键词竞价',rows:[
+{object:'gym bottle · T-301',old:'$0.82',next:'$0.74',status:'未提交',attempts:0},
+{object:'gym water bottle · T-302',old:'$0.78',next:'$0.70',status:'未提交',attempts:0}],why:'复核人检查近两期相同商品的点击成本上移、转化率稳定及广告前单位贡献。两条独立单元均采用小幅调低的假设方案。',status:'待复核',log:['运营范琳提交草案，等待示例复核人林舟。']});
+const STORAGE_KEY='homa.ads.offline.review.v1';
+function demoHistory(){return {id:'H-24',kind:'bid',title:'已执行样例 · 调低单个精准词竞价',rows:[{object:'trail flask · T-240',old:'$0.85',next:'$0.72',status:'成功',attempts:1,receipt:'SIM-H24-1 · 已确认'}],why:'成熟商品的精准词测试小步调价；预设回看单位点击成本和贡献，同时保护流量。',status:'已回执',log:['历史演练：范琳登记草案，林舟批准；11/10 获得本地模拟成功回执。']}}
+function restore(){try{const value=JSON.parse(localStorage.getItem(STORAGE_KEY));if(value?.schema===1&&Array.isArray(value.state?.drafts)&&value.state.reviews&&Array.isArray(value.state.followups))return value.state}catch(_){}return initial()}
+function persist(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({schema:1,state:s}));el('saveNote').textContent='已在当前浏览器本地保存。刷新可继续演练，重置可恢复示例起点。'}catch(_){el('saveNote').textContent='当前浏览器未开放本地存储，进度仅保留在本页；关闭后会清除。'}}
+function initial(){return {view:'reviews',filter:'全部',task:'broad',draftId:'B-01',stock:false,observe:'initial',drafts:[readyBid(),demoHistory()],seq:0,reviewId:'H-24',cycle:'day',reviews:{},followups:[],rvSeq:0}}
+let s=restore();if(parent!==window||location.hash==='#reviews')s.view='reviews';const draft=k=>s.drafts.find(d=>d.kind===k), success=k=>draft(k)?.status==='已回执', selected=()=>s.drafts.find(d=>d.id===s.draftId);
+const FILTERS=['全部','数据待补','可分析','待复核'];const grade={'数据待补':'wait','可分析':'ready','待复核':'review','已核对':'ok','观察中':'wait'};
+function tasks(){const all=[{id:'missing',title:'确认库存与补货覆盖',caption:'TRAVEL-450 · SP 预算评估',status:s.stock?'已核对':'数据待补'},
+{id:'broad',title:'判断 Broad 搜索词能否转入 Exact',caption:'TRAIL-750 · insulated trail bottle',status:success('negative')?'已核对':success('exact')?'观察中':'可分析'}];
+for(const d of s.drafts.filter(x=>['待复核','部分失败'].includes(x.status)))all.push({id:d.id,title:d.title,caption:d.id+' · '+(d.status==='部分失败'?'查看失败回执':'范琳提交 · 林舟复核'),status:'待复核'});for(const t of s.followups.filter(t=>t.status==='待办理'))all.push({id:t.id,title:t.title,caption:t.caseId+' · '+t.owner,status:'待复核'});return all}
+function showDraft(id){s.view='changes';s.draftId=id;draw();focusTitle()}
+function focusTitle(){const title=content.querySelector('h2');if(title){title.tabIndex=-1;title.classList.add('focusTitle');title.focus({preventScroll:true})}}
+function say(m){el('announce').textContent=m}
+function draw(){persist();el('pageTitle').textContent=s.view==='queue'?'今日广告待办':s.view==='reviews'?'复盘中心':'变更草案与逐项回执';document.querySelectorAll('[data-nav]').forEach(b=>{b.classList.toggle('active',b.dataset.nav===s.view);b.setAttribute('aria-pressed',b.dataset.nav===s.view)});
+if(s.view==='reviews'){reviewPage();return}if(s.view==='queue'){const list=tasks(), shown=list.filter(t=>s.filter==='全部'||t.status===s.filter);left.innerHTML='<h2>办理队列</h2><div class="filters">'+FILTERS.map(t=>'<button class="toggle '+(s.filter===t?'active':'')+'" aria-pressed="'+(s.filter===t)+'" data-filter="'+t+'">'+t+' '+(t==='全部'?list.length:list.filter(x=>x.status===t).length)+'</button>').join('')+'</div>'+shown.map(t=>'<button class="task '+(s.task===t.id?'active':'')+'" data-task="'+t.id+'">'+chip(t.status,grade[t.status])+'<strong>'+t.title+'</strong><small>'+t.caption+'</small></button>').join('');if(!shown.length)left.innerHTML+='<p class="empty">此分类中暂无待办。</p>';if(!shown.some(t=>t.id===s.task))s.task=shown[0]?.id||'';if(s.task==='missing')stockView();else if(s.task==='broad')broadView();else if(s.task){const follow=s.followups.find(t=>t.id===s.task);if(follow)followPage(follow);else{s.draftId=s.task;draftView()}}else content.innerHTML=card('<h2>已清空此分类</h2><p class="muted">可切换到全部待办或查看变更回执。</p>')}
+else {left.innerHTML='<h2>变更单</h2><p class="path">按最近生成排序</p>'+[...s.drafts].reverse().map(d=>'<button class="task '+(s.draftId===d.id?'active':'')+'" data-draft="'+d.id+'">'+chip(d.status,d.status==='已回执'?'ok':d.status==='部分失败'?'bad':'review')+'<strong>'+d.title+'</strong><small>'+d.id+' · '+d.rows.length+' 个变更对象</small></button>').join('');draftView()}}
+function stockView(){content.innerHTML=card('<div class="rowhead"><h2>确认库存与补货覆盖</h2>'+chip(s.stock?'已核对':'数据待补',s.stock?'ok':'wait')+'</div><p class="path">US-DEMO · TRAVEL-450 · 广告活动 C-110</p><p>活动预算较早用完。申请增加预算前，先核对可售库存及补货到仓时间。</p><div class="meters">'+metric('日均销量','6 件','示例近 14 天')+metric('当前可售',s.stock?'48 件':'待补','US 本地仓')+metric('库存覆盖',s.stock?'8 天':'待计算','可售量 ÷ 日均销量')+metric('预计补货',s.stock?'15 天':'待补','预计到仓时间')+'</div>'+ (s.stock?note('示例快照 INV-08 显示覆盖 8 天，补货与缓冲共需 15＋3＝18 天。当前不建议增加预算。',true):note('缺少库存快照，检查结果为未知。先补齐来源与业务日期，预算动作暂缓。',true))+'<div class="actions">'+(s.stock?btn('查看 Broad 搜索词','backBroad',true):btn('载入示例库存快照','loadStock',true))+'</div>')}
+function broadView(){
+const ex=draft('exact'),neg=draft('negative'),m=s.observe==='good',weak=s.observe==='weak',approved=success('exact'),complete=success('negative');
+const source=card('<div class="rowhead"><h2>insulated trail bottle</h2>'+chip('SP · Broad 来源','ready')+'</div><p class="path">US-DEMO / ASIN-DEMO-750 / 探索活动 C-101 / 广告组 G-11 / 广泛关键词 outdoor bottle</p><p>这条实际搜索词有成交，点击成本高于当前转化率下的盈亏平衡值。可在已有精准承接组 G-31 建一个 Exact 做独立观察。</p><div class="meters">'+metric('平均 CPC','$0.75','前期 $0.55')+metric('CVR','5.26%','前期 5.00%')+metric('ACOS','41.91%','目标 25%')+metric('广告后贡献','−$17','4 × $10 − $57')+'</div>'+evidence('<b>利润依据 · ECON-14</b>售价 $34，扣除成本与其他变动费用后，每件广告前贡献 $10。盈亏平衡 ACOS 为 29.41%，当前样本的平衡 CPC 约 $0.53。','<b>库存依据 · INV-17</b>可售 160 件，日均 8 件，覆盖 20 天。预计 12 天到仓，另留 4 天缓冲。')+'<details><summary>核对报告行、粒度及归因窗</summary><div class="scroll"><table><tr><th>SP 搜索词报告</th><th>点击</th><th>订单</th><th>花费</th><th>归因销售</th></tr><tr><td>10/20–11/02 · ST-14</td><td>80</td><td>4</td><td>$44</td><td>$136</td></tr><tr><td>11/03–11/16 · ST-27</td><td>76</td><td>4</td><td>$57</td><td>$136</td></tr></table></div><p class="smallNote">示例设定两期同广告账号、USD、同组同词，均为点击后 7 天的成熟归因，每单 1 件。目标 ACOS 是该成熟商品的内部示例配置。未使用广告位交叉数据。</p></details>');
+const phase='<div class="stage"><span class="'+(!approved?'now':'')+'">创建 Exact</span><span>→</span><span class="'+(approved&&!neg?'now':'')+'">观察承接</span><span>→</span><span class="'+(neg?'now':'')+'">复核源组精准否定</span></div>';
+let observation='';
+if(approved){const v=m?['1,200','32','3','$14.40','9.38%','14.12%','+$15.60']:weak?['320','12','0','$5.40','0%','无分母','−$5.40']:['—','—','—','—','—','—','—'];
+observation='<div class="cardline"><h3>Exact 承接组 G-31</h3><p class="path">同店铺、站点、ASIN、搜索词和归因口径 · 点击后 7 天</p><div class="scroll"><table><tr>'+['曝光','点击','订单','花费','CVR','ACOS','广告后贡献'].map(k=>'<th>'+k+'</th>').join('')+'</tr><tr>'+v.map(k=>'<td>'+k+'</td>').join('')+'</tr></table></div>'+ (m?note('成熟样本 EX-31：11/25–12/08 的观察在 12/16 已过归因窗，实际承接 32 次点击、3 单且有正贡献。可提源组精准否定，交由复核人决定。'):weak?note('成熟样本 EX-32：只有 12 次点击，且没有订单。继续保留 Broad 流量，无法提源组否定。',true):note('新建 Exact 的模拟回执已成功，承接组还没有成熟数据。以下按钮分别加载两个独立的假设结果。',true))+(neg?'':'<div class="actions">'+btn('演练成熟样本 · 承接不足','weak')+btn('演练成熟样本 · 承接充分','good')+'</div>')+'</div>'}
+let actions=!ex?btn('生成 Exact 观察草案','createExact',true):!approved?btn('查看 Exact 草案','openExact',true):''; if(!neg)actions+=btn('提议源组精准否定','createNeg',m,m!==true);else actions+=btn(complete?'查看精准否定回执':'复核精准否定草案','openNeg',true);
+content.innerHTML=source+card('<h3>办理顺序</h3>'+phase+observation+'<div class="actions">'+actions+'</div><p class="statusline">'+(complete?'源组对这一条查询的精准否定已获模拟回执。其余 Broad 词继续探索。':'本例门槛：Exact 归因成熟，同词有曝光、至少 20 次点击、至少 2 单且广告后贡献为正。阈值为演练假设。')+'</p>')}
+function makeDraft(kind){const exact=kind==='exact';const row={object:exact?'G-31 · insulated trail bottle':'G-11 · insulated trail bottle',old:exact?'未建此 Exact':'未设该查询否定',next:exact?'新增 Exact · $0.48':'新增 Negative Exact',status:'未提交',attempts:0};return {id:exact?'E-02':'N-03',kind,title:exact?'新增 Exact 观察关键词':'源组添加一条精准否定',rows:[row],status:'待复核',why:exact?'保留 Broad 做探索，在已有承接组新增 Exact。$0.48 是本地演练出价，低于以当前转化率估算的平衡 CPC $0.53，须观察实际曝光、点击、转化和贡献。':'充分承接样本 EX-31 已成熟。拟只在来源 G-11 精准否定这一条实际搜索词。若新组失去曝光或订单需重新评估路由。',log:['范琳提交草案，尚未执行。']}}
+function add(kind){if(draft(kind)||kind==='negative'&&(!success('exact')||s.observe!=='good'))return;const d=makeDraft(kind);s.drafts.push(d);showDraft(d.id);say('草案已生成，等待人工复核。')}
+function draftView(){originalDraftView();const d=selected();if(d&&d.rows.some(r=>r.attempts>0)){const box=document.createElement('div');box.className='actions';box.innerHTML=btn('到复盘中心核对本单','reviewCurrent',true);content.querySelector('.panel').append(box)}}
+function originalDraftView(){const d=selected();if(!d){content.innerHTML=card('<h2>尚无草案</h2>');return}
+const pending=d.status==='待复核',failed=d.rows.filter(r=>r.status==='失败'),title= d.kind==='bid'?'授权店铺 US-DEMO / SP / 既有精确组 G-52':'授权店铺 US-DEMO / SP / TRAIL-750';
+let tbl='<div class="scroll"><table><thead><tr><th>变更对象</th><th>旧值</th><th>新值</th><th>模拟回执</th><th>发送次数</th></tr></thead><tbody>'+d.rows.map(r=>'<tr><td>'+r.object+'</td><td>'+r.old+'</td><td>'+r.next+'</td><td class="receipt">'+chip(r.status,r.status==='成功'?'ok':r.status==='失败'?'bad':'')+(r.receipt?'<small>'+r.receipt+'</small>':'')+'</td><td>'+r.attempts+'</td></tr>').join('')+'</tbody></table></div>';
+let controls=pending?'<label class="check"><input type="checkbox" id="reviewed">示例复核人林舟已检查对象、旧值、新值及作用范围。</label><div class="actions">'+btn('人工批准并生成模拟回执','approve',true,true)+btn('退回本轮草案','reject')+'</div>':failed.length?note('第 2 行演练一次临时失败。首行的成功回执保持有效。',true)+'<div class="actions">'+btn('仅重试失败的 '+failed.length+' 行','retry',true)+'</div>':'';
+if(d.status==='已退回')controls='<div class="actions">'+btn('修订后重新提请复核','resubmit',true)+'</div>';
+content.innerHTML=card('<div class="rowhead"><h2>'+d.title+'</h2>'+chip(d.status,d.status==='已回执'?'ok':failed.length?'bad':'review')+'</div><p class="path">'+d.id+' · '+title+' · 提案人 范琳</p><p>'+d.why+'</p>'+(d.kind==='bid'?note('示例核对：T-301 和 T-302 的成熟期 CPC 分别上升 $0.11、$0.08；两期 CVR 均约 6%，库存覆盖 24 天。预算与风险限制已按 US-DEMO 核查。'):'')+'<div class="cardline"><h3>逐行变更</h3>'+tbl+controls+'</div>')+card('<h3>办理记录</h3><ol class="log">'+d.log.map(v=>'<li>'+v+'</li>').join('')+'</ol>'+(d.kind!=='bid'?'<div class="actions">'+btn(d.kind==='exact'?'返回搜索词与承接观察':'返回搜索词','backBroad',true)+'</div>':''));
+}
+function sendRows(d,retry){if(retry?d.status!=='部分失败':d.status!=='待复核')return;if(!retry&&!el('reviewed')?.checked)return;if(d.kind==='negative'&&(!success('exact')||s.observe!=='good'))return;const todo=d.rows.filter(r=>retry?r.status==='失败':r.status==='未提交');if(!todo.length)return;if(!retry)d.log.push('林舟完成人工复核，批准 '+todo.length+' 条变更。');for(const r of todo){r.attempts++;const fail=d.kind==='bid'&&d.rows.indexOf(r)===1&&r.attempts===1;r.status=fail?'失败':'成功';r.receipt=fail?'SIM-429 · 请稍后重试':'SIM-'+(++s.seq)+' · 已确认';d.log.push((retry?'重试':'本地模拟发送')+' '+r.object+'，返回 '+r.receipt+'。')}d.status=d.rows.some(r=>r.status==='失败')?'部分失败':'已回执';s.view='changes';draw();say('已生成逐行模拟回执。')}
+document.addEventListener('change',e=>{if(e.target.id==='reviewed'){document.querySelector('[data-act=approve]').disabled=!e.target.checked}});
+document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||b.disabled)return;if(b.dataset.nav){s.view=b.dataset.nav;draw();return}if(b.dataset.filter){s.filter=b.dataset.filter;s.task='';draw();return}if(b.dataset.task){const id=b.dataset.task;if(s.drafts.some(d=>d.id===id)){showDraft(id);return}s.task=id;draw();focusTitle();return}if(b.dataset.draft){showDraft(b.dataset.draft);return}const a=b.dataset.act;if(!a)return;const d=selected();if(a==='reviewCurrent'&&d){openReview(d.id,'day');return}
+if(a==='reset'){el('confirm').showModal();return}if(a==='cancelReset'){el('confirm').close();return}if(a==='doReset'){s=initial();el('confirm').close();draw();return}if(a==='backBroad'){s.view='queue';s.filter='全部';s.task='broad';draw();focusTitle();return}if(a==='loadStock'){s.stock=true;s.filter='全部';draw();return}if(a==='createExact'||a==='createNeg'){add(a==='createExact'?'exact':'negative');return}if(a==='openExact'||a==='openNeg'){const x=draft(a==='openExact'?'exact':'negative');if(x)showDraft(x.id);return}if(a==='weak'||a==='good'){if(success('exact')&&!draft('negative'))s.observe=a;draw();return}if(a==='approve'||a==='retry'){if(d)sendRows(d,a==='retry');return}if(a==='reject'&&d.status==='待复核'){d.status='已退回';d.log.push('林舟退回本次提案，未发送。');s.view='changes';draw();return}if(a==='resubmit'&&d.status==='已退回'){d.status='待复核';d.log.push('范琳重新核对证据与变更范围，重新提交。');draw()}});
+const periodInfo={
+ day:['日 · 对账','运营范琳','逐行核对回执与当前实际设置；不一致先派单，不进入效果归因。'],
+ week:['周 · 效果','复核人林舟','读取成熟窗口、同期事件和库存护栏，对照预先目标后签署结论。'],
+ month:['月 · 校准','策略负责人韩宁','回看有证据的结论、独立样本及离线验证需求，审批独立的候选版本。']
+};
+const samples={
+ clean:{title:'成熟 · 无已知干扰',mature:true,dose:true,stock:20,click:80,spend:52,orders:7,control:1,id:'OBS-A'},
+ weak:{title:'成熟 · 实际未达预期',mature:true,dose:true,stock:20,click:64,spend:51.2,orders:5,control:1,id:'OBS-B'},
+ early:{title:'归因期尚未结束',mature:false,dose:true,stock:20,click:50,spend:34,orders:3,control:1,id:'OBS-C'},
+ promo:{title:'成熟 · 同期促销',mature:true,dose:false,stock:20,click:80,spend:52,orders:8,control:1,id:'OBS-D'},
+ risk:{title:'库存触及护栏',mature:true,dose:true,stock:3,click:80,spend:52,orders:7,control:1,id:'OBS-E'}
+};
+const decisions={
+ mismatch:['执行偏差，先纠正设置','核对旧值、平台读回与并发改动','运营范琳','当日核对','不得计入策略效果样本'],
+ early:['归因未成熟，延长观察','到归因窗关闭日重拉同口径报告','运营范琳','窗口成熟后','等待补数'],
+ promo:['同期干扰，无法归因','隔离促销影响并约定新的可比时窗','复核人林舟','下周复盘前','不作为策略改善证据'],
+ risk:['护栏触发，优先控制风险','核对补货并提请单独风险处置复核','运营范琳','当日办理','禁止自动扩大投放'],
+ clean:['本例达到预期，保留并跟踪','下一周期复查贡献和同词流量','运营范琳','下周复盘前','可提交月度校准候选'],
+ weak:['本例未达预期，重估设置','复查点击损失并拟订后续调整草案','复核人林舟','下周复盘前','可提交月度校准候选']
+};
+const rid=id=>'RV-'+id;
+function reviewFor(d){
+ if(!s.reviews[d.id])s.reviews[d.id]={id:rid(d.id),rev:1,recon:null,sample:null,closed:null,history:[],audit:[],candidate:null};
+ return s.reviews[d.id]
+}
+function reviewChange(){return s.drafts.find(d=>d.id===s.reviewId)||s.drafts.find(d=>d.id==='H-24')}
+function audit(r,actor,action){r.audit.push({n:++s.rvSeq,at:new Date().toISOString(),actor,action,rev:r.rev})}
+function openReview(id,cycle){if(!s.drafts.some(x=>x.id===id))return;s.view='reviews';s.reviewId=id;s.cycle=cycle||'day';draw();focusTitle()}
+function signature(d){return d.rows.map(r=>[r.object,r.next,r.status,r.attempts,r.receipt||''].join('/')).join(' | ')}
+function sameRecon(d,r){return r.recon&&r.recon.signature===signature(d)}
+function makeRecon(d,r,match){
+ if(r.closed||!d.rows.some(row=>row.attempts))return;
+ const rows=d.rows.map((row,i)=>({object:row.object,expected:row.next,read:row.status!=='成功'?'尚无成功读回':!match&&i===0?row.old:row.next,receipt:row.receipt||'无成功回执',ok:row.status==='成功'&&(match||i!==0)}));
+ r.recon={rows,matched:rows.every(v=>v.ok),signature:signature(d)};r.sample=null;
+ audit(r,'运营范琳','逐行对账：'+rows.filter(v=>v.ok).length+'/'+rows.length+' 项读回与预期一致。');draw()
+}
+function reasonFor(d,r){
+ if(!sameRecon(d,r))return null;
+ if(!r.recon.matched)return 'mismatch';
+ const a=samples[r.sample];if(!a)return null;
+ if(a.stock<7)return 'risk';if(!a.mature)return 'early';if(!a.dose)return 'promo';
+ return a.orders*10-a.spend>=12&&a.click>=64&&a.spend/a.click<=.70?'clean':'weak'
+}
+function rvButton(label,action,disabled=false,primary=false){return btn(label,'rv-'+action,primary,disabled)}
+function reviewPlan(d){
+ const scope=d.kind==='exact'||d.kind==='negative'?'US-DEMO 同 ASIN、同一查询的来源组和承接组汇总':'US-DEMO / SP / 本单所列精准关键词组合';
+ return '<p><b>事前锁定的假设目标</b>　同口径广告后贡献至少 $12、CPC ≤ $0.70，点击不少于基线 80%的 64 次。库存覆盖低于 7 天优先处置。所有数值是复盘演练样例。</p><p class="path">范围：'+scope+'。每单 1 件、单位广告前贡献 $10，统一 USD、7 天点击归因。独立未调价的参照组仅用于发现同期变动。</p>'
+}
+function reviewAudit(r){const versions=r.history.length?'<details data-versions><summary>查看历史签署版本（'+r.history.length+'）</summary>'+r.history.map(h=>'<div class="rv-next"><b>第 '+h.rev+' 版 · '+h.label+'</b><p>观察来源 '+(samples[h.sample]?.id||'仅有执行记录')+' · 关联任务 '+h.task+'</p>'+(h.readback||[]).map(x=>'<p class="path">'+x.object+' · 批准 '+x.expected+' / 读回 '+x.read+' / '+x.receipt+'</p>').join('')+'</div>').join('')+'</details>':'';return versions+'<details data-rv-audit><summary>查看完整复盘审计（'+r.audit.length+' 条）</summary>'+(r.audit.length?'<ol class="log">'+r.audit.map(a=>'<li><b>第 '+a.rev+' 版 · '+a.actor+'</b>　'+a.action+'<small>　'+a.at.replace('T',' ').slice(0,19)+' UTC · '+a.n+'</small></li>').join('')+'</ol>':'<p class="muted">开始对账后记录经办动作。</p>')+'</details>'}
+function reviewChild(d,r){const items=s.followups.filter(t=>t.caseId===r.id);return items.map(t=>'<div class="rv-next"><span class="r-title">'+t.title+'</span> '+chip(t.status,t.status==='已办理'?'ok':'review')+'<small>'+t.id+' · 来自第 '+t.rev+' 版 · '+t.owner+' · '+t.due+'</small><button class="detailbtn" data-follow="'+t.id+'">查看关联任务</button></div>').join('')}
+function decisionBox(d,r){
+ const key=reasonFor(d,r);if(r.closed){const c=r.closed;return card('<div class="rowhead"><h3>已签署结论 · 第 '+c.rev+' 版</h3>'+chip(c.label,'ok')+'</div><p>'+c.follow+'。</p>'+reviewChild(d,r)+'<div class="actions">'+rvButton('因证据修订而重开','reopen')+(c.calibratable?rvButton('前往月度策略校准','tomonth'):'')+'</div>'+reviewAudit(r))}
+ if(!key)return '';
+ const [label,follow,owner,due,behavior]=decisions[key];
+ return card('<h3>结论与下一张任务</h3><p><b>'+label+'</b>　'+behavior+'。</p><p>拟派给 '+owner+'「'+follow+'」，期限为'+due+'。</p><label class="check"><input type="checkbox" id="rvSign">示例复核人林舟已核对变更、读回、证据窗口和结论。</label>'+rvButton('签署结论并创建关联任务','close',true,true)+reviewAudit(r))
+}
+function daily(d,r){
+ let html=card('<h3>按变更行核对实际设置</h3><p>以平台读回样例比对批准新值，逐行识别未执行、执行失败或他人改动。成功回执之后仍需读回。</p>'+
+ '<div class="scroll"><table class="r-table"><tr><th>对象</th><th>批准前 → 批准后</th><th>模拟执行回执</th><th>独立读回</th></tr>'+
+ d.rows.map((x,i)=>'<tr><td>'+x.object+'</td><td>'+x.old+' → '+x.next+'</td><td>'+(x.receipt||'待执行')+'</td><td>'+(sameRecon(d,r)?r.recon.rows[i].read:'待对账')+'</td></tr>').join('')+'</table></div>'+
+ (r.closed?'':'<div class="actions">'+rvButton('读取一致样例','match',!d.rows.some(x=>x.attempts),true)+rvButton('读取设置不一致样例','mismatch',!d.rows.some(x=>x.attempts))+'</div>')+
+ (!d.rows.some(x=>x.attempts)?note('这笔草案尚未执行。先在人审后取得逐项回执。',true):'')+
+ (sameRecon(d,r)?note(r.recon.matched?'全部行对账通过，可进入周复盘。':'存在读回差异或未成功行。先核对执行，效果评估保持关闭。',!r.recon.matched):r.recon?note('原回执已有更新，需重新逐行对账。',true):'')+
+ '<div class="actions">'+rvButton('查看原变更与回执','original')+rvButton('进入周复盘','toweek',!sameRecon(d,r)||!r.recon.matched,true)+'</div>');
+ return html+(r.closed||reasonFor(d,r)==='mismatch'?decisionBox(d,r):card(reviewAudit(r)))
+}
+function sampleView(d,r){
+ const v=samples[r.sample];if(!v)return '';
+ const profit=v.orders*10-v.spend;
+ const usd=n=>(n<0?'−$':'$')+Math.abs(n).toFixed(2);
+ const eligible=v.stock>=7&&v.mature&&v.dose;
+ return '<div class="rgrid"><div><b>归因成熟度</b>'+(v.mature?'窗口及 7 天归因等待已结束':'等待归因，未到预定回看日')+'</div><div><b>同期干扰</b>'+(v.dose?'价格、优惠和商品页未发现同期改动':'观察期内另有 20% 优惠活动')+'</div><div><b>经营护栏</b>库存覆盖 '+v.stock+' 天；阈值 7 天</div></div>'+
+ '<p class="path">比较快照 '+v.id+' · 变更前/后的两个等长 14 天窗口。观察期间重新拉取平台数据；独立参照组贡献变化 +$1。参照组未经随机分配。</p>'+
+ '<div class="scroll"><table class="r-table"><tr><th>指标</th><th>基线</th><th>预期 / 护栏</th><th>实际观察</th></tr>'+
+ [['广告后贡献','$6.00','≥ $12.00',usd(profit)],['平均 CPC','$0.80','≤ $0.70',usd(v.spend/v.click)],['点击','80','≥ 64',String(v.click)],['广告费 / 订单','$64.00 / 7','用于核对贡献',usd(v.spend)+' / '+v.orders]].map(row=>'<tr>'+row.map(cell=>'<td>'+cell+'</td>').join('')+'</tr>').join('')+'</table></div>'+
+ note(eligible?'可描述本例达成或未达成目标。前后差异和参照组都不能单独证明改价带来增量。':'本次存在未成熟、同期干扰或经营护栏问题；指标仅作记录。',!eligible)
+}
+function weekly(d,r){
+ if(!sameRecon(d,r)||!r.recon.matched)return card('<h3>先完成每日执行对账</h3><p>当前没有与本次成功回执匹配的逐行读回。</p>'+rvButton('返回执行对账','today',false,true));
+ const pick=r.closed?'':'<label class="r-label" for="rvSample">载入一份独立的模拟观察</label><select class="r-select" id="rvSample"><option value="">选择样本</option>'+Object.entries(samples).map(([k,x])=>'<option value="'+k+'" '+(r.sample===k?'selected':'')+'>'+x.title+'</option>').join('')+'</select>';
+ return card('<h3>预期与实际</h3>'+reviewPlan(d)+pick+sampleView(d,r))+(r.closed||r.sample?decisionBox(d,r):card(reviewAudit(r)))
+}
+function calendarMonth(d,r){
+ const c=r.closed, eligible=!!c?.calibratable; const valid=r.candidate?.rev===r.rev&&c&&r.candidate.status!=='已撤回';
+ const vetted=Object.values(s.reviews).filter(item=>item.closed?.calibratable).length;
+ return card('<h3>月度策略候选</h3><p>韩宁复核达到成熟期且可比较的已签署案例。采纳次数仅用于观察人机分歧。促销干扰或尚未成熟的窗口留在复盘记录中。</p>'+
+ '<div class="rgrid"><div><b>合格案例</b>'+vetted+' 个不同变更单</div><div><b>当前模拟策略</b>AD-BASE v1 · 生效中</div><div><b>独立验证</b>待补留出样本及复核</div></div>'+
+ (eligible?'<p>本单第 '+c.rev+' 版可以加入候选，建议校准前先验证该类设置对贡献及库存护栏的稳定性。</p>':note('本单尚无符合条件的已签署结论。先核对执行并完成可比较的观察。',true))+
+ '<div class="actions">'+rvButton(valid?'候选已登记':'登记待校准策略候选','candidate',!eligible||valid,true)+rvButton('查看周复盘','toweek')+'</div>'+
+ (valid?'<div class="cardline"><b>'+r.candidate.id+' · '+r.candidate.status+'</b><p>来源 '+r.id+' / 第 '+c.rev+' 版。候选仅供独立历史回放，需检查错误否定成本、利润和库存、独立留出样本及人工发布审批。本原型仅登记候选，生效策略仍为 v1。</p></div>':'')+reviewAudit(r))
+}
+function reviewPage(){
+ const d=reviewChange(),r=reviewFor(d),cycle=periodInfo[s.cycle]?s.cycle:'day',v=periodInfo[cycle];
+ const eligible=s.drafts.filter(x=>x.rows.some(row=>row.attempts>0)||x.id===d.id);
+ left.innerHTML='<h2>复盘分工</h2><div class="filters review-cycles">'+Object.entries(periodInfo).map(([k,p])=>'<button class="toggle '+(k===cycle?'active':'')+'" aria-pressed="'+(k===cycle)+'" data-cycle="'+k+'">'+p[0]+'</button>').join('')+'</div><p class="path">选择一笔变更</p>'+eligible.slice().reverse().map(x=>'<button class="task '+(x.id===d.id?'active':'')+'" data-review="'+x.id+'">'+chip(x.status,x.status==='已回执'?'ok':'wait')+'<strong>'+x.title+'</strong><small>'+x.id+' · '+(s.reviews[x.id]?.closed?'已有结论':'待办理')+'</small></button>').join('');
+ content.innerHTML=card('<div class="rowhead"><h2>'+d.title+'</h2>'+chip('复盘第 '+r.rev+' 版','review')+'</div><p class="path">'+r.id+'　／　变更单 '+d.id+'</p><p><b>'+v[0]+' · '+v[1]+'</b>　'+v[2]+'</p>')+(cycle==='day'?daily(d,r):cycle==='week'?weekly(d,r):calendarMonth(d,r));
+ persist()
+}
+function taskOpen(id){
+ const t=s.followups.find(item=>item.id===id);if(!t)return;s.view='queue';s.filter='全部';s.task=t.id;
+ if(t.status!=='待办理'){openReview(t.change,'week');const record=document.querySelector('[data-versions]');if(record)record.open=true;return}draw();focusTitle()
+}
+function followPage(t){content.innerHTML=card('<h2>'+t.title+'</h2><p class="path">'+t.id+' · 来源 '+t.caseId+' / 第 '+t.rev+' 版</p><p>经办人：'+t.owner+'。办理期限：'+t.due+'。</p>'+note('在原复盘中检查执行、观察与风险；完成这里只登记本地任务处理，平台设置保持原值。')+'<div class="actions"><button class="btn primary" data-taskdone="'+t.id+'">登记已办理</button><button class="btn" data-backreview="'+t.change+'">查看来源复盘</button></div>')}
+function onReviewAction(action){
+ const d=reviewChange(),r=reviewFor(d),key=reasonFor(d,r);
+ if(action==='match'||action==='mismatch'){makeRecon(d,r,action==='match');return}
+ if(action==='original'){showDraft(d.id);return}
+ if(action==='toweek'||action==='tomonth'||action==='today'){openReview(d.id,{toweek:'week',tomonth:'month',today:'day'}[action]);return}
+ if(action==='close'&&key&&!r.closed&&el('rvSign')?.checked){
+  const [label,follow,owner,due]=decisions[key],id='F-'+(++s.rvSeq),calibratable=['clean','weak'].includes(key);
+  r.closed={key,label,follow,rev:r.rev,task:id,calibratable,sample:r.sample};
+  s.followups.push({id,caseId:r.id,change:d.id,rev:r.rev,title:follow,owner,due,status:'待办理'});
+  audit(r,'复核人林舟','签署「'+label+'」，创建 '+id+' 并指派 '+owner+'。');draw();say('结论已保存并生成下一张任务。');return
+ }
+ if(action==='candidate'&&r.closed?.calibratable&&(!r.candidate||r.candidate.rev!==r.rev)){
+  r.candidate={id:'CAL-'+(++s.rvSeq),rev:r.rev,status:'待独立离线验证'};
+  audit(r,'策略负责人韩宁','登记 '+r.candidate.id+'，关联当前版本并保留 AD-BASE v1。');draw();return
+ }
+ if(action==='reopen'&&r.closed){
+  const previous={...r.closed,readback:r.recon?.rows.map(v=>({...v}))||[]};r.history.push(previous);if(r.candidate?.rev===r.rev)r.candidate.status='已撤回';
+  const t=s.followups.find(x=>x.id===previous.task);if(t&&t.status==='待办理')t.status='待复核旧版';
+  audit(r,'复核人林舟','因证据修订重开；保留已签结论「'+previous.label+'」与历史任务。旧版候选须重新验证。');
+  r.rev++;r.recon=null;r.sample=null;r.closed=null;s.cycle='day';audit(r,'运营范琳','开始新版对账，等待新的独立读回。');draw();return
+ }
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('button');if(!b||b.disabled)return;
+ if(b.dataset.cycle){openReview(s.reviewId,b.dataset.cycle);return}if(b.dataset.review){openReview(b.dataset.review,s.cycle);return}
+ if(b.dataset.follow){taskOpen(b.dataset.follow);return}if(b.dataset.backreview){openReview(b.dataset.backreview,'week');return}
+ if(b.dataset.taskdone){const t=s.followups.find(x=>x.id===b.dataset.taskdone);if(t&&t.status==='待办理'){t.status='已办理';const d=s.drafts.find(x=>x.id===t.change);audit(reviewFor(d),t.owner,'登记关联任务 '+t.id+' 已办理。');openReview(t.change,'week')}return}
+ if(b.dataset.act?.startsWith('rv-'))onReviewAction(b.dataset.act.slice(3))
+});
+document.addEventListener('change',e=>{
+ if(s.view!=='reviews')return;
+ if(e.target.id==='rvSign'){const button=document.querySelector('[data-act=rv-close]');if(button)button.disabled=!e.target.checked;return}
+ if(e.target.id==='rvSample'){const d=reviewChange(),r=reviewFor(d),k=e.target.value;if(!r.closed&&sameRecon(d,r)&&r.recon.matched&&samples[k]&&r.sample!==k){r.sample=k;audit(r,'复核人林舟','加载假设观察 '+samples[k].id+'「'+samples[k].title+'」。');draw()}}
+});
+
+draw();
+</script></body></html>
