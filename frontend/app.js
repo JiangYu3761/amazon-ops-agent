@@ -54,11 +54,37 @@ function makeDemo(){
  const rankings=[42,41,39,40,38,36,37,35,34,36,33,34,32,31].map((rank,i)=>({product_id:'demo-g11',keyword:queries[0].keyword,observation_type:'organic',rank_value:rank,observed_at:dateAdd(today(),i-13)+'T10:00:00+08:00',source:'sample'}));
  return {schema:4,products,tasks,dependencies,people,events:[{id:'demo-launch',product_id:'demo-g11',title:'G11 目标上线',event_type:'launch',start_date:'2027-02-17',end_date:null,status:'planned',notes:'项目目标日期，尚未执行'}],queries,rankings,imports:[],records:{sales:[],advertising:[],inventory:[],costs:[]},actions:[],documents:[],evidence_links:[]};
 }
+let localReadIssue = '';
+function pauseWorkspace(message = '') {
+ localReadIssue = message;
+ mode = 'error';
+ ws = {products:[], tasks:[], people:[], dependencies:[], events:[], rankings:[], queries:[], imports:[]};
+}
+function openLocalWorkspace() {
+ try {
+  const raw = localStorage.getItem(STORE);
+  if (raw === null) {
+   ws = makeDemo();
+  } else {
+   const saved = JSON.parse(raw);
+   const collections = ['products','tasks','people','dependencies','events','queries','rankings','imports'];
+   if (saved?.schema !== 4 || !collections.every(key => Array.isArray(saved[key]))) {
+    throw new Error('工作区版本或数据结构无法识别');
+   }
+   ws = saved;
+  }
+  localReadIssue = '';
+  mode = 'demo';
+ } catch {
+  pauseWorkspace('请检查此浏览器的本地存储权限或从备份恢复，再点击重新读取。');
+ }
+}
 async function load(){
+ localReadIssue = '';
  catalog=await fetch('catalog.json').then(r=>r.json());
  try{ws=await api('/api/workspace');mode='server';if(!ws.products.length)productId='all';}
- catch(err){if(err.noBackend||err.status===404){mode='demo';try{const saved=JSON.parse(localStorage.getItem(STORE)||'null');ws=saved?.schema===4?saved:makeDemo()}catch{ws=makeDemo()}}
- else{mode='error';ws={products:[],tasks:[],people:[],dependencies:[],events:[],rankings:[],queries:[],imports:[]};toast('后端读取失败，未自动切换为示例数据。')}}
+ catch(err){if(err.noBackend||err.status===404)openLocalWorkspace();
+ else{pauseWorkspace();toast('后端读取失败，未自动切换为示例数据。')}}
  const requested=location.hash.slice(1);if(requested&&[...nav.flatMap(x=>x[1].map(y=>y[0])),'settings'].includes(requested))view=requested;
  if(view==='ads'&&mode==='server'){
    const restored=window.adsDecisionReview?.savedRoute()?.product;
@@ -74,9 +100,15 @@ function renderShell(){
  $('#modeBanner').className='mode-banner '+(mode==='server'?'live':mode==='error'?'error':'');
  $('#modeBanner').innerHTML=mode==='demo'?`<span>◈</span><span><b>示例体验</b> · 型号、任务状态和成员分工用于演示；操作仅保存到当前浏览器，尚未连接 PostgreSQL。</span><button data-action="navigate" data-view="settings">查看功能边界 →</button>`:mode==='server'?`<span>●</span><span>已连接服务器 · ${ws.products.some(p=>p.data_source==='sample')?'带“示例”的项目来自初始种子数据，请按实际业务建立档案。':'任务与记录来自数据库。'}</span>`:`<span>!</span><span>后端数据读取失败。为避免把故障当成空数据，已暂停显示。</span><button data-action="demo">体验本机示例</button>`;
  $('#footerStatus').textContent=mode==='demo'?'示例数据 · 本机保存 · 外部接口未连接':'记录来源：Python API · 自动采集与外部连接分别核验';
+ if(localReadIssue){
+  $('#connectionBadge').textContent='本机工作区读取失败';
+  $('#storageLabel').textContent='本机资料待恢复';
+  $('#modeBanner').textContent='读取本机工作区时遇到问题，当前已暂停编辑。';
+  $('#footerStatus').textContent='本机工作区 · 等待重新读取';
+ }
 }
 const routePositions = new Map();
-function navigate(id){
+function navigate(id,updateHash=true){
  if (view !== id) {
   routePositions.set(view,{query,filterModule,filterState,filterOwner,filterPhase,scroll:window.scrollY});
   const previous = routePositions.get(id) || {};
@@ -84,7 +116,7 @@ function navigate(id){
   filterOwner=previous.filterOwner||'all';filterPhase=previous.filterPhase||'all';
   $('#searchInput').value=query;
  }
- view=id;location.hash=id;businessData=null;renderShell();render();
+ view=id;if(updateHash)location.hash=id;businessData=null;renderShell();render();
  $('#sidebar').classList.remove('mobile-open');
  requestAnimationFrame(()=>{if(view===id) window.scrollTo(0,routePositions.get(id)?.scroll||0)});
  if(mode==='server'&&['ads','inventory','finance','imports'].includes(id))loadBusiness();
@@ -95,7 +127,8 @@ function render(){
  $('#productSelect').innerHTML=`<option value="all">全部产品 · ${ws.products.length} 个型号</option>`+ws.products.map(p=>`<option value="${e(p.id)}">${e(p.model)}${p.data_source==='sample'?' · 示例':''}</option>`).join('');$('#productSelect').value=productId;
  $('#marketBadge').textContent=productId==='all'?'MULTI':current()?.marketplace||'—';$('#scopeCaption').textContent='工作范围：'+(productId==='all'?'全部产品':current()?.model||'未选择');
  $('#pageActions').innerHTML=view==='process'?'':view==='overview'?button(icon('flag')+'流程协作','navigate',true,'data-view="process"')+button(icon('link')+'产品交付清单','navigate',false,'data-view="deliverables"')+button(icon('plus')+'新建产品','new-product',true):view==='deliverables'?button(icon('plus')+'新建工作项','new-task',true):view==='calendar'?button(icon('plus')+'新建活动 / 节点','new-event',true):view==='team'?button(icon('plus')+'登记成员','new-person',true):view==='settings'?button(icon('settings')+'一键检查并升级','upgrade',true):view==='ranking'?button(icon('plus')+'新建监控配置','new-query',true):view==='imports'?button('数据口径与模板说明','import-help'):button(icon('plus')+'新建任务','new-task',true);
- if(mode==='error'){ if($('#workbenchRoot'))$('#workbenchRoot').replaceChildren();$('#viewRoot').hidden=false; $('#viewRoot').innerHTML=empty('没有读取到服务器数据','请恢复后端后刷新，或者显式选择示例体验。',button('重新连接','refresh'));return;}
+ $('#pageActions').hidden=mode==='error';
+ if(mode==='error'){ if($('#workbenchRoot'))$('#workbenchRoot').replaceChildren();$('#viewRoot').hidden=false; $('#viewRoot').innerHTML=localReadIssue?empty('本机工作区暂时无法读取',localReadIssue,button('重新读取','demo')):empty('没有读取到服务器数据','请恢复后端后刷新，或者显式选择示例体验。',button('重新连接','refresh'));return;}
  const renderers={process:()=>window.processUI?.render()||'',deliverables:renderDeliverables,overview:renderOverview,workflow:()=>renderWorkflow(),team:renderTeam,calendar:renderCalendar,ranking:renderRanking,agent:renderAgent,imports:renderImports,settings:renderSettings};
  $('#viewRoot').innerHTML=renderers[view]?renderers[view]():renderModule(module);
  window.processUI?.decorate();
@@ -113,6 +146,23 @@ function table(tasks,compact=false){
  }).join('')||'<tr><td colspan="10" class="row-empty">没有符合筛选条件的任务</td></tr>'}</tbody></table></div>`;
 }
 function matches(t){const owner=person(t.owner_id);return (!query||(t.title+' '+product(t.product_id)?.model+' '+owner?.display_name+' '+t.department).toLowerCase().includes(query.toLowerCase()))&&(filterModule==='all'||t.module_code===filterModule)&&(filterState==='all'||(filterState==='overdue'?overdue(t):filterState==='unassigned'?!t.owner_id:t.status===filterState))&&(filterOwner==='all'||t.owner_id===filterOwner)&&(filterPhase==='all'||t.phase===filterPhase)}
+function renderTodayDashboard(){
+ const day=today();
+ const date=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'long',day:'numeric',weekday:'long'}).format(new Date());
+ const due=scopedTasks().filter(task=>task.due_date===day&&!done(task));
+ const taskLink=task=>`<button type="button" class="today-desk-task" data-action="task" data-id="${e(task.id)}">${e(task.title)}</button>`;
+ const actions=[
+  ['service','订单履约','按店铺与仓库查询自发货订单，办理包裹出库。','store'],
+  ['inventory','采购收货','核对采购单和到货通知，登记实收与质检。','boxes'],
+  ['ads','广告效果复核','按产品复核变更结果，跟进观察期与后续行动。','chart'],
+ ];
+ return `<section class="today-desk" aria-labelledby="todayDeskTitle">
+  <header class="today-desk-head"><h2 id="todayDeskTitle">今日工作台</h2><time datetime="${e(day)}">${icon('calendar')}${e(date)}</time></header>
+  <div class="today-desk-actions">${actions.map(([page,title,description,symbol])=>`<button type="button" class="today-desk-action today-desk-${page}" data-wb-desk="${page}" aria-labelledby="today-${page}-title" aria-describedby="today-${page}-detail">
+   <span class="today-desk-icon">${icon(symbol)}</span><span class="today-desk-copy"><strong id="today-${page}-title">${title}</strong><span id="today-${page}-detail">${description}</span></span>${icon('arrow','today-desk-arrow')}</button>`).join('')}</div>
+  <div class="today-desk-due">${icon('clock')}<strong>流程任务</strong>${due.length>1?`<details><summary>今天 ${due.length} 项到期</summary><ul>${due.map(task=>`<li>${taskLink(task)}</li>`).join('')}</ul></details>`:due.length?`<span>今天到期</span>${taskLink(due[0])}`:'<span>当前产品范围今天没有到期的未完成任务。</span>'}</div>
+ </section>`;
+}
 function renderOverview(){
  const ps=scopedProducts().filter(p=>!query||(p.model+' '+p.name).toLowerCase().includes(query.toLowerCase())),ts=scopedTasks(),completed=ts.filter(t=>t.status==='completed').length,blocked=ts.filter(t=>t.status==='blocked'),pending=ts.filter(t=>t.status==='pending_approval');
  const priority=ts.filter(t=>!done(t)).sort((a,b)=>(a.status==='blocked'?-2:a.status==='pending_approval'?-1:0)-(b.status==='blocked'?-2:b.status==='pending_approval'?-1:0)||(a.due_date||'9999').localeCompare(b.due_date||'9999')).slice(0,5);
@@ -457,7 +507,7 @@ async function handleAction(el){const a=el.dataset.action,id=el.dataset.id;
  case 'upgrade':await showUpgrade();break;case 'upgrade-login':await loginForUpgrade();break;case 'run-upgrade':await showUpgrade();break;
  case 'deploy-help':modal('真实运行的接入条件','<div class="alert info">真实数据运行需要 Python 服务、PostgreSQL 与后台同步服务；静态示例不执行外部 API 同步。</div><p class="muted">GitHub仓库包含Docker Compose、PostgreSQL迁移与部署说明。模型通过服务器 LLM_API_BASE、LLM_API_KEY、LLM_MODEL 配置，密钥不放在网页中。SP 销售、库存与 Ads SP 报告可由后台服务按计划只读同步。配置凭据后仍需通过实际授权并成功取得报告，最近成功时间与失败原因在设置中显示。SB / SD 报告、排名采集和售后 API 尚未接入，真实净利润仍需完整结算费用。</p>',button('关闭','close-modal'));break;
  case 'refresh':window.processUI?.invalidate();if(mode==='error')await load();else await refreshWorkspace();break;
- case 'demo':mode='demo';ws=makeDemo();productId='all';persist();renderShell();render();break;
+ case 'demo':openLocalWorkspace();productId='all';renderShell();render();break;
  }
 }
 if (typeof document !== 'undefined') {
@@ -485,7 +535,7 @@ document.addEventListener('change',ev=>{const id=ev.target.id;if(id==='productSe
 $('#searchInput').addEventListener('input',ev=>{query=ev.target.value;render()});$('#panelBackdrop').addEventListener('click',closePanels);$('#menuBtn').onclick=()=>$('#sidebar').classList.toggle('mobile-open');window.addEventListener('resize',()=>{if(view==='ranking')drawRanking()});
 load().catch(err=>{$('#viewRoot').innerHTML=empty('工作台未能加载',err.message);$('#modeBanner').textContent='加载失败，请检查页面资源并刷新。'});
 
-window.addEventListener('hashchange',()=>{const target=location.hash.slice(1);if(target&&target!==view&&[...nav.flatMap(g=>g[1].map(x=>x[0])),'settings'].includes(target))navigate(target)});
+window.addEventListener('hashchange',()=>{const target=location.hash.slice(1)||'overview';if(target!==view&&[...nav.flatMap(g=>g[1].map(x=>x[0])),'settings'].includes(target))navigate(target,false)});
 
 }
 function renderBusinessRecords(module){if(mode==='server')return typeof window!=='undefined'&&window.analyticsUI?window.analyticsUI.renderRecords(module):'';return '';}

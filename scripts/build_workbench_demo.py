@@ -39,6 +39,7 @@ BOOT = '''
 (() => {
   const files = new Map(Object.entries(JSON.parse(document.querySelector('#offline-assets').textContent))
     .map(([name, contents]) => [new URL(name, document.baseURI).href, contents]));
+  window.homaAdReviewTrainingDocument = files.get(new URL('ads-review-training.html', document.baseURI).href);
   const csv = url => url.pathname.endsWith('.csv');
   const mime = url => csv(url) ? 'text/csv;charset=utf-8' : 'application/json;charset=utf-8';
 
@@ -100,7 +101,7 @@ def inline_tag(match: re.Match, tag: str) -> str:
 
 
 def build(destination: Path) -> None:
-    names = ['catalog.json', 'approval-templates.json']
+    names = ['catalog.json', 'approval-templates.json', 'ads-review-training.html']
     names.extend(path.name for path in sorted(FRONTEND.glob('workbench-*.json')))
     names.extend(f'templates/{kind}-template.csv' for kind in ('sales', 'advertising', 'inventory', 'costs'))
     files = {name: asset_text(name) for name in names}
