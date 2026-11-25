@@ -13,6 +13,13 @@ from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, field_validator
 from psycopg.types.json import Jsonb
 
+from .erp_shop_sales import router as erp_shop_sales_router
+from .erp_queue import router as erp_queue_router
+from .erp_search_terms import router as erp_search_terms_router
+from .erp_refunds import router as erp_refunds_router
+from .erp_returns import router as erp_returns_router
+from .erp_settlements import router as erp_settlements_router
+from .erp_fee_allocations import router as erp_fee_allocation_router
 from .agent import analyze_product
 from .context import PageId, build_context, resolve_scope
 from .db import connection
@@ -22,6 +29,12 @@ from .workspace import router as workspace_router, initialize_sop
 from .updater import read_state, start_update, version_info
 from .workflow_auth import router as auth_router, require_admin, require_user
 from .process import router as process_router, reject_legacy_process_write
+from .erp_fulfillment import router as erp_fulfillment_router
+from .erp_stock import router as erp_stock_router
+from .erp_comparison import router as erp_comparison_router
+from .erp_payables import router as payables_router
+from .erp_procurement import router as procurement_router
+from .erp_receiving import router as receiving_router
 from .workbench import router as workbench_router
 from .workbench_insights import router as workbench_insights_router
 from .approvals import router as approvals_router
@@ -38,10 +51,23 @@ async def lifespan(app):
 
 
 app = FastAPI(title="Amazon Operations Agent API", version="0.5.0",lifespan=lifespan)
+app.include_router(erp_shop_sales_router)
+app.include_router(erp_queue_router)
+app.include_router(erp_search_terms_router)
+app.include_router(erp_refunds_router)
+app.include_router(erp_returns_router)
+app.include_router(erp_settlements_router)
+app.include_router(erp_fee_allocation_router)
 app.include_router(workspace_router)
 app.include_router(auth_router)
 app.include_router(process_router)
 app.include_router(approvals_router)
+app.include_router(erp_fulfillment_router)
+app.include_router(erp_stock_router)
+app.include_router(erp_comparison_router)
+app.include_router(receiving_router)
+app.include_router(procurement_router)
+app.include_router(payables_router)
 app.include_router(workbench_router)
 app.include_router(workbench_insights_router)
 app.include_router(data_router)
@@ -50,7 +76,7 @@ app.include_router(data_router)
 @app.middleware('http')
 async def private_process_responses(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/analytics','/imports','/operating-summary','/records')):
+    if request.url.path.startswith(('/api/erp-', '/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/analytics','/erp/','/imports','/operating-summary','/records')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 app.add_middleware(
@@ -330,7 +356,8 @@ def import_template(import_type: str):
 
 
 @app.post("/api/products/{product_id}/imports", status_code=201)
-async def import_operating_data(product_id: UUID, import_type: str = Form(...), file: UploadFile = File(...), actor=Depends(require_admin)):
+async def import_operating_data(product_id: UUID, import_type: str = Form(...), file: UploadFile = File(...), actor=Depends(require_admin),
+                                required_grain: Literal["search_term"] | None = Form(None)):
     if import_type not in SCHEMAS:
         raise HTTPException(422, "Unsupported import type")
     raw = await file.read(10 * 1024 * 1024+1)
@@ -346,6 +373,8 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
             raise HTTPException(422, str(exc)) from exc
         if not rows:
             raise HTTPException(422, {"message": "No valid rows", "errors": errors[:20]})
+        if required_grain and (import_type != "advertising" or any(row.get("report_grain") != required_grain for row in rows)):
+            raise HTTPException(422, "此入口仅接收明确标注 report_grain=search_term 的完整搜索词日报")
         mappings=conn.execute('SELECT sku,asin FROM operating_product_mappings WHERE product_id=%s',(product_id,)).fetchall()
         allowed_skus={p['sku'] for p in mappings if p['sku']}|({product['sku']} if product['sku'] else set())
         allowed_asins={p['asin'] for p in mappings if p['asin']}|({product['asin']} if product['asin'] else set())
@@ -356,6 +385,8 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
                 raise HTTPException(422, 'ASIN belongs to a different product')
             if import_type!='inventory' and row.get('currency')!=product['currency']:
                 raise HTTPException(422, 'Currency must match product currency')
+        if import_type == "advertising" and any(row.get("report_grain") == "search_term" for row in rows):
+            conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", ("search_terms:" + str(product_id),))
         import_row = conn.execute(
             """INSERT INTO data_imports(product_id,import_type,filename,status,row_count,error_count,errors,imported_by)
                VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
@@ -366,6 +397,12 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
         table,day_field={'sales':('sales_daily','sale_date'),'advertising':('ad_performance_daily','report_date'),
             'inventory':('inventory_snapshots','snapshot_date'),'costs':('cost_records','effective_date')}[import_type]
         for row in rows:
+            if import_type == "advertising" and row.get("report_grain") == "search_term":
+                from .erp_search_terms import store_source
+                previous = store_source(conn, product_id, row, import_row['id'])
+                if previous:
+                    previous_rows.append(dict(previous))
+                continue
             key_fields=('campaign_name','entity_name') if import_type=='advertising' else ('sku',)
             previous=conn.execute('SELECT * FROM '+table+' WHERE product_id=%s AND '+day_field+'=%s AND '+
                 ' AND '.join(k+'=%s' for k in key_fields),(product_id,row['date'],*(row.get(k,'') for k in key_fields))).fetchone()

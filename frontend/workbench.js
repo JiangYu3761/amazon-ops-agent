@@ -137,6 +137,9 @@ window.workbenchUI = (() => {
     if(!definitions.has(view) || !q('#workbenchRoot'))return;
     const page=definitions.get(view), p=pane(), chosen=page.sections.find(s=>s.id===p.section);
     const who=currentUser(), canWrite=Boolean(who);
+    const receiving=view==='inventory' && p.receiving;
+    const comparison=view==='overview' && p.comparison;
+    const searchTerms=view==='ads' && p.searchTerms;
     q('#viewRoot').hidden=!p.legacy;
     q('#pageActions').hidden=!p.legacy;
     q('#pageTitle').textContent=page.title;
@@ -151,10 +154,17 @@ window.workbenchUI = (() => {
     let content=root.querySelector('.wb-content');
     if(!content){content=document.createElement('div');content.className='wb-content';root.replaceChildren(content);}
     content.innerHTML=`${previousQueue ? control('返回来源队列','back'):''}<div class="wb-nav">
-      <button class="wb-tab ${!p.legacy&&!p.section?'selected':''}" data-wb-section="">${['overview','team','agent'].includes(view)?'跨模块队列':'办理队列'}</button>
-      ${page.sections.map(s=>`<button class="wb-tab ${!p.legacy&&p.section===s.id?'selected':''}" data-wb-section="${escape(s.id)}">${escape(s.title)}</button>`).join('')}
+      <button class="wb-tab ${!p.legacy&&!p.section&&!receiving&&!comparison&&!searchTerms?'selected':''}" data-wb-section="">${['overview','team','agent'].includes(view)?'跨模块队列':'办理队列'}</button>
+      ${view==='overview'?'<button class="wb-tab" data-erp-queue-open>ERP 待办</button><button class="wb-tab" data-erp-shop-sales-open>多店经营</button>':''}
+      ${view==='inventory'?'<button class="wb-tab" data-erp-procurement-open>采购申请</button>':''}
+      ${view==='finance'?'<button class="wb-tab" data-erp-payables-open>供应商应付</button><button class="wb-tab" data-erp-settlements-open>店铺结算对账</button>':''}
+      ${view==='service'?'<button class="wb-tab" data-erp-fulfillment-open>自发货履约</button><button class="wb-tab" data-erp-refunds-open>退款核对台账</button>':''}
+      ${view==='overview'?`<button class="wb-tab ${comparison?'selected':''}" data-wb="comparison">经营环比</button>`:''}
+      ${view==='ads'?`<button class="wb-tab ${searchTerms?'selected':''}" data-wb="searchTerms">搜索词汇总</button>`:''}
+      ${view==='inventory'?`<button class="wb-tab" data-erp-stock-open>库存余额与调拨</button><button class="wb-tab ${receiving?'selected':''}" data-wb="receiving">仓库收货</button>`:''}
+      ${page.sections.map(s=>`<button class="wb-tab ${!p.legacy&&!receiving&&!comparison&&!searchTerms&&p.section===s.id?'selected':''}" data-wb-section="${escape(s.id)}">${escape(s.title)}</button>`).join('')}
       <button class="wb-tab ${p.legacy?'selected':''}" data-wb="legacy">${escape(legacyNames[view]||'指标与 SOP')}</button></div>
-      ${p.legacy?'':`<section class="wb-queue panel">
+      ${p.legacy||receiving||comparison||searchTerms?'':`<section class="wb-queue panel">
       <header><div><h2>${escape(chosen?.title||(['overview','team'].includes(view)?'今日工作':'业务办理队列'))}</h2>
       <p>${chosen?escape(chosen.purpose):`待审核 ${count('pending_review')}　待执行 ${count('approved')}　待复核 ${count('executed')}`}</p></div>
       ${control(chosen?.action||'新建业务单','new',true,canWrite?'':'disabled')}</header>
@@ -175,9 +185,30 @@ window.workbenchUI = (() => {
       </section>
       ${signals.length?`<section class="panel wb-queue"><header><h2>待核实的经营线索</h2></header>${signals.map((signal,i)=>`<button class="wb-signal" data-wb-signal="${i}"><b>${escape(signal.title)}</b><span>${escape(signal.reason)}</span></button>`).join('')}</section>`:''}
       <details class="wb-guide"><summary>办理口径与岗位分工</summary><p>${escape(page.roles.join(' / '))}　${escape(page.scope)}</p>${(page.rules||[]).map(rule=>`<p><b>${escape(rule.name)}</b>　${escape(rule.logic)}　${escape(rule.missing)}</p>`).join('')}</details>`}`;
+    let receivingRoot=root.querySelector('#erpReceivingRoot');
+    if(receiving){
+      if(!receivingRoot){receivingRoot=document.createElement('div');receivingRoot.id='erpReceivingRoot';root.append(receivingRoot);}
+      window.erpReceiving?.mount(receivingRoot,{mode,user:who,api,login:()=>window.processUI?.login()});
+    }else if(receivingRoot){
+      window.erpReceiving?.unmount();receivingRoot.remove();
+    }
+    let comparisonRoot=root.querySelector('#erpComparisonRoot');
+    if(comparison){
+      if(!comparisonRoot){comparisonRoot=document.createElement('div');comparisonRoot.id='erpComparisonRoot';root.append(comparisonRoot);}
+      window.erpComparison?.mount(comparisonRoot,{mode,product:ws.products.find(x=>x.id===productId),user:who,api,login:()=>window.processUI?.login()});
+    }else if(comparisonRoot){
+      window.erpComparison?.unmount();comparisonRoot.remove();
+    }
+    let searchRoot=root.querySelector('#erpSearchTermsRoot');
+    if(searchTerms){
+      if(!searchRoot){searchRoot=document.createElement('div');searchRoot.id='erpSearchTermsRoot';root.append(searchRoot);}
+      window.erpSearchTerms?.mount(searchRoot,{mode,product:ws.products.find(x=>x.id===productId),user:who,api,login:()=>window.processUI?.login()});
+    }else if(searchRoot){
+      window.erpSearchTerms?.unmount();searchRoot.remove();
+    }
     const triageScope=[mode,currentUser()?.id,productId].join('|');
     let triage=root.querySelector('#wb-routing');
-    if(!p.legacy && !p.section && ['overview','agent'].includes(view)){
+    if(!p.legacy && !comparison && !p.section && ['overview','agent'].includes(view)){
       if(!triage || triage.dataset.scope!==triageScope){
         triage?.remove();triage=document.createElement('div');triage.id='wb-routing';triage.dataset.scope=triageScope;root.append(triage);
       }
@@ -655,7 +686,7 @@ window.workbenchUI = (() => {
       if(serial!==detailRequest||context!==key())return;
       if(view!==detail.page_id || pane().section!==detail.section_id || productId!==detail.product_id && !(shopScope(detail)&&productId==='all')){
         rememberOrigin();productId=detail.product_id||'all';navigate(detail.page_id);
-        Object.assign(pane(),{section:detail.section_id,legacy:false,shopOnly:shopScope(detail)});mount();
+        Object.assign(pane(),{section:detail.section_id,legacy:false,receiving:false,comparison:false,searchTerms:false,shopOnly:shopScope(detail)});mount();
       }
       openEditor(detail);
     }catch(error){if(serial===detailRequest)toast(error.message);}
@@ -665,7 +696,7 @@ window.workbenchUI = (() => {
     if(view!==signal.page_id || pane().section!==signal.section_id)rememberOrigin();
     if(signal.product_id)productId=signal.product_id;else if(signal.account_ref)productId='all';
     navigate(signal.page_id);
-    pane().section=signal.section_id;pane().legacy=false;mount();
+    Object.assign(pane(),{section:signal.section_id,legacy:false,receiving:false,comparison:false,searchTerms:false});mount();
     handleNew({title:signal.title,site:signal.site||'',object_ref:signal.object_ref||'',signal_key:signal.signal_key,parent_id:signal.parent_id,source_note:signal.source_note||signal.reason||'',...(signal.account_ref?{record_scope:'shop',product_id:null,account_ref:signal.account_ref,business_timezone:signal.business_timezone,connection_id:signal.connection_id}:{}),values:{...signal.values}});
   }
   function handleNew(seed={}){
@@ -678,14 +709,17 @@ window.workbenchUI = (() => {
   document.addEventListener('click',async event=>{
     const el=event.target.closest('[data-wb],[data-wb-section],[data-wb-id],[data-wb-signal]');
     if(!el||el.disabled)return;
-    if(el.hasAttribute('data-wb-section')){pane().section=el.dataset.wbSection;pane().legacy=false;clearQueue();mount();return;}
+    if(el.hasAttribute('data-wb-section')){pane().section=el.dataset.wbSection;pane().legacy=false;pane().receiving=false;pane().comparison=false;pane().searchTerms=false;clearQueue();mount();return;}
     if(el.hasAttribute('data-wb-id'))return openRow(el.dataset.wbId);
     if(el.hasAttribute('data-wb-signal')){
       openSignal(signals[Number(el.dataset.wbSignal)]);return;
     }
     switch(el.dataset.wb){
       case 'definitions':configError='';loadDefinitions();break;
-      case 'legacy':pane().legacy=true;draw();if(view==='ranking')requestAnimationFrame(drawRanking);break;
+      case 'searchTerms':pane().searchTerms=true;pane().legacy=false;draw();break;
+      case 'comparison':pane().comparison=true;pane().legacy=false;draw();break;
+      case 'receiving':pane().receiving=true;pane().legacy=false;draw();break;
+      case 'legacy':pane().searchTerms=false;pane().comparison=false;pane().receiving=false;pane().legacy=true;draw();if(view==='ranking')requestAnimationFrame(drawRanking);break;
       case 'new':handleNew();break;
       case 'login':window.processUI?.login();break;
       case 'close':closeEditor();break;
@@ -769,5 +803,10 @@ window.workbenchUI = (() => {
   window.addEventListener('online',()=>{if(editor&&serverReady(editor))schedule(editor);});
   window.addEventListener('homa-session',()=>{changeScope();mount();});
   window.addEventListener('storage',ev=>{if(mode==='demo' && ev.key===demoStore)loadQueue();});
-  return {mount,invalidate:clearQueue,openSignal};
+  function openReceivingOrder(scopeId,orderId,noticeId=''){
+    if(view!=='inventory')navigate('inventory');
+    pane().legacy=false;pane().receiving=true;draw();
+    return window.erpReceiving?.openOrder(scopeId,orderId,noticeId);
+  }
+  return {mount,invalidate:clearQueue,openSignal,openReceivingOrder};
 })();

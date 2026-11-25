@@ -1,4 +1,6 @@
 import csv
+import hashlib
+import json
 import io
 import re
 from datetime import date
@@ -69,6 +71,29 @@ def _decimal(value: str, field: str, scale: int = 2) -> Decimal:
     return parsed
 
 
+TERM_FIELDS = ("profile_id", "ad_type", "campaign_id", "ad_group_id", "keyword_id", "match_type", "search_term")
+
+
+def _term_metadata(source, item, line):
+    if source.get("report_grain") != "search_term":
+        raise ValueError("搜索词报表必须显式填写 report_grain=search_term")
+    for key in TERM_FIELDS:
+        value = source.get(key, "")
+        if not value or not value.isprintable() or len(value) > (512 if key == "search_term" else 120):
+            raise ValueError(f"搜索词维度 {key} 缺失或格式无效")
+        item[key] = value
+    item["ad_type"] = item["ad_type"].upper()
+    item["match_type"] = item["match_type"].upper()
+    if item["ad_type"] not in ("SP", "SB") or item["match_type"] not in ("EXACT", "PHRASE", "BROAD"):
+        raise ValueError("当前支持 SP、SB 关键词搜索词，匹配方式为 EXACT、PHRASE 或 BROAD")
+    item["attribution_days"] = _integer(source.get("attribution_days", ""), "attribution_days")
+    if not 1 <= item["attribution_days"] <= 90 or not source.get("currency"):
+        raise ValueError("请明确填写 1 至 90 天的归因窗口及报告币种")
+    item.update(report_grain="search_term", source_line=line)
+    dimensions = [item["date"].isoformat(), item["currency"], item["attribution_days"], *[item[k] for k in TERM_FIELDS]]
+    item["business_key"] = hashlib.sha256(json.dumps(dimensions, ensure_ascii=False).encode()).hexdigest()
+
+
 def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tuple[list[dict], list[dict]]:
     if import_type not in SCHEMAS:
         raise ValueError("unsupported import type")
@@ -84,6 +109,8 @@ def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tu
     if len(set(headers)) != len(headers):
         raise ValueError("duplicate column names")
     rows, errors = [], []
+    term_file = import_type == "advertising" and "search_term" in headers
+    seen_terms = set()
     for line, source in enumerate(reader, start=2):
         if None in source:
             errors.append({"line":line,"error":"column count does not match header"})
@@ -108,6 +135,12 @@ def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tu
                             impressions=_integer(source["impressions"], "impressions"),
                             clicks=_integer(source["clicks"], "clicks"), spend=_decimal(source["spend"], "spend"),
                             sales=_decimal(source["sales"], "sales"), orders=_integer(source["orders"], "orders"))
+                if term_file or source.get("report_grain") == "search_term":
+                    term_file = True
+                    _term_metadata(source, item, line)
+                    if item["business_key"] in seen_terms:
+                        raise ValueError("同一文件重复包含该搜索词投放源行，请先核对后再导入")
+                    seen_terms.add(item["business_key"])
             elif import_type == "inventory":
                 item.update(sku=source["sku"], asin=source.get("asin") or None,
                             fulfillable=_integer(source["fulfillable"], "fulfillable"),
@@ -124,4 +157,6 @@ def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tu
             rows.append(item)
         except (ValueError, KeyError) as exc:
             errors.append({"line": line, "error": str(exc)})
+    if term_file and errors:
+        raise ValueError(f"搜索词报表未导入：第 {errors[0]['line']} 行，{errors[0]['error']}")
     return rows, errors

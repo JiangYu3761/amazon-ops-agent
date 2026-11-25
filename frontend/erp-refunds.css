@@ -1,0 +1,21 @@
+.rfd-dialog .rfd-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:9px}
+.rfd-dialog .rfd-actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+.rfd-dialog .rfd-list{list-style:none;margin:10px 0;padding:0}
+.rfd-list li{display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line);padding:9px 0}
+.rfd-list li div{display:grid;gap:3px;overflow-wrap:anywhere}
+.rfd-list small{color:var(--sub)}
+.rfd-dialog details{background:var(--bg);padding:10px;border-radius:8px}
+.rfd-dialog summary{cursor:pointer;margin-bottom:8px}
+.rfd-dialog .rfd-error{color:var(--red);overflow-wrap:anywhere}
+.rfd-error:empty{display:none}
+#erpStockDesk table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+#erpStockDesk th,#erpStockDesk td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:right}
+#erpStockDesk th{background:var(--bg);font-size:12px;color:var(--sub)}
+#erpStockDesk th:first-child,#erpStockDesk td:first-child{text-align:left}
+#erpFbmDesk [data-fbm-package]{margin:8px 0;padding:12px 14px;background:var(--bg)}
+#erpFbmDesk [data-fbm-package]:focus{outline:2px solid var(--primary,#6260bc);outline-offset:2px}
+#erpFbmDesk .wb-dialog-body h3,#erpStockDesk .wb-dialog-body h3{font-size:17px;margin:15px 0 6px}
+#erpFbmDesk h4{margin:11px 0 5px}#erpFbmDesk [data-fbm-package] h4{margin:0 0 4px}
+#erpFbmDesk [data-fbm-package] p,#erpFbmDesk .wb-dialog-body p{margin:6px 0;line-height:1.6}
+#erpFbmDesk fieldset{border:1px solid var(--line);border-radius:8px;margin:10px 0;padding:12px}
+#erpFbmDesk legend{padding:0 6px}
