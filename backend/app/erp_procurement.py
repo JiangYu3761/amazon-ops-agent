@@ -9,7 +9,7 @@ from psycopg.types.json import Jsonb
 from pydantic import Field
 
 from .db import connection
-from .erp_receiving import Command, Name, Note, OrderLine, _scope, conflict, create_purchase_order, invalid, validate_lines
+from .erp_receiving import Command, Name, Note, OrderLine, _scope, conflict, create_purchase_order, format_contract, invalid, validate_lines
 from .workflow_auth import require_user
 
 router = APIRouter(prefix='/api/erp-procurement', tags=['Procurement requests'])
@@ -53,8 +53,9 @@ def head(conn, identifier, actor, lock=False):
 
 
 def read_lines(conn, identifier):
-    return conn.execute('SELECT sku,qty FROM erp_procurement_lines WHERE request_id=%s ORDER BY position',
-                        (identifier,)).fetchall()
+    rows = conn.execute('''SELECT sku,qty,contract_currency,net_unit_price,unit_tax
+                           FROM erp_procurement_lines WHERE request_id=%s ORDER BY position''', (identifier,)).fetchall()
+    return [format_contract(row) for row in rows]
 
 
 def detail(conn, identifier, actor):
@@ -70,8 +71,9 @@ def set_lines(conn, identifier, lines):
     validate_lines(lines, 'sku')
     conn.execute('DELETE FROM erp_procurement_lines WHERE request_id=%s', (identifier,))
     for position, line in enumerate(lines):
-        conn.execute('INSERT INTO erp_procurement_lines(request_id,position,sku,qty) VALUES(%s,%s,%s,%s)',
-                     (identifier, position, line.sku, line.qty))
+        conn.execute('''INSERT INTO erp_procurement_lines(request_id,position,sku,qty,contract_currency,net_unit_price,unit_tax)
+                        VALUES(%s,%s,%s,%s,%s,%s,%s)''',
+                     (identifier, position, line.sku, line.qty, *line.price_values()))
 
 
 def event(conn, identifier, actor, action, note=''):

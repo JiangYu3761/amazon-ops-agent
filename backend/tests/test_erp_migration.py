@@ -48,3 +48,44 @@ class MigrationUpgradeTest(unittest.TestCase):
                     self.assertFalse(conn.execute("SELECT EXISTS(SELECT 1 FROM schema_migrations WHERE version='900_probe.sql')").fetchone()[0])
             finally:
                 admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
+
+    def test_invoice_upgrade_keeps_historical_paid_bill_and_unknown_contract(self):
+        import psycopg
+        from psycopg import sql
+        from app.migrate import migrate
+
+        original_dsn = os.environ['DATABASE_URL']
+        parts = urlsplit(original_dsn)
+        self.assertTrue(parts.path.startswith('/homa_workflow_test_'))
+        name = 'homa_workflow_test_invoice_' + uuid4().hex
+        target = urlunsplit(parts._replace(path='/'+name))
+        directory = Path(__file__).resolve().parents[2] / 'db'
+        if not directory.is_dir():
+            directory = Path('/app/db')
+        with psycopg.connect(original_dsn, autocommit=True) as admin:
+            admin.execute(sql.SQL('CREATE DATABASE {}').format(sql.Identifier(name)))
+            try:
+                with psycopg.connect(target, autocommit=True) as conn:
+                    for file in sorted(directory.glob('*.sql')):
+                        if int(file.name[:3]) < 28:
+                            conn.execute(file.read_text())
+                    actor = conn.execute('SELECT id FROM app_users LIMIT 1').fetchone()[0]
+                    scope = conn.execute("""INSERT INTO erp_receiving_scopes(account_ref,site,business_timezone,warehouse)
+                        VALUES('migration-test','US','UTC','W1') RETURNING id""").fetchone()[0]
+                    order = conn.execute("""INSERT INTO erp_receiving_orders(scope_id,number,supplier,created_by)
+                        VALUES(%s,'PO-OLD','供应商',%s) RETURNING id""",(scope,actor)).fetchone()[0]
+                    conn.execute("""INSERT INTO erp_receiving_order_lines(order_id,position,sku,qty)
+                        VALUES(%s,0,'A',3)""",(order,))
+                    bill = conn.execute("""INSERT INTO erp_payable_bills(scope_id,supplier,document_ref,currency,amount,created_by)
+                        VALUES(%s,'供应商','INV-OLD','USD',15.90,%s) RETURNING id""",(scope,actor)).fetchone()[0]
+                    conn.execute("""INSERT INTO erp_payable_payments(bill_id,scope_id,external_ref,amount,paid_on,actor_id)
+                        VALUES(%s,%s,'existing-voucher',15.90,'2026-11-20',%s)""",(bill,scope,actor))
+                    migrate(conn,directory)
+                    migrate(conn,directory)
+                    self.assertEqual(conn.execute("""SELECT sku,qty,contract_currency,net_unit_price,unit_tax
+                        FROM erp_receiving_order_lines WHERE order_id=%s""",(order,)).fetchone(),('A',3,None,None,None))
+                    self.assertEqual(conn.execute("""SELECT b.amount_source,b.currency,b.amount=p.amount,p.external_ref
+                        FROM erp_payable_bills b JOIN erp_payable_payments p ON p.bill_id=b.id WHERE b.id=%s""",
+                        (bill,)).fetchone(),('manual','USD',True,'existing-voucher'))
+            finally:
+                admin.execute(sql.SQL('DROP DATABASE {} WITH (FORCE)').format(sql.Identifier(name)))

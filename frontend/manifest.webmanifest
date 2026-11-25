@@ -1,0 +1,16 @@
+{
+  "id": "./",
+  "name": "HOMA · 亚马逊运营工作台",
+  "short_name": "HOMA 工作台",
+  "lang": "zh-CN",
+  "start_url": "./?launch=workspace",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#151e32",
+  "background_color": "#f5f6f9",
+  "icons": [
+    {"src": "icons/homa-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/homa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/homa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}

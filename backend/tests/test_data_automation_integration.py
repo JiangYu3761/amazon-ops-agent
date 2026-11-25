@@ -276,6 +276,102 @@ class DataAutomationIntegrationTests(unittest.TestCase):
         with self.connection() as conn:
             self.assertEqual(conn.execute('SELECT COUNT(*) n FROM operating_sync_jobs WHERE connection_id=%s', (source['id'],)).fetchone()['n'], 1)
 
+    def test_ads_default_window_and_explicit_month_backfill_do_not_replace_each_other(self):
+        source, body = self.create(self.connection_body(provider='ads_sp',lookback_days=1))
+        api = self.clients['admin']
+        path = '/api/integrations/connections/'+source['id']+'/sync'
+        jobs = '/api/integrations/jobs/'
+        # During the US autumn DST change, UTC has rolled over to Nov 1 but LA has not.
+        with patch('app.data_automation.now_utc',return_value=datetime(2026,11,1,6,30,tzinfo=timezone.utc)):
+            default = api.post(path,json={}).json()
+            self.assertEqual((default['start_date'],default['end_date']),('2026-10-23','2026-10-30'))
+            month = {'start_date':'2026-10-01','end_date':'2026-10-31'}
+            self.assertEqual(api.post(path,json=month).status_code,409)
+            self.assertEqual(api.post(path,json={**month,'start_date':'2026-09-30'}).status_code,422)
+            self.assertEqual(api.post(jobs+default['id']+'/cancel').status_code,200)
+            selected = api.post(path,json=month).json()
+            self.assertEqual((selected['start_date'],selected['end_date']),tuple(month.values()))
+            self.assertEqual(api.post(path,json=month).json()['id'],selected['id'])
+            self.assertEqual(api.post(jobs+default['id']+'/retry').status_code,409)
+            api.post(jobs+selected['id']+'/cancel').raise_for_status()
+            retried = api.post(jobs+selected['id']+'/retry').json()
+            self.assertNotEqual(retried['id'],selected['id'])
+            self.assertEqual((retried['start_date'],retried['end_date']),tuple(month.values()))
+            self.assertEqual(api.post(jobs+selected['id']+'/retry').json()['id'],retried['id'])
+            api.post(jobs+retried['id']+'/cancel').raise_for_status()
+            end_only = api.post(path,json={'end_date':'2026-09-30'}).json()
+            self.assertEqual((end_only['start_date'],end_only['end_date']),('2026-09-30','2026-09-30'))
+        api.put('/api/integrations/connections/'+source['id'],json={**body,'expected_version':source['version']}).raise_for_status()
+        self.assertEqual(api.post(jobs+selected['id']+'/retry').status_code,409)
+
+    def test_ads_scheduler_catches_up_missed_mature_days_and_returns_to_recent_range(self):
+        from app.amazon_connectors import SyncBatch
+        from app.sync_worker import schedule_due, publish_batch
+        source,_ = self.create(self.connection_body(provider='ads_sp',sync_interval_minutes=1440))
+        zone = ZoneInfo('America/Los_Angeles')
+        today = datetime.now(zone).date()
+        first = today-timedelta(days=50)
+        with self.connection() as conn:
+            # Simulate a pre-fix release that stopped after fetching only immature reports.
+            conn.execute("""INSERT INTO operating_sync_jobs(connection_id,connection_version,status,
+                start_date,end_date,created_at) VALUES(%s,%s,'succeeded',%s,%s,%s)""",
+                (source['id'],source['version'],first,first+timedelta(days=6),
+                 datetime.combine(first+timedelta(days=7),datetime.min.time(),tzinfo=zone)))
+        recent_end = today-timedelta(days=1)
+        # 31-day catch-up followed immediately by the remaining older and recent dates.
+        for start,end in ((first,first+timedelta(days=30)),(first+timedelta(days=31),recent_end)):
+            self.assertEqual(schedule_due(),1)
+            job = self.claim()
+            self.assertEqual((job['start_date'],job['end_date']),(start,end))
+            self.assertTrue(publish_batch(job,SyncBatch([],[],{'ads_as_of_day':today.isoformat()})))
+        self.assertEqual(schedule_due(),0)
+        with self.connection() as conn:
+            conn.execute('UPDATE operating_connections SET next_sync_at=now() WHERE id=%s',(source['id'],))
+        self.assertEqual(schedule_due(),1)
+        regular = self.claim()
+        self.assertEqual((regular['start_date'], regular['end_date']),(today-timedelta(days=8),recent_end))
+
+    def test_rejected_historical_ads_chunk_leaves_recent_collection_runnable(self):
+        from app.sync_worker import schedule_due,fail_job
+        source,_ = self.create(self.connection_body(provider='ads_sp',sync_interval_minutes=1440))
+        today = datetime.now(ZoneInfo('America/Los_Angeles')).date()
+        earliest = today-timedelta(days=35)
+        with self.connection() as conn:
+            conn.execute("""INSERT INTO operating_sync_jobs(connection_id,connection_version,status,
+                start_date,end_date,created_at) VALUES(%s,%s,'failed',%s,%s,now()-interval '34 days')""",
+                (source['id'],source['version'],earliest,earliest))
+        self.assertEqual(schedule_due(),1)
+        backfill=self.claim()
+        self.assertEqual((backfill['start_date'],backfill['end_date']),(earliest,today-timedelta(days=9)))
+        fail_job(backfill,'report_failed',False)
+        self.assertEqual(schedule_due(),1)
+        recent=self.claim()
+        self.assertEqual((recent['start_date'],recent['end_date']),(today-timedelta(days=8),today-timedelta(days=1)))
+
+    def test_stale_ads_report_is_archived_without_regressing_an_already_refreshed_day(self):
+        from app.sync_worker import publish_batch
+        source,_ = self.create(self.connection_body(provider='ads_sp'))
+        instant = datetime.now(timezone.utc)
+        day = instant.astimezone(ZoneInfo('America/Los_Angeles')).date()-timedelta(days=12)
+        # A later download can return an older platform revision. A genuinely newer
+        # correction still replaces the partition, and all three artifacts remain.
+        for age,spend,expected,writes in ((1,'20','20',1),(2,'9','20',0),(0,'17','17',1)):
+            job = self.claim(self.enqueue(source,day))
+            batch = self.batch(day=day,dataset='advertising')
+            batch.rows[0]['payload']['spend']=spend
+            stamp = instant-timedelta(days=age)
+            batch.checkpoint={'ads_as_of_day':stamp.date().isoformat(),'ads_generated_at':stamp.isoformat()}
+            self.assertTrue(publish_batch(job,batch))
+            with self.connection() as conn:
+                saved = conn.execute("""SELECT payload->>'spend' AS spend FROM operating_api_facts
+                    WHERE connection_id=%s AND fact_date=%s""",(source['id'],day)).fetchone()
+                count = conn.execute('SELECT row_count FROM operating_sync_jobs WHERE id=%s',(job['id'],)).fetchone()
+                self.assertEqual(saved['spend'],expected)
+                self.assertEqual(count['row_count'],writes)
+        with self.connection() as conn:
+            self.assertEqual(conn.execute('SELECT COUNT(*) n FROM operating_sync_artifacts WHERE connection_id=%s',
+                                          (source['id'],)).fetchone()['n'],3)
+
     def test_mapping_rejects_currency_marketplace_timezone_account_and_duplicate_source(self):
         for mismatch in ({'currency': 'EUR'}, {'marketplace': 'CA'}, {'time_zone': 'UTC'}):
             with self.subTest(mismatch=mismatch):
@@ -484,6 +580,36 @@ class DataAutomationIntegrationTests(unittest.TestCase):
         self.assertEqual(response.json()['status'], 'cancelled')
         self.assertFalse(publish_batch(job, self.batch(revenue='1.00')))
         self.assertEqual(self.facts(source), before)
+
+    def test_two_raw_ad_products_same_names_survive_publish_revisions_and_replay(self):
+        from app.amazon_connectors import _Collector, SyncBatch
+        from types import SimpleNamespace
+        config=self.connection_body(provider='ads_sp')
+        second_sku=self.product['sku']+'-B'
+        config['mappings'].append(dict(product_id=str(self.product['id']),sku=second_sku,asin=None))
+        source,_=self.create(config)
+        # Exercise the production row parser with only its business inputs and no network client.
+        reader=SimpleNamespace(connection=config,start=self.day,end=self.day,by_asin={},
+            by_sku={m['sku']:m for m in config['mappings']},ads_as_of_day=self.day+timedelta(days=10))
+        def raw(sku,ad,cost,group):
+            return dict(date=self.day.isoformat(),advertisedSku=sku,advertisedAsin='B000000001',
+                        campaignId='c1',campaignName='同名',adGroupId='g1',adGroupName=group,adId=ad,
+                        impressions=100,clicks=10,cost=str(cost),sales7d='50',purchases7d=1)
+        for cost,group in ((10,'同组'),(17,'已改名'),(17,'再次重放')):
+            rows=_Collector._ads_rows(reader,[raw(self.product['sku'],'ad1',10,group),raw(second_sku,'ad2',cost,group)])
+            coverage=[dict(product_id=str(self.product['id']),dataset='advertising',day=self.day.isoformat(),complete=True)]
+            _,job=self.run_batch(source,SyncBatch(rows,coverage,{}))
+            self.assertEqual(job['status'],'succeeded')
+            result=self.analytics()
+            self.assertEqual(self.metric(result,'ads','spend')['value'],10+cost)
+            self.assertEqual(self.metric(result,'ads','clicks')['value'],20)
+            self.assertEqual(len(self.facts(source)),2)
+            self.assertNotIn('conflicting_ad_row',[i['code'] for i in result['data_quality']['issues']])
+        # Older stored payloads still have the fact PK even when the JSON lacks standardized ad IDs.
+        with self.connection() as conn:
+            conn.execute("""UPDATE operating_api_facts SET payload=payload-'ad_id'-'ad_group_id'
+                            WHERE connection_id=%s""",(source['id'],))
+        self.assertEqual(self.metric(self.analytics(),'ads','spend')['value'],27)
 
     def test_sales_and_sp_ads_remain_distinct_and_other_product_is_excluded(self):
         sales, body = self.create()

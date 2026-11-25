@@ -111,3 +111,24 @@ class ProcurementTests(WarehouseFixture,unittest.TestCase):
         self.assertEqual(sum(e['action']=='issue' for e in outcomes[-1]['events']),1)
         orders=self.clients['warehouse'].get('/api/erp-receiving/orders',params={'scope_id':self.scope['id']}).json()['items']
         self.assertEqual(sum(order['number']=='PO-'+original['number'] for order in orders),1)
+
+    def test_signed_price_basis_survives_issue_and_unpriced_history(self):
+        line = {'sku': 'A', 'qty': 8, 'contract_currency': 'USD', 'net_unit_price': '12.10', 'unit_tax': '0.25'}
+        for fields in ({'net_unit_price': '1.00'}, {'contract_currency': 'EUR'},
+                       {'contract_currency':'JPY','net_unit_price':'12.01'},
+                       {'contract_currency':'USD','net_unit_price':'12','unit_tax':'-0.10'}):
+            self.create(expected=422, lines=[{'sku':'A','qty':8, **fields}])
+        req = self.create(lines=[line, {'sku':'B','qty':3}])
+        self.assertEqual(req['events'][0]['snapshot']['lines'][0], line)
+        edit = self.clients['warehouse'].patch(BASE+'/'+req['id'], json={
+            'request_id':str(uuid4()), 'expected_version':req['version'], 'lines':[{**line,'net_unit_price':'13.30'},
+                {'sku':'B','qty':3,'contract_currency':'USD','net_unit_price':'1.20'}]})
+        self.assertEqual(edit.status_code, 200, edit.text)
+        issued = self.action(self.action(self.action(edit.json(), 'submit'), 'approve', 'admin'), 'issue', 'admin')
+        original, latest = issued['events'][0]['snapshot']['lines'], issued['events'][-1]['snapshot']['lines']
+        self.assertEqual(original[0]['net_unit_price'], '12.10')
+        self.assertIsNone(original[1]['net_unit_price'])
+        po = self.clients['warehouse'].get('/api/erp-receiving/orders/'+issued['order_id']).json()
+        self.assertEqual([(x['contract_currency'], x['net_unit_price'], x['unit_tax']) for x in po['lines']],
+                         [('USD','13.30','0.25'), ('USD','1.20','0.00')])
+        self.assertEqual(latest[1]['unit_tax'], '0.00')

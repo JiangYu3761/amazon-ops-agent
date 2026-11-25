@@ -3,6 +3,7 @@
 <head>
  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
  <meta name="theme-color" content="#151e32"><title>HOMA · 亚马逊运营工作台</title>
+ <link rel="manifest" href="/api/workspace-app/manifest.webmanifest">
  <link rel="stylesheet" href="styles.css">
  <link rel="stylesheet" href="analytics.css">
  <link rel="stylesheet" href="process.css">
@@ -17,7 +18,7 @@
   <a class="brand" href="#overview" data-action="navigate" data-view="overview"><span class="brand-mark">H</span><span>HOMA<small>OPERATIONS WORKSPACE</small></span></a>
   <div class="workspace-switch"><span class="workspace-avatar">US</span><span><strong>亚马逊运营工作台</strong><small>产品 · 流程 · 决策</small></span><span class="muted">⌄</span></div>
   <nav id="navigation" aria-label="主导航"></nav>
-  <div class="sidebar-bottom"><div id="connectionBadge" class="connection"><i></i>正在连接</div><button class="sidebar-settings" data-action="navigate" data-view="settings"><span>⚙</span> 功能覆盖与系统设置</button><div class="user-line"><span class="user-avatar">H</span><div><strong>运营项目空间</strong><small id="storageLabel">正在读取数据…</small></div></div></div>
+  <div class="sidebar-bottom"><div id="connectionBadge" class="connection"><i></i>正在连接</div><button type="button" class="sidebar-settings" id="workspaceInstallButton" hidden>安装桌面应用</button><button class="sidebar-settings" data-action="navigate" data-view="settings"><span>⚙</span> 功能覆盖与系统设置</button><div class="user-line"><span class="user-avatar">H</span><div><strong>运营项目空间</strong><small id="storageLabel">正在读取数据…</small></div></div></div>
  </aside>
  <div class="main-shell">
   <header class="topbar">
@@ -40,11 +41,13 @@
  <dialog id="modal"><div id="modalContent"></div></dialog>
  <div id="toast" class="toast" role="status"></div>
  <script src="deliverables.js" defer></script>
+ <script src="workspace-install.js" defer></script>
  <script src="app.js" defer></script>
  <script src="analytics.js" defer></script>
  <script src="process.js" defer></script>
  <script src="approvals.js" defer></script>
  <script src="workbench-triage.js" defer></script>
+ <script src="erp-contract-pricing.js" defer></script>
  <script src="erp-procurement.js" defer></script>
  <script src="erp-receiving.js" defer></script>
  <script src="erp-payables.js" defer></script>
@@ -58,6 +61,7 @@
  <script src="ads-decision-review.js" defer></script>
  <script src="erp-comparison.js" defer></script>
  <script src="erp-refunds.js" defer></script>
+ <script src="workbench-feishu.js" defer></script>
  <script src="workbench.js" defer></script>
 </body>
 </html>

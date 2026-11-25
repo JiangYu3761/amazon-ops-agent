@@ -15,6 +15,7 @@ window.erpReceiving = (() => {
   const section = (title,body) => `<section class="rx-section"><h3>${esc(title)}</h3>${body}</section>`;
   const num = (name,max,label) => `<input type="number" min="0" max="${esc(max)}" step="1" name="${name}" value="0" aria-label="${esc(label)}">`;
   const fmtTime = (value,zone) => value ? new Date(value).toLocaleString('zh-CN',{timeZone:zone,hour12:false}) : '—';
+  const price=window.erpContractPricing;
   let current=null;
   const fallbackTokens=new Map();
 
@@ -31,9 +32,9 @@ window.erpReceiving = (() => {
   function purchaseEditor(){
     return section('登记采购基线',`<form data-rx-form="order"><div class="rx-selectors">
       ${input('采购单号','number','required maxlength="100"')}${input('供应商','supplier','required maxlength="120"')}
-      </div>${table(['SKU','采购数量',''],orderRow())}<div class="rx-actions">${button('增加 SKU','add-line')}${submit('建立采购单')}${button('返回单据','close-order')}</div></form>`);
+      </div><p class="rx-tip">合同计价按件填写。尚无合同价的采购行可留空，后续按供应商凭证人工登记应付。</p>${table(['SKU','采购数量',...price.columns,''],orderRow())}<div class="rx-actions">${button('增加 SKU','add-line')}${submit('建立采购单')}${button('返回单据','close-order')}</div></form>`);
   }
-  function orderRow(){return `<tr data-rx-order-row><td><input name="sku" required maxlength="120" aria-label="SKU"></td><td><input name="qty" type="number" min="1" step="1" required aria-label="采购数量"></td><td>${button('移除','remove-line')}</td></tr>`;}
+  function orderRow(){return `<tr data-rx-order-row><td><input name="sku" required maxlength="120" aria-label="SKU"></td><td><input name="qty" type="number" min="1" step="1" required aria-label="采购数量"></td>${price.inputs({},esc)}<td>${button('移除','remove-line')}</td></tr>`;}
   function noticeTable(s){
     return (s.order.notices||[]).length ? table(['通知单','状态','通知件数','实收件数',''],s.order.notices.map(n=>
       `<tr><td>${esc(n.number)}</td><td>${esc(statusText[n.status]||n.status)}</td><td>${n.lines.reduce((sum,l)=>sum+l.qty,0)}</td><td>${n.lines.reduce((sum,l)=>sum+l.received,0)}</td><td>${button('查看明细','open-notice',`data-id="${esc(n.id)}"`)}</td></tr>`).join('')) : '<p class="rx-tip">尚未创建到货通知。</p>';
@@ -42,8 +43,8 @@ window.erpReceiving = (() => {
     if(s.createOrder)return purchaseEditor();
     if(!s.order)return section('采购单','<p class="rx-tip">本仓库尚无采购单。</p>');
     const o=s.order;
-    const lines=o.lines.map(l=>`<tr data-line="${esc(l.id)}"><td>${esc(l.sku)}</td><td>${l.qty}</td><td>${l.received}</td><td>${l.notified}</td><td>${l.unnotified}</td><td>${l.unnotified>0?num('qty',l.unnotified,l.sku+' 本次通知数量'):'—'}</td></tr>`).join('');
-    return section(o.number+' · '+o.supplier,`<form data-rx-form="notice">${table(['SKU','采购','已收','待收通知','可再通知','本次通知'],lines)}
+    const lines=o.lines.map(l=>`<tr data-line="${esc(l.id)}"><td>${esc(l.sku)}</td><td>${l.qty}</td><td>${l.received}</td><td>${l.notified}</td><td>${l.unnotified}</td><td>${esc(price.description(l))}</td><td>${esc(price.receivedValue(l))}</td><td>${l.unnotified>0?num('qty',l.unnotified,l.sku+' 本次通知数量'):'—'}</td></tr>`).join('');
+    return section(o.number+' · '+o.supplier,`<form data-rx-form="notice">${table(['SKU','采购','已收','待收通知','可再通知','合同价','实收含税小计','本次通知'],lines)}
       ${o.lines.some(l=>l.unnotified>0)?`<div class="rx-actions">${submit('创建到货通知')}</div>`:''}</form>`)+section('到货通知',noticeTable(s));
   }
 
@@ -296,7 +297,7 @@ window.erpReceiving = (() => {
       if(s.newScope&&s.scopes.some(w=>w.account_ref===body.account_ref&&w.site===body.site.toUpperCase()&&w.warehouse===body.warehouse))
         throw new Error('该仓库已存在，请选中已有仓库并核对授权成员。');
     }else if(type==='order'){
-      const lines=Array.from(form.querySelectorAll('[data-rx-order-row]'),row=>({sku:row.querySelector('[name=sku]').value.trim(),qty:Number(row.querySelector('[name=qty]').value)}));
+      const lines=Array.from(form.querySelectorAll('[data-rx-order-row]'),row=>({sku:row.querySelector('[name=sku]').value.trim(),qty:Number(row.querySelector('[name=qty]').value),...price.read(row)}));
       if(lines.some(l=>!l.sku||!Number.isSafeInteger(l.qty)||l.qty<=0))throw new Error('每个采购行须填写 SKU 与正整数数量。');
       if(new Set(lines.map(l=>l.sku)).size!==lines.length)throw new Error('一张采购单内的 SKU 不能重复，请合并数量。');
       path='/orders';body={scope_id:s.scopeId,number:val('number'),supplier:val('supplier'),lines};

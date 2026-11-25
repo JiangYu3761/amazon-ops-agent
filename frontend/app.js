@@ -16,7 +16,7 @@ const viewMeta={process:['PROCESS COLLABORATION','让每一步，都有人接住
 let catalog,ws,mode='loading',view='overview',productId='all',query='',filterModule='all',filterState='all',filterOwner='all',filterPhase='all',layout='table',teamTab='workload',rankType='organic',rankKeyword='',calendarMonth=new Date(),activeTask=null,importDraft=null,pollTimer=null;
 let conversations={},chatLogs={},businessData=null;
 
-async function api(url,options={}){const response=await fetch(url,{...options,headers:{Accept:'application/json','X-Workflow-Request':'1',...(options.body instanceof FormData?{}:{'Content-Type':'application/json'}),...options.headers}});if(!response.ok){let b=await response.json().catch(()=>({}));let err=new Error(typeof b.detail==='string'?b.detail:Array.isArray(b.detail)?b.detail.map(item=>`${(item.loc||[]).filter(x=>x!=='body').join('.')}：${item.msg||'输入不符合要求'}`).join('；'):b.detail?.message||`服务请求失败 (${response.status})`);err.status=response.status;throw err}if(!(response.headers.get('content-type')||'').includes('application/json')){let err=new Error('没有连接Python后端');err.noBackend=true;throw err}return response.json()}
+async function api(url,options={}){const response=await fetch(url,{...options,cache:'no-store',headers:{Accept:'application/json','X-Workflow-Request':'1',...(options.body instanceof FormData?{}:{'Content-Type':'application/json'}),...options.headers}});if(!response.ok){let b=await response.json().catch(()=>({}));let err=new Error(typeof b.detail==='string'?b.detail:Array.isArray(b.detail)?b.detail.map(item=>`${(item.loc||[]).filter(x=>x!=='body').join('.')}：${item.msg||'输入不符合要求'}`).join('；'):b.detail?.message||`服务请求失败 (${response.status})`);err.status=response.status;throw err}if(!(response.headers.get('content-type')||'').includes('application/json')){let err=new Error('没有连接Python后端');err.noBackend=true;throw err}return response.json()}
 function persist(){if(mode==='demo'){localStorage.setItem(STORE,JSON.stringify(ws));$('#savedState').textContent='✓ 示例已保存到本机'}else $('#savedState').textContent='✓ 已写入服务器'}
 let toastTimeout;
 function toast(text){$('#toast').textContent=text;$('#toast').classList.add('show');clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('#toast').classList.remove('show'),3500)}
@@ -83,7 +83,7 @@ async function load(){
  localReadIssue = '';
  catalog=await fetch('catalog.json').then(r=>r.json());
  try{ws=await api('/api/workspace');mode='server';if(!ws.products.length)productId='all';}
- catch(err){if(err.noBackend||err.status===404)openLocalWorkspace();
+ catch(err){if((err.noBackend||err.status===404)&&!window.workspaceInstall?.expectsServer())openLocalWorkspace();
  else{pauseWorkspace();toast('后端读取失败，未自动切换为示例数据。')}}
  const requested=location.hash.slice(1);if(requested&&[...nav.flatMap(x=>x[1].map(y=>y[0])),'settings'].includes(requested))view=requested;
  if(view==='ads'&&mode==='server'){
@@ -93,12 +93,22 @@ async function load(){
  renderShell();render();
 }
 function renderShell(){
+ window.workspaceInstall?.update(mode);
  $('#navigation').innerHTML=nav.map(([group,items])=>`<div class="nav-label">${group}</div>${items.map(([id,title,ic])=>`<button class="nav-item ${view===id?'active':''}" data-action="navigate" data-view="${id}">${icon(ic)}<span>${title}</span>${id==='workflow'?`<span class="nav-count">${ws.tasks.length}</span>`:''}</button>`).join('')}`).join('');
  $('#productScopeIcon').innerHTML=icon('boxes');$('#searchIcon').innerHTML=icon('search');
  $('#connectionBadge').className='connection '+(mode==='server'?'live':'');$('#connectionBadge').innerHTML=`<i></i>${mode==='server'?'已连接 Python 后端':mode==='error'?'数据服务异常':'示例体验模式'}`;
  $('#storageLabel').textContent=mode==='server'?'服务器工作空间':mode==='demo'?'示例仅保存在当前浏览器':'等待服务恢复';
  $('#modeBanner').className='mode-banner '+(mode==='server'?'live':mode==='error'?'error':'');
  $('#modeBanner').innerHTML=mode==='demo'?`<span>◈</span><span><b>示例体验</b> · 型号、任务状态和成员分工用于演示；操作仅保存到当前浏览器，尚未连接 PostgreSQL。</span><button data-action="navigate" data-view="settings">查看功能边界 →</button>`:mode==='server'?`<span>●</span><span>已连接服务器 · ${ws.products.some(p=>p.data_source==='sample')?'带“示例”的项目来自初始种子数据，请按实际业务建立档案。':'任务与记录来自数据库。'}</span>`:`<span>!</span><span>后端数据读取失败。为避免把故障当成空数据，已暂停显示。</span><button data-action="demo">体验本机示例</button>`;
+ if(mode==='demo' && document.body.dataset.workspaceDownload){
+  const link=document.createElement('a');
+  link.className='btn';
+  link.href=document.body.dataset.workspaceDownload;
+  link.download='HOMA-本机工作台.zip';
+  link.textContent='下载本机工作台（需 Docker）';
+  link.title='需要 Docker。Mac 解压后双击「启动工作台.command」，在本机 PostgreSQL 建立空白工作区。';
+  $('#modeBanner').append(link);
+ }
  $('#footerStatus').textContent=mode==='demo'?'示例数据 · 本机保存 · 外部接口未连接':'记录来源：Python API · 自动采集与外部连接分别核验';
  if(localReadIssue){
   $('#connectionBadge').textContent='本机工作区读取失败';
@@ -109,6 +119,7 @@ function renderShell(){
 }
 const routePositions = new Map();
 function navigate(id,updateHash=true){
+ if(id==='calendar')calendarFocusCache=null;
  if (view !== id) {
   routePositions.set(view,{query,filterModule,filterState,filterOwner,filterPhase,scroll:window.scrollY});
   const previous = routePositions.get(id) || {};
@@ -147,6 +158,13 @@ function table(tasks,compact=false){
 }
 function matches(t){const owner=person(t.owner_id);return (!query||(t.title+' '+product(t.product_id)?.model+' '+owner?.display_name+' '+t.department).toLowerCase().includes(query.toLowerCase()))&&(filterModule==='all'||t.module_code===filterModule)&&(filterState==='all'||(filterState==='overdue'?overdue(t):filterState==='unassigned'?!t.owner_id:t.status===filterState))&&(filterOwner==='all'||t.owner_id===filterOwner)&&(filterPhase==='all'||t.phase===filterPhase)}
 function renderTodayDashboard(){
+ const user=window.processUI?.currentUser();
+ let onboarding='';
+ if(mode==='server'&&!ws.products.length){
+  const prompt=user?.is_admin?'录入第一个产品型号即可生成它的 SOP 和办理队列。':user?'请联系管理员建立产品主档。已获仓库授权的成员可直接办理收货。':'首次使用请用部署端的设置码开通管理员；已有账户可直接登录。';
+  const action=user?.is_admin?button('建立第一个产品','new-product',true):user?'':button('开通或登录账户','workspace-login',true);
+  onboarding=`<div class="today-desk-due"><strong>本工作区尚无产品</strong><span>${prompt}</span>${action}</div>`;
+ }
  const day=today();
  const date=new Intl.DateTimeFormat('zh-CN',{timeZone:'Asia/Shanghai',month:'long',day:'numeric',weekday:'long'}).format(new Date());
  const due=scopedTasks().filter(task=>task.due_date===day&&!done(task));
@@ -158,7 +176,7 @@ function renderTodayDashboard(){
  ];
  return `<section class="today-desk" aria-labelledby="todayDeskTitle">
   <header class="today-desk-head"><h2 id="todayDeskTitle">今日工作台</h2><time datetime="${e(day)}">${icon('calendar')}${e(date)}</time></header>
-  <div class="today-desk-actions">${actions.map(([page,title,description,symbol])=>`<button type="button" class="today-desk-action today-desk-${page}" data-wb-desk="${page}" aria-labelledby="today-${page}-title" aria-describedby="today-${page}-detail">
+  ${onboarding}<div class="today-desk-actions">${actions.map(([page,title,description,symbol])=>`<button type="button" class="today-desk-action today-desk-${page}" data-wb-desk="${page}" aria-labelledby="today-${page}-title" aria-describedby="today-${page}-detail">
    <span class="today-desk-icon">${icon(symbol)}</span><span class="today-desk-copy"><strong id="today-${page}-title">${title}</strong><span id="today-${page}-detail">${description}</span></span>${icon('arrow','today-desk-arrow')}</button>`).join('')}</div>
   <div class="today-desk-due">${icon('clock')}<strong>流程任务</strong>${due.length>1?`<details><summary>今天 ${due.length} 项到期</summary><ul>${due.map(task=>`<li>${taskLink(task)}</li>`).join('')}</ul></details>`:due.length?`<span>今天到期</span>${taskLink(due[0])}`:'<span>当前产品范围今天没有到期的未完成任务。</span>'}</div>
  </section>`;
@@ -186,14 +204,45 @@ function renderModule(m){if(!m)return empty('页面不存在');return `<div clas
 function renderDataStats(module){return typeof window!=='undefined'&&window.analyticsUI?window.analyticsUI.render(module):'';}
 async function loadBusiness(){if(mode==='server'&&['overview','shop','compliance','listing','ads','inventory','calendar','finance','service','agent','review'].includes(view))await window.analyticsUI?.refresh({force:true});}
 let calendarLayout='month',calendarZoom=1,calendarTouch=null;
+let calendarFocusCache=null;
+function focusForCalendar(){
+ const actor=window.processUI?.currentUser()?.id;
+ if(mode==='demo')return (window.workbenchUI?.localFocus()||[]).filter(item=>productId==='all'||item.product_id===productId);
+ if(mode!=='server'||!actor)return [];
+ const weekly=calendarLayout==='week', month=calendarMonth;
+ const start=new Date(month.getFullYear(),month.getMonth(),weekly?month.getDate():1);
+ start.setDate(start.getDate()-(start.getDay()+6)%7);
+ const end=new Date(start);
+ end.setDate(start.getDate()+(weekly?6:41));
+ const params=new URLSearchParams({start_date:isoDate(start),end_date:isoDate(end)});
+ if(productId!=='all')params.set('product_id',productId);
+ const key=actor+'?'+params;
+ if(calendarFocusCache?.key!==key){
+  const entry={key,items:[],pending:true,error:''};
+  calendarFocusCache=entry;
+  api('/api/workbench/focus?'+params)
+   .then(data=>{entry.items=data.items;})
+   .catch(err=>{entry.error=err.message;})
+   .finally(()=>{
+    entry.pending=false;
+    if(calendarFocusCache===entry && view==='calendar' && window.processUI?.currentUser()?.id===actor)render();
+   });
+ }
+ return calendarFocusCache.items;
+}
 function calendarItems(){
  const ids=new Set(scopedProducts().map(p=>p.id));
- return [...ws.events.filter(x=>ids.has(x.product_id)).map(x=>({...x,kind:'event',from:x.start_date,until:x.end_date||x.start_date})),
+ return [...focusForCalendar().map(x=>({...x,kind:'focus',from:x.focus_date,until:x.focus_date})),
+   ...ws.events.filter(x=>ids.has(x.product_id)).map(x=>({...x,kind:'event',from:x.start_date,until:x.end_date||x.start_date})),
    ...scopedTasks().filter(t=>t.due_date&&!done(t)).map(t=>({...t,kind:'task',from:t.due_date,until:t.due_date}))]
    .filter(x=>!query||(x.title+' '+(product(x.product_id)?.model||'')).toLowerCase().includes(query.toLowerCase()))
-   .sort((a,b)=>a.from.localeCompare(b.from)||a.title.localeCompare(b.title));
+   .sort((a,b)=>Number(b.kind==='focus')-Number(a.kind==='focus')||a.from.localeCompare(b.from)||a.title.localeCompare(b.title));
 }
 function calendarItem(x){
+ if(x.kind==='focus'){
+  const scope=product(x.product_id)?.model||[x.account_ref,x.site].filter(Boolean).join(' · ');
+  return `<button class="calendar-event work-focus" data-action="focus-item" data-id="${e(x.id)}" title="${e(scope+' · '+x.title)}">重点 · ${e(x.title)}</button>`;
+ }
  return `<button class="calendar-event ${e(x.kind==='task'?'task':x.event_type)}" data-action="${x.kind}" data-id="${e(x.id)}" title="${e(x.title)}">${e(product(x.product_id)?.model)} · ${e(x.title)}</button>`;
 }
 function calendarStep(direction){
@@ -210,7 +259,11 @@ function renderCalendar(){
  const title=week?isoDate(gridStart)+' — '+isoDate(end):start.getFullYear()+'年 '+(start.getMonth()+1)+'月';
  const monthEnd=isoDate(new Date(start.getFullYear(),start.getMonth()+1,0));
  const items=calendarItems(),events=items.filter(x=>x.kind==='event');
- const heading=`<div class="panel-head wb-cal-head"><div><h2>${e(title)}</h2><p>活动、里程碑与任务截止日期</p></div>
+ const focusStatus=mode==='server' && window.processUI?.currentUser()
+   ? calendarFocusCache?.error?`<p role="alert">工作重点读取失败：${e(calendarFocusCache.error)} ${button('重试','reload-focus')}</p>`
+      : calendarFocusCache?.pending?'<p role="status">正在读取工作重点…</p>':''
+   : '';
+ const heading=`${focusStatus}<div class="panel-head wb-cal-head"><div><h2>${e(title)}</h2><p>工作重点、活动与任务截止日期</p></div>
  <div class="head-actions">${button(week?'上一周':'上一月','month-prev')}${button('今天','month-now')}${button(week?'下一周':'下一月','month-next')}</div></div>
  <div class="wb-cal-options"><div class="segmented" aria-label="日历视图">${[['month','月历'],['week','周历'],['agenda','排期清单']].map(([v,label])=>`<button data-action="calendar-layout" data-layout="${v}" aria-pressed="${v===calendarLayout}" class="${v===calendarLayout?'active':''}">${label}</button>`).join('')}</div>
  ${agenda?'':`<div class="head-actions">${button('缩小','calendar-zoom',false,'data-step="-1" '+(calendarZoom<=1?'disabled':''))}<output>${Math.round(calendarZoom*100)}%</output>${button('放大','calendar-zoom',false,'data-step="1" '+(calendarZoom>=1.75?'disabled':''))}</div>`}</div>`;
@@ -222,8 +275,8 @@ function renderCalendar(){
    ${daily.slice(0,max).map(calendarItem).join('')}${daily.length>max?`<button class="text-btn calendar-overflow" data-action="day-events" data-date="${day}">另有 ${daily.length-max} 项</button>`:''}</div>`;
  }).join('');
  const grid=`<div class="wb-cal-scroll" data-cal-swipe tabindex="0" aria-label="日历。左右方向键翻页。" style="--wb-cal-zoom:${calendarZoom}"><div class="calendar-grid wb-cal-grid">${['一','二','三','四','五','六','日'].map(d=>`<div class="calendar-week">周${d}</div>`).join('')}${days}</div></div>`;
- const upcoming=items.filter(x=>x.until>=isoDate(start)&&x.from<=monthEnd);
- const list=`<div class="wb-cal-agenda">${upcoming.map(x=>`<div><time>${e(x.from)}${x.until!==x.from?' — '+e(x.until):''}</time>${calendarItem(x)}<span>${x.kind==='task'?'任务截止':'活动节点'}</span></div>`).join('')||'<p>本月没有符合筛选条件的工作。</p>'}</div>`;
+ const upcoming=items.filter(x=>x.until>=isoDate(start)&&x.from<=monthEnd).sort((a,b)=>a.from.localeCompare(b.from));
+ const list=`<div class="wb-cal-agenda">${upcoming.map(x=>`<div><time>${e(x.from)}${x.until!==x.from?' — '+e(x.until):''}</time>${calendarItem(x)}<span>${x.kind==='focus'?'工作重点':x.kind==='task'?'任务截止':'活动节点'}</span></div>`).join('')||'<p>本月没有符合筛选条件的工作。</p>'}</div>`;
  return `${typeof window!=='undefined'?window.analyticsUI?.render('calendar')||'':''}<section class="panel">${heading}${agenda?list:grid}</section>
  <section class="panel" style="margin-top:18px"><div class="panel-head"><h2>已登记活动与里程碑</h2><span class="label">${events.length} 个节点</span></div><div class="table-wrap"><table class="task-table"><thead><tr><th>活动 / 节点</th><th>产品</th><th>日期</th><th>负责人</th><th>状态</th></tr></thead><tbody>${events.map(x=>`<tr><td><button class="task-name" data-action="event" data-id="${x.id}">${e(x.title)}</button></td><td>${e(product(x.product_id)?.model)}</td><td>${e(x.start_date)}${x.end_date?' ~ '+e(x.end_date):''}</td><td>${ownerChip(x.owner_id)}</td><td><span class="pill">${e({planned:'已排期',in_progress:'进行中',completed:'已完成',cancelled:'已取消'}[x.status]||'已排期')}</span></td></tr>`).join('')||'<tr><td colspan="5" class="row-empty">尚未登记活动</td></tr>'}</tbody></table></div></section>`}
 function renderTeam(){const ts=scopedTasks(),pending=ts.filter(t=>t.status==='pending_approval');return `<div class="unavailable"><div><strong>成员分工不等同于身份权限</strong>当前支持责任分配和管理员口令审批；个人登录、部门隔离与角色权限仍待建设。</div><span class="pill warning">权限体系未完成</span></div><div class="toolbar"><div class="segmented"><button class="${teamTab==='workload'?'active':''}" data-action="team-tab" data-tab="workload">团队负载</button><button class="${teamTab==='approval'?'active':''}" data-action="team-tab" data-tab="approval">待审批 ${pending.length}</button></div><span class="detail-count">${ts.filter(t=>!t.owner_id&&!done(t)).length} 项未分配 · 需负责人确认</span></div>${teamTab==='approval'?`<section class="panel">${table(pending)}</section>`:`<div class="people-grid">${ws.people.filter(p=>!query||(p.display_name+p.department).includes(query)).map(p=>{const own=ts.filter(t=>t.owner_id===p.id);return `<article class="panel person-card"><div class="person-title"><span class="avatar">${e(p.display_name.slice(0,1))}</span><div><h3>${e(p.display_name)}</h3><p>${e(p.department)} · ${e({executor:'执行成员',project_owner:'项目负责人',reviewer:'评审成员'}[p.role_code]||p.role_code)}</p></div></div><div class="person-stats"><span><strong>${own.filter(t=>!done(t)).length}</strong><small>待处理</small></span><span><strong>${own.filter(t=>t.status==='completed').length}</strong><small>已交付</small></span><span><strong>${own.filter(overdue).length}</strong><small>已逾期</small></span></div><div class="mini-progress" style="margin:16px 0 12px"><i style="width:${progress(own)}%"></i></div><button class="text-btn" data-action="owner-tasks" data-id="${p.id}">查看其工作清单 →</button></article>`}).join('')}</div>`}`}
@@ -231,7 +284,7 @@ function renderRanking(){const ps=new Set(scopedProducts().map(p=>p.id)),queries
 function drawRanking(){const c=$('#rankingChart');if(!c)return;const ids=new Set(scopedProducts().map(p=>p.id)),pts=ws.rankings.filter(r=>ids.has(r.product_id)&&r.observation_type===rankType&&(!rankKeyword||r.keyword===rankKeyword)).sort((a,b)=>a.observed_at.localeCompare(b.observed_at));if(!pts.length)return;const w=c.clientWidth,h=c.clientHeight,dpr=devicePixelRatio||1;c.width=w*dpr;c.height=h*dpr;const x=c.getContext('2d');x.scale(dpr,dpr);const pad={l:35,r:20,t:18,b:29},values=pts.map(r=>Number(r.rank_value)),min=Math.max(1,Math.min(...values)-3),max=Math.max(...values)+3;x.font='10px sans-serif';x.fillStyle='#9aa4b4';x.strokeStyle='#eef0f5';for(let i=0;i<5;i++){const y=pad.t+i*(h-pad.t-pad.b)/4;x.beginPath();x.moveTo(pad.l,y);x.lineTo(w-pad.r,y);x.stroke();x.fillText(Math.round(min+(max-min)*i/4),3,y+3)}const xy=pts.map((p,i)=>[pad.l+(pts.length===1?0:i/(pts.length-1))*(w-pad.l-pad.r),pad.t+(p.rank_value-min)/(max-min)*(h-pad.t-pad.b)]);const grad=x.createLinearGradient(0,pad.t,0,h-pad.b);grad.addColorStop(0,'#e9e3fb99');grad.addColorStop(1,'#f9f7ff22');x.beginPath();x.moveTo(xy[0][0],h-pad.b);xy.forEach(p=>x.lineTo(...p));x.lineTo(xy.at(-1)[0],h-pad.b);x.fillStyle=grad;x.fill();x.beginPath();xy.forEach((p,i)=>i?x.lineTo(...p):x.moveTo(...p));x.strokeStyle='#a28cda';x.lineWidth=2.5;x.stroke();xy.forEach((p,i)=>{x.beginPath();x.arc(...p,3,0,Math.PI*2);x.fillStyle='#fff';x.fill();x.strokeStyle='#a28cda';x.lineWidth=2;x.stroke();if(i%Math.ceil(pts.length/7)===0||i===pts.length-1){x.fillStyle='#a1a8b7';x.fillText(shortDate(pts[i].observed_at.slice(0,10)),p[0]-11,h-6)}})}
 function findings(){const ts=scopedTasks(),groups=[['blocked','任务已受阻',ts.filter(t=>t.status==='blocked'),'要求主责人明确阻塞原因、解除条件和承诺日期。'],['overdue','任务超过截止日期',ts.filter(overdue),'确认对上线或运营的影响，重新承诺日期并登记原因。'],['owner','工作责任尚未分配',ts.filter(t=>!t.owner_id&&!done(t)),'将未分配任务落实到部门和主责人，确认交付日期。'],['approval','交付等待验收',ts.filter(t=>t.status==='pending_approval'),'核验交付证据和前置依赖，由审批人决定通过或退回。']];return groups.filter(g=>g[2].length).map(([key,title,tasks,action])=>({key,title:`${tasks.length} 项${title}`,tasks,action}))}
 function renderAgent(){const fs=findings();return `${typeof window!=='undefined'&&window.analyticsUI?window.analyticsUI.render('review'):''}<div class="unavailable"><div><strong>当前能力：确定性任务检查 + 可配置外部AI问答</strong>下方规则只检查本页产品范围内的工作流，不会编造销售、广告或库存结论。</div><span class="pill info">人工审批</span></div><section class="panel"><div class="panel-head"><div><h2>需要处理的发现</h2><p>范围：${productId==='all'?'全部产品':e(current()?.model)} · ${today()} · 数据来源：${mode==='demo'?'本机示例':'任务数据库'}</p></div><button class="text-btn" data-action="open-ai">问运营 Agent →</button></div>${fs.map(f=>`<article class="finding"><span class="finding-icon">${icon('flag')}</span><div><h3>${e(f.title)}</h3><p>${e(f.action)}</p><div class="evidence">证据：${e(f.tasks.slice(0,3).map(t=>t.title).join(' / '))}${f.tasks.length>3?' …':''}</div></div>${button('生成跟进任务','finding-task',false,`data-key="${f.key}"`)}</article>`).join('')||empty('没有触发当前任务规则','经营指标请查看上方服务端结果；缺少来源时不会据此认定经营没有风险。')}</section>`}
-function renderImports(){return `<div class="data-grid">${[['sales','销售数据','销量、销售额、SKU和币种','chart'],['advertising','广告数据','曝光、点击、花费与归因销售','megaphone'],['inventory','库存快照','可售、预留、在途与不可售','boxes'],['costs','单件成本','产品、头程、FBA与其他成本','wallet']].map(([type,title,desc,ic],i)=>`<article class="panel import-card"><span class="section-number">${icon(ic)}</span><h3>${title}</h3><p>${desc}<br>UTF-8 CSV · 单次不超过 10 MB</p><div class="card-actions"><a href="templates/${type}-template.csv" download>下载示例模板 ↗</a>${button('校验并导入','import',false,`data-type="${type}"`)}</div></article>`).join('')}</div><div class="data-health"><span>缺失值 ≠ 0</span><span>同一业务键重复导入覆盖更新</span><span>模板内是示例行，真实导入前请替换</span><span>币种、SKU和ASIN需与产品一致</span></div><section class="panel" style="margin-top:20px"><div class="panel-head"><div><h2>数据导入记录</h2><p>记录来源、有效行、错误行与导入时间</p></div><span class="label">${mode==='demo'?'本机体验':'服务器记录'}</span></div><div class="table-wrap"><table class="task-table"><thead><tr><th>文件 / 日期</th><th>数据类型</th><th>产品</th><th>有效行</th><th>错误行</th><th>处理结果</th></tr></thead><tbody>${ws.imports.filter(r=>productId==='all'||r.product_id===productId).map(r=>`<tr><td>${e(r.filename)}<span class="task-sub">${new Date(r.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}</span></td><td>${e({sales:'销售',advertising:'广告',inventory:'库存',costs:'成本'}[r.import_type])}</td><td>${e(product(r.product_id)?.model)}</td><td>${r.row_count}</td><td class="${r.error_count?'red':''}">${r.error_count}</td><td><button class="text-btn" data-action="import-log" data-id="${r.id}">${r.error_count?'查看错误行':'导入成功'} →</button></td></tr>`).join('')||'<tr><td colspan="6" class="row-empty">尚未导入。先选产品，再下载模板、替换示例行并上传校验。</td></tr>'}</tbody></table></div></section>`}
+function renderImports(){return `<div class="data-grid">${[['sales','销售数据','销量、销售额、SKU和币种','chart'],['advertising','广告活动汇总','按活动和实体名称导入汇总数据','megaphone'],['advertised_product','SP 商品广告日报','按广告账户、广告 ID 和 SKU 核对报告','megaphone'],['inventory','库存快照','可售、预留、在途与不可售','boxes'],['costs','单件成本','产品、头程、FBA与其他成本','wallet']].map(([type,title,desc,ic],i)=>`<article class="panel import-card"><span class="section-number">${icon(ic)}</span><h3>${title}</h3><p>${desc}<br>UTF-8 CSV · 单次不超过 10 MB</p><div class="card-actions">${type==='advertised_product'&&mode!=='server'?'<span class="muted">连接业务服务器后可下载模板并导入。</span>':`<a href="${type==='advertised_product'?'/api/imports/template/advertised_product':'templates/'+type+'-template.csv'}" download>下载示例模板 ↗</a>${button('校验并导入','import',false,`data-type="${type}"`)}`}</div></article>`).join('')}</div><div class="data-health"><span>缺失值 ≠ 0</span><span>同一业务键重复导入覆盖更新</span><span>模板内是示例行，真实导入前请替换</span><span>币种、SKU和ASIN需与产品一致</span></div><section class="panel" style="margin-top:20px"><div class="panel-head"><div><h2>数据导入记录</h2><p>记录来源、有效行、错误行与导入时间</p></div><span class="label">${mode==='demo'?'本机体验':'服务器记录'}</span></div><div class="table-wrap"><table class="task-table"><thead><tr><th>文件 / 日期</th><th>数据类型</th><th>产品</th><th>有效行</th><th>错误行</th><th>处理结果</th></tr></thead><tbody>${ws.imports.filter(r=>productId==='all'||r.product_id===productId).map(r=>`<tr><td>${e(r.filename)}<span class="task-sub">${new Date(r.created_at).toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'})}</span></td><td>${e({sales:'销售',advertising:'广告',inventory:'库存',costs:'成本'}[r.import_type])}</td><td>${e(product(r.product_id)?.model)}</td><td>${r.row_count}</td><td class="${r.error_count?'red':''}">${r.error_count}</td><td><button class="text-btn" data-action="import-log" data-id="${r.id}">${r.error_count?'查看错误行':'导入成功'} →</button></td></tr>`).join('')||'<tr><td colspan="6" class="row-empty">尚未导入。先选产品，再下载模板、替换示例行并上传校验。</td></tr>'}</tbody></table></div></section>`}
 const coverage=[
  ['四大分类交付目录','可交互','按型号列出分类、具体工作项、文件链接与准备情况','文件登记不等于读取内容或获得访问权限；协作节点的资料从流程详情维护'],
  ['产品型号与全流程总览','可交互','多产品矩阵、产品切换、按环节进入工作清单','真实保存需要部署 PostgreSQL 后端'],
@@ -285,7 +338,26 @@ async function savePerson(){const f=$('#personForm');if(!f.reportValidity())retu
 function newQuery(){if(!ws.products.length)return newProduct();if(productId==='all'){toast('请选择要监控的具体型号。');$('#productSelect').focus();return;}modal('配置关键词排名监控',`<form id="queryForm"><div class="alert">保存的是监控参数；定时采集器尚未接通，不会立即开始抓取。</div><label class="field">关键词<input name="keyword" required placeholder="例如：indoor security camera"></label><div class="form-row"><label class="field">邮编<input name="postal_code" value="10001" required></label><label class="field">设备<select name="device"><option value="desktop">Desktop</option><option value="mobile">Mobile</option></select></label></div><div class="form-row"><label class="field">每天计划次数<input type="number" min="1" max="24" name="runs_per_day" value="4"></label><label class="field">最大页数<input type="number" min="1" max="10" name="max_pages" value="3"></label></div></form>`,button('取消','close-modal')+button('保存参数','save-query',true))}
 async function saveQuery(){const f=$('#queryForm');if(!f.reportValidity())return;const b=formObject(f);b.runs_per_day=Number(b.runs_per_day);b.max_pages=Number(b.max_pages);b.marketplace=current().marketplace;try{if(mode==='server'){await api(`/api/products/${current().id}/tracking-queries`,{method:'POST',body:JSON.stringify(b)});await refreshWorkspace(false)}else{ws.queries.push({...b,id:uuid(),product_id:current().id});persist()}closeModal();render();toast('配置已保存，等待采集器接入。')}catch(err){toast(err.message)}}
 const importSpec={sales:{label:'销售数据',required:['date','sku','units_ordered','ordered_revenue'],ints:['units_ordered'],nums:['ordered_revenue']},advertising:{label:'广告数据',required:['date','campaign_name','impressions','clicks','spend','sales','orders'],ints:['impressions','clicks','orders'],nums:['spend','sales']},inventory:{label:'库存快照',required:['date','sku','fulfillable','reserved','inbound','unsellable'],ints:['fulfillable','reserved','inbound','unsellable'],nums:[]},costs:{label:'单件成本',required:['date','sku','product_cost','first_mile_cost','fba_fee','referral_fee','other_cost'],ints:[],nums:['product_cost','first_mile_cost','fba_fee','referral_fee','other_cost']}};
-function openImport(type){if(!current())return newProduct();if(productId==='all'){toast('请先选择本次导入的产品型号。');$('#productSelect').focus();return;}importDraft=null;modal('校验并导入 · '+importSpec[type].label,`<div class="alert info">产品：${e(current().model)} · ${mode==='demo'?'数据只写入当前浏览器。':'有效数据写入PostgreSQL。'}<br>模板包含示例行，请替换成实际数据。重复业务键将更新已有数据。</div><form id="importForm"><input name="type" type="hidden" value="${type}"><label class="field">选择 UTF-8 CSV<input id="importFile" type="file" accept=".csv,text/csv" required></label></form><div id="importValidation"></div>`,button('取消','close-modal')+button('校验文件','validate-import',true)+button('导入有效行','commit-import',false,'disabled id="commitImportBtn"'),true)}
+function openImport(type){
+ if(!current())return newProduct();
+ if(productId==='all'){toast('请先选择本次导入的产品型号。');$('#productSelect').focus();return;}
+ const sp=type==='advertised_product';
+ if(sp&&mode!=='server')return toast('SP 商品广告报告需要连接业务服务器。');
+ importDraft=null;
+ const note=sp?'按广告账户、广告 ID、SKU 与归因窗口核对整份文件。请替换模板示例，使用报告原始 ID。有 SP 映射时使用对应 SKU；无 SP 映射时还需填写产品已绑定的店铺账号与站点。'
+  :`模板包含示例行，请替换成实际数据。重复业务键将更新已有数据。`;
+ modal('校验并导入 · '+(sp?'SP 商品广告日报':importSpec[type].label),
+  `<div class="alert info">产品：${e(current().model)} · ${mode==='demo'?'数据只写入当前浏览器。':'有效数据写入 PostgreSQL。'}<br>${note}</div>
+   <form id="importForm"><input name="type" type="hidden" value="${type}"><label class="field">选择 UTF-8 CSV<input id="importFile" type="file" accept=".csv,text/csv" required></label></form><div id="importValidation" aria-live="polite"></div>`,
+  button('取消','close-modal')+button('校验文件','validate-import',true)+button(sp?'导入整份报告':'导入有效行','commit-import',false,'disabled id="commitImportBtn"'),true);
+ $('#importFile').onchange=()=>{importDraft=null;$('#commitImportBtn').disabled=true;$('#importValidation').replaceChildren();};
+}
+function spImportBody(file, preview=false){
+ const body=new FormData();
+ body.set('import_type','advertising');body.set('required_grain','advertised_product');body.set('file',file);
+ if(preview)body.set('validate_only','true');
+ return body;
+}
 function csvRows(text){const rows=[];let row=[],value='',quote=false;for(let i=0;i<text.length;i++){const c=text[i];if(c==='"'){if(quote&&text[i+1]==='"'){value+='"';i++}else quote=!quote}else if(c===','&&!quote){row.push(value);value=''}else if((c==='\n'||c==='\r')&&!quote){if(c==='\r'&&text[i+1]==='\n')i++;row.push(value);if(row.some(v=>v.trim()))rows.push(row);row=[];value=''}else value+=c}if(quote)throw new Error('CSV包含未闭合的引号。');if(value||row.length){row.push(value);if(row.some(v=>v.trim()))rows.push(row)}return rows}
 function importNumber(raw,key,integer,cost){
  const lexical=integer?/^(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)$/:/^\$?(?:[0-9]+|[0-9]{1,3}(?:,[0-9]{3})+)(?:\.[0-9]+)?$/;
@@ -317,10 +389,94 @@ function parseImport(type,text,p){
  }catch(err){errors.push({line,error:err.message});}});
  return {headers,rows:valid,errors};
 }
-async function validateImport(){const f=$('#importFile').files[0],type=formValue($('#importForm'),'type');if(!f)return toast('请先选择CSV文件。');if(f.size>10*1024*1024)return toast('文件超过10MB，请拆分后导入。');try{const parsed=parseImport(type,await f.text(),current());importDraft={...parsed,type,file:f,productId:current().id};$('#importValidation').innerHTML=`<div class="alert ${parsed.errors.length?'':'info'}">校验结果：${parsed.rows.length} 行有效 · ${parsed.errors.length} 行错误。<br>点击“导入有效行”后才会保存；错误行不会写入。</div>${parsed.errors.length?`<div class="import-preview"><table class="task-table"><thead><tr><th>行号</th><th>错误原因</th></tr></thead><tbody>${parsed.errors.slice(0,20).map(x=>`<tr><td>${x.line}</td><td>${e(x.error)}</td></tr>`).join('')}</tbody></table></div>`:''}<div class="import-preview"><table class="task-table"><thead><tr>${parsed.headers.map(h=>`<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${parsed.rows.slice(0,5).map(r=>`<tr>${parsed.headers.map(h=>`<td>${e(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;$('#commitImportBtn').disabled=!parsed.rows.length||(mode==='server'&&!window.processUI?.isAdmin());if(mode==='server'&&!window.processUI?.isAdmin())$('#importValidation').insertAdjacentHTML('afterbegin','<div class="alert">当前账户可查看校验结果，提交业务数据导入需要流程管理员权限。</div>');}catch(err){importDraft=null;$('#commitImportBtn').disabled=true;$('#importValidation').innerHTML=`<div class="alert error">${e(err.message)}</div>`}}
+async function validateImport(){
+ const input=$('#importFile'), file=input.files[0], type=formValue($('#importForm'),'type'), product=current();
+ const sp=type==='advertised_product', panel=$('#importValidation'), submit=$('#commitImportBtn');
+ importDraft=null;submit.disabled=true;
+ if(!file)return toast('请先选择 CSV 文件。');
+ if(file.size>10*1024*1024){panel.textContent='文件超过 10 MB，请拆分后导入。';return;}
+ try{
+  if(sp&&!window.processUI?.isAdmin()){panel.textContent='服务端核对和导入 SP 商品报告需要流程管理员权限。';return;}
+  const parsed=sp
+   ?await api(`/api/products/${product.id}/imports`,{method:'POST',body:spImportBody(file,true)})
+   :parseImport(type,await file.text(),product);
+  if(!input.isConnected||input.files[0]!==file||current()?.id!==product.id)return;
+  importDraft={...parsed,type,file,productId:product.id};
+  const count=sp?parsed.row_count:parsed.rows.length;
+  const summary=sp?`已核对 ${count} 行的报表格式和产品范围，预览前 ${parsed.rows.length} 行。点击“导入整份报告”后保存。`
+   :`校验结果：${count} 行有效 · ${parsed.errors.length} 行错误。点击“导入有效行”后保存。`;
+  panel.innerHTML=`<div class="alert ${parsed.errors.length?'':'info'}">${summary}</div>`+
+   (parsed.errors.length?`<div class="import-preview"><table class="task-table"><thead><tr><th>行号</th><th>错误原因</th></tr></thead><tbody>${parsed.errors.slice(0,20).map(x=>`<tr><td>${x.line}</td><td>${e(x.error)}</td></tr>`).join('')}</tbody></table></div>`:'')+
+   `<div class="import-preview"><table class="task-table"><thead><tr>${parsed.headers.map(h=>`<th>${e(h)}</th>`).join('')}</tr></thead><tbody>${parsed.rows.slice(0,5).map(r=>`<tr>${parsed.headers.map(h=>`<td>${e(r[h])}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  submit.disabled=!count||(mode==='server'&&!window.processUI?.isAdmin());
+  if(mode==='server'&&!window.processUI?.isAdmin())panel.insertAdjacentHTML('afterbegin','<div class="alert">当前账户可查看校验结果，提交业务数据导入需要流程管理员权限。</div>');
+ }catch(err){
+  if(!input.isConnected||input.files[0]!==file)return;
+  panel.innerHTML=`<div class="alert error" role="alert">校验未通过：${e(err.message)}</div>`;
+ }
+}
 function recordKey(type,r){return [r.product_id,r.date,...(type==='advertising'?[r.campaign_name,r.entity_name||'']:[r.sku])].join('|')}
-async function commitImport(){if(mode==='server'&&!window.processUI?.isAdmin())return toast('只有流程管理员可以提交业务数据导入。');if(!importDraft?.rows.length)return;const d=importDraft;if(current()?.id!==d.productId)return toast('产品范围已变化，请重新校验。');$('#commitImportBtn').disabled=true;try{if(mode==='server'){const body=new FormData();body.append('import_type',d.type);body.append('file',d.file);await api(`/api/products/${d.productId}/imports`,{method:'POST',body});await refreshWorkspace(false)}else{ws.records=ws.records||{sales:[],advertising:[],inventory:[],costs:[]};const id=uuid(),target=ws.records[d.type];for(const row of d.rows){const record={...row,product_id:d.productId,import_id:id},index=target.findIndex(r=>recordKey(d.type,r)===recordKey(d.type,record));index<0?target.push(record):target.splice(index,1,record)}ws.imports.unshift({id,product_id:d.productId,import_type:d.type,filename:d.file.name,row_count:d.rows.length,error_count:d.errors.length,errors:d.errors,created_at:new Date().toISOString(),status:d.errors.length?'completed_with_errors':'completed'});persist()}closeModal();render();toast(`已导入 ${d.rows.length} 行有效数据。`);importDraft=null}catch(err){toast(err.message);$('#importValidation')?.insertAdjacentHTML('afterbegin',`<div class="alert error" role="alert">导入未保存：${e(err.message)}</div>`);$('#commitImportBtn').disabled=false}}
-function importLog(id){const log=ws.imports.find(x=>x.id===id);modal('导入结果 · '+e(log.filename),`<div class="alert info">有效 ${log.row_count} 行 · 错误 ${log.error_count} 行</div>${log.errors?.length?`<table class="task-table"><thead><tr><th>行号</th><th>原因</th></tr></thead><tbody>${log.errors.map(x=>`<tr><td>${x.line}</td><td>${e(x.error)}</td></tr>`).join('')}</tbody></table>`:'<p class="muted">所有已处理的行均通过校验。</p>'}`,button('关闭','close-modal'))}
+async function commitImport(){
+ if(mode==='server'&&!window.processUI?.isAdmin())return toast('只有流程管理员可以提交业务数据导入。');
+ if(!importDraft?.rows.length)return;
+ const draft=importDraft,input=$('#importFile'),submit=$('#commitImportBtn'),panel=$('#importValidation');
+ if(current()?.id!==draft.productId||input?.files[0]!==draft.file)return toast('产品或文件已变化，请重新校验。');
+ input.disabled=true;submit.disabled=true;
+ let message;
+ try{
+  if(mode==='server'){
+   const body=draft.type==='advertised_product'?spImportBody(draft.file):new FormData();
+   if(draft.type!=='advertised_product'){body.set('import_type',draft.type);body.set('file',draft.file);}
+   const receipt=await api(`/api/products/${draft.productId}/imports`,{method:'POST',body});
+   message=receipt.replayed?`此文件已登记，沿用原导入记录（${receipt.row_count} 行）。`:`已导入 ${receipt.row_count} 行有效数据。`;
+   if(receipt.error_count)message+=`另有 ${receipt.error_count} 行错误，可查看导入记录。`;
+   ws.imports=[receipt,...ws.imports.filter(row=>row.id!==receipt.id)];
+   try{await refreshWorkspace(false);}catch{message+=' 工作区刷新失败，可重新打开查看已登记批次。';}
+  }else{
+   ws.records=ws.records||{sales:[],advertising:[],inventory:[],costs:[]};
+   const id=uuid(),target=ws.records[draft.type];
+   for(const row of draft.rows){
+    const record={...row,product_id:draft.productId,import_id:id};
+    const index=target.findIndex(item=>recordKey(draft.type,item)===recordKey(draft.type,record));
+    if(index<0)target.push(record);else target.splice(index,1,record);
+   }
+   ws.imports.unshift({id,product_id:draft.productId,import_type:draft.type,filename:draft.file.name,
+    row_count:draft.rows.length,error_count:draft.errors.length,errors:draft.errors,created_at:new Date().toISOString(),
+    status:draft.errors.length?'completed_with_errors':'completed'});
+   persist();message=`已导入 ${draft.rows.length} 行有效数据。`;
+  }
+  if(input.isConnected){importDraft=null;closeModal();}
+  render();toast(message);
+ }catch(err){
+  if(!input.isConnected)return;
+  input.disabled=false;submit.disabled=false;
+  const label=err.status&&err.status<500?'导入未保存':'提交结果待确认，请先核对导入记录';
+  panel.insertAdjacentHTML('afterbegin',`<div class="alert error" role="alert">${label}：${e(err.message)}</div>`);
+ }
+}
+async function importLog(id){
+ const log=ws.imports.find(x=>x.id===id);
+ if(!log)return;
+ const errors=log.errors?.length?`<table class="task-table"><thead><tr><th>行号</th><th>原因</th></tr></thead><tbody>${log.errors.map(x=>`<tr><td>${x.line}</td><td>${e(x.error)}</td></tr>`).join('')}</tbody></table>`:'';
+ modal('导入结果 · '+e(log.filename),`<div class="alert info">有效 ${log.row_count} 行 · 错误 ${log.error_count} 行</div>${errors}<div id="importSourceRows" aria-live="polite"></div>`,button('关闭','close-modal'),true);
+ if(mode!=='server'||log.import_type!=='advertising')return;
+ const host=$('#importSourceRows'),columns=[['source_line','原文件行'],['date','报告日期'],['profile_id','广告账户'],['account_key','店铺'],['marketplace','站点'],['campaign_id','活动 ID'],['ad_group_id','广告组 ID'],['ad_id','广告 ID'],['sku','SKU'],['currency','币种'],['spend','花费'],['sales','归因销售'],['attribution_days','归因天数']];
+ async function load(offset){
+  host.textContent='正在读取本批次的导入记录…';
+  try{
+   const data=await api(`/api/products/${log.product_id}/imports/${log.id}/rows?offset=${offset}&limit=50`);
+   if(!host.isConnected)return;
+   if(data.grain!=='advertised_product'){host.replaceChildren();return;}
+   host.innerHTML=`<h3>SP 商品广告日报 · 已存来源行</h3><p>本批次导入时的记录 · 第 ${offset+1} 至 ${offset+data.rows.length} 行，共 ${data.total} 行。</p>
+    <div class="import-preview"><table class="task-table"><thead><tr>${columns.map(([,label])=>`<th>${label}</th>`).join('')}</tr></thead>
+    <tbody>${data.rows.map(row=>`<tr>${columns.map(([key])=>`<td>${e(row[key]??'')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+   const pageButton=(label,next)=>{const btn=document.createElement('button');btn.type='button';btn.className='btn';btn.textContent=label;btn.onclick=()=>load(next);host.append(btn);};
+   if(offset)pageButton('上一页',Math.max(0,offset-50));
+   if(data.next_offset!==null)pageButton('下一页',data.next_offset);
+  }catch(err){if(host.isConnected)host.textContent='来源行读取失败：'+err.message;}
+ }
+ await load(0);
+}
 const scopePrefixes={'@交付清单':'deliverables','@资料':'deliverables','@全局':'global','@驾驶舱':'overview','@流程':'workflow','@店铺':'shop','@页面':'listing','@广告':'ads','@库存':'inventory','@活动':'calendar','@利润':'finance','@售后':'service','@合规':'compliance','@排名':'ranking','@建议':'agent','@导入':'imports','@团队':'team'};
 function contextTitle(scope=view){return scope==='global'?'当前产品全部页面':nav.flatMap(g=>g[1]).find(x=>x[0]===scope)?.[1]||catalog.modules.find(m=>m.id===scope)?.name||(scope==='settings'?'功能与系统设置':scope)}
 function contextKey(){return [productId,view,view==='deliverables'?[deliveryCategory,deliveryReadiness,deliveryKind].join('|'):'',filterModule,filterState,filterOwner,filterPhase,query,view==='ranking'?rankType+'|'+rankKeyword:'',view==='calendar'?calendarMonth.toISOString().slice(0,7):''].join(':')}
@@ -465,7 +621,7 @@ async function pollUpgrade(attempt=0,serial=upgradeFlow.serial){
  }
  scheduleUpgradePoll(attempt+1,serial);
 }
-async function refreshWorkspace(notify=true){window.analyticsUI?.invalidate();if(mode==='server'){ws=await api('/api/workspace');if(productId!=='all'&&!product(productId))productId='all';}if(notify){renderShell();render();toast(mode==='demo'?'已重新读取本机示例状态。':'已重新读取服务器数据。')}}
+async function refreshWorkspace(notify=true){calendarFocusCache=null;window.analyticsUI?.invalidate();if(mode==='server'){ws=await api('/api/workspace');if(productId!=='all'&&!product(productId))productId='all';}if(notify){renderShell();render();toast(mode==='demo'?'已重新读取本机示例状态。':'已重新读取服务器数据。')}}
 async function handleAction(el){const a=el.dataset.action,id=el.dataset.id;
  switch(a){
  case 'delivery-category':deliveryCategory=el.dataset.category;render();break;
@@ -478,6 +634,7 @@ async function handleAction(el){const a=el.dataset.action,id=el.dataset.id;
  case 'navigate':navigate(el.dataset.view);break;
  case 'product':productId=id;navigate('workflow');break;
  case 'matrix':productId=el.dataset.product;navigate('workflow');filterModule=el.dataset.module;render();break;
+ case 'workspace-login':window.processUI?.login();break;
  case 'new-product':newProduct();break;case 'save-product':await saveProduct();break;
  case 'new-task':newTask(view==='deliverables'?{module_code:({store:'shop',listing:'listing',advertising:'ads',delivery:'inventory'}[deliveryCategory]||'shop')}:{});break;case 'save-new-task':await saveNewTask();break;
  case 'task':if(el.closest('.wb-cal-daily'))closeModal();await openTask(id);break;case 'toggle':await toggle(id);break;
@@ -497,6 +654,8 @@ async function handleAction(el){const a=el.dataset.action,id=el.dataset.id;
  case 'month-now':calendarMonth=new Date();render();break;
  case 'calendar-layout':calendarLayout=el.dataset.layout;render();break;
  case 'calendar-zoom':calendarZoom=Math.min(1.75,Math.max(1,calendarZoom+Number(el.dataset.step)*0.25));render();break;
+ case 'reload-focus':calendarFocusCache=null;render();break;
+ case 'focus-item':if($('#modal')?.open)closeModal();window.workbenchUI?.openFocus(el.dataset.id);break;
  case 'day-events':{const day=el.dataset.date,items=calendarItems().filter(x=>x.from<=day&&x.until>=day);modal(day+' · 工作清单','<div class="wb-cal-daily">'+(items.map(calendarItem).join('')||'当天没有符合筛选条件的工作。')+'</div>',button('关闭','close-modal'),true);break;}
  case 'new-query':newQuery();break;case 'save-query':await saveQuery();break;
  case 'open-ai':openAI();break;

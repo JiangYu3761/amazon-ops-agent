@@ -48,6 +48,7 @@ MAX_COMPRESSED=32*1024*1024
 MAX_UNCOMPRESSED=128*1024*1024
 MAX_ROWS=50000
 MAX_DAYS=31  # Internal bounded-job limit, not an assertion about Amazon's API limits.
+SP_AD_ATTRIBUTION_DAYS = 7  # The advertised-product report requests the seller 7d metric family.
 _TOKEN_CACHE={}
 _PROFILE_CACHE={}
 _TOKEN_LOCK=threading.Lock()
@@ -176,6 +177,7 @@ class _Collector:
         try:self.zone=ZoneInfo(connection.get('time_zone') or 'UTC')
         except (ZoneInfoNotFoundError,TypeError):_error('invalid_configuration','账户业务时区无效')
         self.today=instant.astimezone(self.zone).date()
+        self.ads_as_of_day = self.today
         if self.end>self.today:_error('invalid_window','同步日期不能晚于当前账户日期')
         region=connection.get('region')
         if region not in SP_HOSTS:_error('invalid_configuration','Amazon 区域必须为 NA、EU 或 FE')
@@ -439,12 +441,14 @@ class _Collector:
             identity=(day.isoformat(),key)
             if identity in seen:_error('duplicate_report_row','广告商品报告存在重复实体，已停止整批发布')
             seen.add(identity)
-            sales=_money(item.get('sales7d'),nullable=True);orders=_integer(item.get('purchases7d'),nullable=True)
+            sales=_money(item.get(f'sales{SP_AD_ATTRIBUTION_DAYS}d'),nullable=True)
+            orders=_integer(item.get(f'purchases{SP_AD_ATTRIBUTION_DAYS}d'),nullable=True)
             payload=dict(report_date=day.isoformat(),sku=mapping['sku'],asin=asin,campaign_id=identifiers[0],ad_group_id=identifiers[1],ad_id=identifiers[2],
                 campaign_name=str(item.get('campaignName') or identifiers[0]),entity_name=str(item.get('adGroupName') or identifiers[1]),
                 impressions=_integer(item.get('impressions')),clicks=_integer(item.get('clicks')),spend=_money(item.get('cost')),
                 attributed_sales=sales,attributed_orders=orders,currency=self.connection['currency'],ad_type='SP',report_grain='advertised_product',
-                attribution_days=7,mature=self.today>day+timedelta(days=7))
+                attribution_days=SP_AD_ATTRIBUTION_DAYS,
+                mature=self.ads_as_of_day is not None and self.ads_as_of_day>day+timedelta(days=SP_AD_ATTRIBUTION_DAYS))
             if sales is None or orders is None:payload['_incomplete']=True
             rows.append(dict(product_id=mapping['product_id'],dataset='advertising',day=day.isoformat(),natural_key=key,payload=payload))
         return rows
@@ -455,10 +459,11 @@ class _Collector:
         if not report_id:
             value=self.api('POST','/reporting/reports',json={'name':'HOMA SP advertised products','startDate':self.start.isoformat(),'endDate':self.end.isoformat(),
                 'configuration':{'adProduct':'SPONSORED_PRODUCTS','reportTypeId':'spAdvertisedProduct','groupBy':['advertiser'],'timeUnit':'DAILY','format':'GZIP_JSON',
-                    'columns':['date','campaignId','campaignName','adGroupId','adGroupName','adId','advertisedAsin','advertisedSku','impressions','clicks','cost','purchases7d','sales7d']}})
+                    'columns':['date','campaignId','campaignName','adGroupId','adGroupName','adId','advertisedAsin','advertisedSku','impressions','clicks','cost',f'purchases{SP_AD_ATTRIBUTION_DAYS}d',f'sales{SP_AD_ATTRIBUTION_DAYS}d']}})
             report_id=value.get('reportId')
             if not isinstance(report_id,str) or not report_id:_error('invalid_response','广告报告创建响应缺少 reportId')
             self.checkpoint['reports']['ads']=_remote_id(report_id)
+            self.checkpoint['ads_requested_at'] = self.instant.isoformat()
             return SyncBatch([],[],self.checkpoint,True,30,[ADS_WARNING])
         value=self.api('GET','/reporting/reports/'+_remote_id(report_id))
         status=value.get('status')
@@ -470,9 +475,25 @@ class _Collector:
             or config.get('timeUnit')!='DAILY' or config.get('format')!='GZIP_JSON' or config.get('groupBy')!=['advertiser']
             or value.get('startDate')!=self.start.isoformat() or value.get('endDate')!=self.end.isoformat()):
             _error('report_scope_mismatch','广告报告类型、粒度或日期与商品同步任务不一致')
+        # Polling or downloading after local midnight does not make an earlier report mature.
+        # Without a platform generation timestamp, the request instant is a conservative bound.
+        generated = value.get('generatedAt')
+        requested = self.checkpoint.get('ads_requested_at')
+        observed = generated if generated is not None else requested
+        self.ads_as_of_day = None
+        if observed is not None:
+            try:
+                stamp = datetime.fromisoformat(observed)
+                if stamp.utcoffset() is None or stamp > self.instant:
+                    raise ValueError()
+                self.ads_as_of_day = stamp.astimezone(self.zone).date()
+            except (TypeError, ValueError, OverflowError):
+                _error('invalid_report','广告报告生成时间无法校验')
+        receipt = {'ads_report_id':report_id, 'ads_requested_at':requested, 'ads_generated_at':generated,
+                   'ads_as_of_day':self.ads_as_of_day.isoformat() if self.ads_as_of_day else None}
         rows=self._ads_rows(self.download(value.get('url'),True))
         days=[(self.start+timedelta(days=n)).isoformat() for n in range((self.end-self.start).days+1)]
-        return SyncBatch(rows,self.coverage(rows,'advertising',days),{},warnings=[ADS_WARNING])
+        return SyncBatch(rows,self.coverage(rows,'advertising',days),receipt,warnings=[ADS_WARNING])
 
 
 def collect_connection(connection,mappings,start_date,end_date,checkpoint,*,client=None,now=None)->SyncBatch:

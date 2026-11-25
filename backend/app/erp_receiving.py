@@ -1,13 +1,15 @@
 """Receiving and quality allocations for an explicitly granted local warehouse scope."""
 import hashlib
 import json
+from decimal import Decimal
 from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from .db import connection
+from .erp_refunds import Amount, Currency, check_amount, money_text
 from .stock_ledger import check_postings
 from .workbench_scope import resolve_shop_scope
 from .workflow_auth import require_admin, require_user
@@ -38,6 +40,31 @@ class Scope(Command):
 class OrderLine(Input):
     sku: Name
     qty: Positive
+    contract_currency: Currency | None = None
+    net_unit_price: Amount | None = None
+    unit_tax: Annotated[Decimal, Field(ge=0, lt=10**14, max_digits=18, decimal_places=4)] | None = None
+
+    @model_validator(mode='after')
+    def complete_pricing(self):
+        if self.contract_currency is None and self.net_unit_price is None and self.unit_tax is None:
+            return self
+        if self.contract_currency is None or self.net_unit_price is None:
+            raise ValueError('计价采购行须同时填写合同币种和每件净价')
+        check_amount(self.net_unit_price, self.contract_currency)
+        check_amount(self.unit_tax or Decimal(0), self.contract_currency)
+        return self
+
+    def price_values(self):
+        if self.contract_currency is None:
+            return (None, None, None)
+        return (self.contract_currency, self.net_unit_price, self.unit_tax or Decimal(0))
+
+
+def format_contract(row):
+    if row['contract_currency']:
+        for key in ('net_unit_price', 'unit_tax'):
+            row[key] = money_text(row[key], row['contract_currency'])
+    return row
 
 
 class Order(Command):
@@ -121,9 +148,10 @@ def _detail(conn, order_id, actor, lock=False):
     if not head:
         raise HTTPException(404, '采购单不存在或不可见')
     _scope(conn, head['scope_id'], actor, lock)
-    lines = conn.execute('SELECT id,sku,qty FROM erp_receiving_order_lines WHERE order_id=%s ORDER BY position',
+    lines = conn.execute('SELECT id,sku,qty,contract_currency,net_unit_price,unit_tax FROM erp_receiving_order_lines WHERE order_id=%s ORDER BY position',
                          (order_id,)).fetchall()
     for line in lines:
+        format_contract(line)
         line.update(received=0, notified=0, unnotified=line['qty'])
     by_line = {line['id']: line for line in lines}
     notices = conn.execute('SELECT * FROM erp_receiving_notices WHERE order_id=%s ORDER BY created_at,number',
@@ -166,7 +194,14 @@ def _detail(conn, order_id, actor, lock=False):
 
 def _execute(actor, body, operation, target, change):
     # Commit the request receipt, document changes, and all quantity deltas together.
-    fingerprint = hashlib.sha256(json.dumps([operation, str(target), body.model_dump(mode='json')],
+    payload = body.model_dump(mode='json')
+    if isinstance(body, Order):
+        # Preserve request digests issued before the optional contract fields existed.
+        for line in payload['lines']:
+            if line['contract_currency'] is None:
+                for key in ('contract_currency','net_unit_price','unit_tax'):
+                    line.pop(key)
+    fingerprint = hashlib.sha256(json.dumps([operation, str(target), payload],
                                             ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     with connection() as conn:
         conn.execute('SELECT pg_advisory_xact_lock(hashtextextended(%s,0))', (str(actor['id'])+':'+str(body.request_id),))
@@ -243,8 +278,9 @@ def create_purchase_order(conn, scope_id, number, supplier, lines, creator_id):
     if not order:
         conflict('此仓库范围已有该采购单号')
     for position,line in enumerate(lines):
-        conn.execute('INSERT INTO erp_receiving_order_lines(order_id,position,sku,qty) VALUES(%s,%s,%s,%s)',
-                     (order['id'], position, line.sku, line.qty))
+        conn.execute('''INSERT INTO erp_receiving_order_lines(order_id,position,sku,qty,contract_currency,net_unit_price,unit_tax)
+                        VALUES(%s,%s,%s,%s,%s,%s,%s)''',
+                     (order['id'], position, line.sku, line.qty, *line.price_values()))
     return order['id']
 
 

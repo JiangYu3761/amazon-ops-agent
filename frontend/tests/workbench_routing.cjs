@@ -8,3 +8,17 @@ assert.deepEqual(classify(''), []);
 assert.equal(classify('ＡＣＯＳ 高于目标')[0].page, 'ads');
 assert.equal(classify('库存正常')[0].quote,'库存正常');
 console.log('运营记录分派：多主题、原文、未知、同句去重和全角输入通过');
+
+const priority=(text,page)=>classify(text).find(row=>row.page===page).priorityEvidence;
+assert.deepEqual(priority('库存受阻，现已解决。','inventory'),[]);
+assert.deepEqual(priority('广告不紧急，没有阻塞，预计周五前视情况复核。','ads'),[]);
+assert.deepEqual(priority('采购紧急联系人已更新。','inventory'),[]);
+assert.deepEqual(priority('库存受阻，但广告竞价需今天18:00前复核。','inventory'),[{kind:'明确阻塞',quote:'受阻'}]);
+assert.deepEqual(priority('库存受阻，但广告竞价需今天18:00前复核。','ads'),[{kind:'明确截止',quote:'今天18:00前'}]);
+assert.deepEqual(priority('库存阻塞已解除，但广告竞价需明天下班前复核。','inventory'),[]);
+assert.deepEqual(priority('库存阻塞已解除，但广告竞价需明天下班前复核。','ads'),[{kind:'明确截止',quote:'明天下班前'}]);
+assert.deepEqual(priority('不要求广告今天18:00前提交。','ads'),[]);
+assert.deepEqual(priority('广告截止日期待确认。','ads'),[]);
+assert.deepEqual(priority('如果发现库存阻塞再处理。','inventory'),[]);
+assert.deepEqual(priority('库存需要加急处理。','inventory'),[{kind:'明确紧急',quote:'加急'}]);
+console.log('重点规则：明确原词、已解决、否定、假设、分句归属与无证据均通过');

@@ -1,0 +1,85 @@
+x-instance: &instance
+  com.homa.local-workspace: "${HOMA_INSTANCE_KEY:?use scripts/local_workspace.sh}"
+services:
+  db:
+    image: "${HOMA_PROJECT}-db:local"
+    build:
+      context: ../..
+      dockerfile: deploy/local-workspace/services.Dockerfile
+      target: database
+      labels: *instance
+    labels: *instance
+    restart: unless-stopped
+    env_file: ["${HOMA_PRIVATE_DIR}/database.env"]
+    environment:
+      POSTGRES_USER: homa
+      POSTGRES_DB: homa
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "homa", "-d", "homa"]
+      interval: 2s
+      timeout: 4s
+      retries: 45
+  api:
+    image: "${HOMA_PROJECT}-api:local"
+    build:
+      context: ../..
+      dockerfile: backend/Dockerfile
+      labels: *instance
+    labels: *instance
+    restart: unless-stopped
+    env_file: ["${HOMA_PRIVATE_DIR}/integrations.env", "${HOMA_PRIVATE_DIR}/database.env"]
+    environment:
+      HOMA_ACTIVE_DB: "${HOMA_ACTIVE_DB}"
+      WORKFLOW_SETUP_TOKEN: "${HOMA_PAIRING_KEY:?use scripts/local_workspace.sh}"
+      WORKFLOW_UPLOAD_DIR: /var/lib/homa/uploads
+      SYNC_WORKER_ENABLED: "true"
+      UPDATE_ENABLED: "false"
+      APP_VERSION: local-workspace
+    command:
+      - sh
+      - -ec
+      - |
+        export DATABASE_URL="postgresql://homa:$${POSTGRES_PASSWORD}@db:5432/$${HOMA_ACTIVE_DB}"
+        python -m app.migrate
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - uploads:/var/lib/homa/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.build_opener(urllib.request.ProxyHandler({})).open('http://127.0.0.1:8000/health', timeout=3)"]
+      interval: 3s
+      timeout: 4s
+      retries: 45
+  web:
+    image: "${HOMA_PROJECT}-web:local"
+    build:
+      context: ../..
+      dockerfile: deploy/local-workspace/services.Dockerfile
+      target: website
+      labels: *instance
+    labels: *instance
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${HOMA_WEB_PORT}:80"
+    healthcheck:
+      test: ["CMD", "wget", "-Y", "off", "-q", "-O", "/dev/null", "http://127.0.0.1/health"]
+      interval: 3s
+      timeout: 4s
+      retries: 30
+networks:
+  default:
+    labels: *instance
+volumes:
+  database:
+    external: true
+    name: "${HOMA_PROJECT}_database"
+  uploads:
+    external: true
+    name: "${HOMA_PROJECT}_uploads"
