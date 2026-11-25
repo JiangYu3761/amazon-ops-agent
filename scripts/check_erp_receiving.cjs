@@ -49,6 +49,7 @@ async function main(){
     await tab(p,'purchase');await box(p).getByRole('button',{name:'新建采购单'}).click();
     const order=form(p,'order');await input(order,'number').fill('RX-QA-001');await input(order,'supplier').fill('示例供应商');
     await input(order,'sku').fill('CAM-A');await input(order,'qty').fill('10');
+    await input(order,'contract_currency').fill('USD');await input(order,'net_unit_price').fill('7.11');await input(order,'unit_tax').fill('0.17');
     await order.getByRole('button',{name:'增加 SKU'}).click();
     await input(order,'sku').nth(1).fill('CAM-B');await input(order,'qty').nth(1).fill('6');
     await submit(order);await feedback(p,'采购单已建立');
@@ -82,7 +83,8 @@ async function main(){
     await tab(m,'ledger');
     const net=box(m).locator('section').filter({has:m.getByRole('heading',{name:'本采购单库存变动净额'})});
     assert.deepEqual(await net.locator('tr').filter({hasText:'CAM-A'}).locator('td').allTextContents(),['CAM-A','0','4','2']);
-    await tab(m,'purchase');await row(n,'CAM-A',{qty:4});await submit(n);await feedback(m,'通知已建立');
+    await tab(m,'purchase');await n.getByRole('cell',{name:'43.68 USD',exact:true}).waitFor();
+    await row(n,'CAM-A',{qty:4});await submit(n);await feedback(m,'通知已建立');
     await choose(m,'receive-mode').selectOption('quick');await row(receive,'CAM-A',{qty:4,good:4,bad:1});await submit(receive);await feedback(m,'必须等于');
     await row(receive,'CAM-A',{good:3,bad:1});await submit(receive);await feedback(m,'收货已入账');
     const actual=await api(admin,'GET',apiRoot+'/orders/'+currentOrder);
@@ -106,7 +108,7 @@ async function main(){
     await choose(p,'notice').waitFor();assert.equal(await choose(p,'notice').inputValue(),final.notices[1].id);
     await p.evaluate(([scope,order])=>window.workbenchUI.openReceivingOrder(scope,order,'missing-notice'),[final.scope_id,final.id]);
     await feedback(p,'目标通知不属于当前采购单');assert.equal(await choose(p,'notice').count(),0);
-    assert.deepEqual(errors,[]);console.log('PostgreSQL + Chromium receiving passed: warehouse ACL, two SKUs, duplicate order, dropped response and idempotent retry, short receipt, normal/quick allocation, inspection/waiver, reverse constraint, ledger after reload.');
+    assert.deepEqual(errors,[]);console.log('PostgreSQL + Chromium receiving passed: warehouse ACL, multi-SKU contract terms and received tax-inclusive cost, duplicate order, dropped response and idempotent retry, short receipt, normal/quick allocation, inspection/waiver, reverse constraint, ledger after reload.');
   }finally{await browser.close();}
 }
 main().catch(err=>{console.error(err);process.exitCode=1;});

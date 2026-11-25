@@ -38,6 +38,7 @@ async function main(){
     for(const page of [m,p,a2,x]){page.setDefaultTimeout(8000);page.on('pageerror',e=>errors.push(e.message));}
     await open(x);assert.equal(await btn(x,'新建采购申请').count(),0);
     await open(m);await create(m,'PR-A',5,'真实采购供应商');
+    await field(m,'contract_currency').fill('GBP');await field(m,'net_unit_price').fill('4.37');await field(m,'unit_tax').fill('0.21');
     await btn(m,'增加 SKU').click();await field(m,'sku').nth(1).fill('PR-B');await field(m,'qty').nth(1).fill('9');
     await btn(m,'保存申请草稿').click();await changed(m,'草稿已保存');
     const request=(await req(member,'GET',pr+'?scope_id='+scope.id)).items[0];await req(other,'GET',pr+'/'+request.id,undefined,404);
@@ -55,6 +56,8 @@ async function main(){
     await Promise.all([btn(p,'签发采购单').click(),btn(a2,'签发采购单').click()]);
     await changed(p,'已签发');await changed(a2,'已签发');
     const issued=await req(member,'GET',pr+'/'+request.id);assert.equal(issued.status,'issued');
+    assert.equal(issued.lines[0].contract_currency,'GBP');assert.equal(issued.lines[0].net_unit_price,'4.37');
+    assert.equal(issued.events[0].snapshot.lines[0].unit_tax,'0.21');
     assert.equal(issued.events.filter(e=>e.action==='issue').length,1);assert.equal(issued.events[0].snapshot.lines[0].qty,5);
     assert.equal((await req(admin,'GET',rx+'/orders?scope_id='+scope.id)).items.filter(b=>b.number==='ISSUED-PO').length,1);
     // Make the issued order an older item in the authorized warehouse as well.
@@ -68,6 +71,7 @@ async function main(){
     const receive=receiving.locator('[data-rx-form=receive]');await receive.getByLabel('PR-A 实收数量').fill('4');await receive.getByRole('button',{name:'确认收货'}).click();
     await receiving.locator('[data-rx-form=quality]').waitFor();
     const actual=await req(admin,'GET',rx+'/orders/'+issued.order_id);
+    assert.equal(actual.lines[0].net_unit_price,'4.37');assert.equal(actual.lines[0].unit_tax,'0.21');
     assert.deepEqual(actual.lines.map(l=>[l.sku,l.qty,l.received]),[['PR-A',4,4],['PR-B',9,0]]);
     // Admin self-review is unavailable even if the actor has access to the scope.
     await open(p);await desk(p).locator('[data-pr-scope]').selectOption(scope.id);await btn(p,'新建采购申请').waitFor();
@@ -80,7 +84,7 @@ async function main(){
     await x.evaluate(([scope,id])=>window.erpProcurement.openRequest(scope,id),[scope.id,request.id]);
     await changed(x,'无权查看指定仓库');assert.equal(await btn(x,'打开此采购单办理收货').count(),0);
     assert.deepEqual(errors,[]);
-    console.log('PostgreSQL + Chromium procurement passed: scoped two-SKU request, independent review and required rejection reason, amendment and historical versions, duplicate PO conflict, simultaneous issuance -> one real PO, correct warehouse/order handoff and receipt, self-review blocked.');
+    console.log('PostgreSQL + Chromium procurement passed: scoped two-SKU request, preserved contract terms across amendments and issue, independent review and required rejection reason, amendment and historical versions, duplicate PO conflict, simultaneous issuance -> one real PO, correct warehouse/order handoff and receipt, self-review blocked.');
   }finally{await browser.close();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

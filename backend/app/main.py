@@ -7,9 +7,9 @@ from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Response, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, RedirectResponse
 from pydantic import BaseModel, field_validator
 from psycopg.types.json import Jsonb
 
@@ -38,6 +38,8 @@ from .erp_receiving import router as receiving_router
 from .ads_reviews import router as ads_reviews_router
 from .ad_review_periods import router as ad_review_periods_router
 from .ad_review_feedback import router as ad_review_feedback_router
+from .feishu_sync import router as feishu_sync_router
+from .triage_drafts import router as triage_drafts_router
 from .workbench import router as workbench_router
 from .workbench_insights import router as workbench_insights_router
 from .approvals import router as approvals_router
@@ -74,6 +76,8 @@ app.include_router(payables_router)
 app.include_router(ads_reviews_router)
 app.include_router(ad_review_periods_router)
 app.include_router(ad_review_feedback_router)
+app.include_router(feishu_sync_router)
+app.include_router(triage_drafts_router)
 app.include_router(workbench_router)
 app.include_router(workbench_insights_router)
 app.include_router(data_router)
@@ -82,7 +86,7 @@ app.include_router(data_router)
 @app.middleware('http')
 async def private_process_responses(request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith(('/api/erp-', '/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/ads-review','/analytics','/erp/','/imports','/operating-summary','/records')):
+    if request.url.path.startswith(('/api/erp-', '/api/workspace', '/api/workbench', '/api/process', '/api/workflow-auth', '/api/approvals','/api/integrations')) or any(part in request.url.path for part in ('/ads-review','/analytics','/erp/','/imports','/operating-summary','/records')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 app.add_middleware(
@@ -147,6 +151,12 @@ class AgentChatRequest(BaseModel):
     message: str
     conversation_id: UUID | None = None
     filters: dict = {}
+
+
+@app.get("/api/workspace-app/manifest.webmanifest", include_in_schema=False)
+def workspace_app_manifest():
+    # Static previews have no API route advertising an installable operational workspace.
+    return RedirectResponse("/manifest.webmanifest", headers={"Cache-Control": "no-store"})
 
 
 @app.get("/health")
@@ -347,6 +357,7 @@ def decide_task_approval(task_id: UUID, body: ApprovalDecision, actor=Depends(re
 
 
 TEMPLATES = {
+    "advertised_product": "date,campaign_name,entity_name,impressions,clicks,spend,sales,orders,currency,report_grain,profile_id,ad_type,campaign_id,ad_group_id,ad_id,sku,asin,attribution_days,account_key,marketplace\n2026-11-14,SP sample,group A,100,10,10.00,50.00,2,USD,advertised_product,123456,SP,201,301,401,EXAMPLE-SKU,,7,example-store,US\n",
     "sales": "date,sku,asin,units_ordered,ordered_revenue,currency\n2026-11-14,G11-US,B0GXZ848Q1,3,299.97,USD\n",
     "advertising": "date,campaign_name,entity_name,impressions,clicks,spend,sales,orders,currency\n2026-11-14,G11-SP-AUTO,close-match,1200,18,22.50,99.99,1,USD\n",
     "inventory": "date,sku,asin,fulfillable,reserved,inbound,unsellable\n2026-11-14,G11-US,B0GXZ848Q1,240,12,480,2\n",
@@ -362,15 +373,19 @@ def import_template(import_type: str):
 
 
 @app.post("/api/products/{product_id}/imports", status_code=201)
-async def import_operating_data(product_id: UUID, import_type: str = Form(...), file: UploadFile = File(...), actor=Depends(require_admin),
-                                required_grain: Literal["search_term"] | None = Form(None)):
+async def import_operating_data(product_id: UUID, response: Response, import_type: str = Form(...), file: UploadFile = File(...),
+                                actor=Depends(require_admin), required_grain: Literal["search_term", "advertised_product"] | None = Form(None),
+                                validate_only: bool = Form(False)):
+    if validate_only and required_grain != "advertised_product":
+        raise HTTPException(422, "商品广告预检须指定 advertised_product")
     if import_type not in SCHEMAS:
         raise HTTPException(422, "Unsupported import type")
     raw = await file.read(10 * 1024 * 1024+1)
     if len(raw) > 10 * 1024 * 1024:
         raise HTTPException(413, "CSV file is limited to 10 MB")
+    content_hash = hashlib.sha256(raw).hexdigest()
     with connection() as conn:
-        product=conn.execute("SELECT sku,asin,currency FROM products WHERE id=%s", (product_id,)).fetchone()
+        product=conn.execute("SELECT sku,asin,currency,marketplace,data_account_key FROM products WHERE id=%s FOR SHARE", (product_id,)).fetchone()
         if not product:
             raise HTTPException(404, "Product not found")
         try:
@@ -380,7 +395,7 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
         if not rows:
             raise HTTPException(422, {"message": "No valid rows", "errors": errors[:20]})
         if required_grain and (import_type != "advertising" or any(row.get("report_grain") != required_grain for row in rows)):
-            raise HTTPException(422, "此入口仅接收明确标注 report_grain=search_term 的完整搜索词日报")
+            raise HTTPException(422, f"此入口仅接收明确标注 report_grain={required_grain} 的完整日报")
         mappings=conn.execute('SELECT sku,asin FROM operating_product_mappings WHERE product_id=%s',(product_id,)).fetchall()
         allowed_skus={p['sku'] for p in mappings if p['sku']}|({product['sku']} if product['sku'] else set())
         allowed_asins={p['asin'] for p in mappings if p['asin']}|({product['asin']} if product['asin'] else set())
@@ -393,6 +408,24 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
                 raise HTTPException(422, 'Currency must match product currency')
         if import_type == "advertising" and any(row.get("report_grain") == "search_term" for row in rows):
             conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", ("search_terms:" + str(product_id),))
+        if import_type == "advertising" and rows[0].get("report_grain") == "advertised_product":
+            from .advertised_product_csv import validate_scope
+            if not validate_only:
+                conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s, 0))", ("advertised_product:" + str(product_id),))
+            validate_scope(conn,product_id,product,rows)
+            if validate_only:
+                response.status_code = 200
+                columns = TEMPLATES["advertised_product"].splitlines()[0].split(",")
+                sample = [{key: str(row[key]) if row.get(key) is not None else "" for key in columns} for row in rows[:5]]
+                return {"row_count": len(rows), "headers": columns, "rows": sample, "errors": []}
+            # Replaying an older file must not undo a later correction.
+            receipt=conn.execute("""SELECT i.* FROM operating_csv_artifacts a JOIN data_imports i ON i.id=a.import_id
+                WHERE a.product_id=%s AND a.content_sha256=%s AND i.import_type='advertising'
+                AND a.normalized_rows->0->>'report_grain'='advertised_product'
+                AND a.normalized_rows->0->>'account_key'=%s AND a.normalized_rows->0->>'marketplace'=%s
+                ORDER BY i.created_at LIMIT 1""",(product_id,content_hash,product['data_account_key'],product['marketplace'])).fetchone()
+            if receipt:
+                return {**receipt, "replayed": True}
         import_row = conn.execute(
             """INSERT INTO data_imports(product_id,import_type,filename,status,row_count,error_count,errors,imported_by)
                VALUES(%s,%s,%s,%s,%s,%s,%s,%s) RETURNING *""",
@@ -403,8 +436,11 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
         table,day_field={'sales':('sales_daily','sale_date'),'advertising':('ad_performance_daily','report_date'),
             'inventory':('inventory_snapshots','snapshot_date'),'costs':('cost_records','effective_date')}[import_type]
         for row in rows:
-            if import_type == "advertising" and row.get("report_grain") == "search_term":
-                from .erp_search_terms import store_source
+            if import_type == "advertising" and row.get("report_grain") in ("search_term", "advertised_product"):
+                if row["report_grain"] == "search_term":
+                    from .erp_search_terms import store_source
+                else:
+                    from .advertised_product_csv import store_source
                 previous = store_source(conn, product_id, row, import_row['id'])
                 if previous:
                     previous_rows.append(dict(previous))
@@ -436,10 +472,10 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
                     other_cost=EXCLUDED.other_cost,currency=EXCLUDED.currency,import_id=EXCLUDED.import_id""",
                     (product_id,row["date"],row["sku"],row["product_cost"],row["first_mile_cost"],row["fba_fee"],row["referral_fee"],row["other_cost"],row["currency"],import_row["id"]))
         conn.execute('INSERT INTO operating_csv_artifacts(import_id,product_id,content_sha256,normalized_rows,previous_rows,actor_id) VALUES(%s,%s,%s,%s,%s,%s)',
-            (import_row['id'],product_id,hashlib.sha256(raw).hexdigest(),Jsonb(_json(rows)),Jsonb(_json(previous_rows)),actor['id']))
+            (import_row['id'],product_id,content_hash,Jsonb(_json(rows)),Jsonb(_json(previous_rows)),actor['id']))
         _audit(conn,actor,'data_import',import_row['id'],'imported',after={'product_id':str(product_id),
             'dataset':import_type,'row_count':len(rows),'error_count':len(errors),
-            'content_sha256':hashlib.sha256(raw).hexdigest()})
+            'content_sha256':content_hash})
         import_row=conn.execute("UPDATE data_imports SET completed_at=now() WHERE id=%s RETURNING *", (import_row["id"],)).fetchone()
         conn.commit()
     return {**import_row, "errors": errors[:20]}
@@ -449,6 +485,27 @@ async def import_operating_data(product_id: UUID, import_type: str = Form(...), 
 def list_imports(product_id: UUID,actor=Depends(require_user)):
     with connection() as conn:
         return conn.execute("SELECT * FROM data_imports WHERE product_id=%s ORDER BY created_at DESC LIMIT 50", (product_id,)).fetchall()
+
+
+@app.get("/api/products/{product_id}/imports/{import_id}/rows")
+def imported_product_ad_rows(product_id: UUID, import_id: UUID, offset: int = Query(0, ge=0, le=2147483000),
+                             limit: int = Query(50, ge=1, le=100), actor=Depends(require_user)):
+    with connection() as conn:
+        batch = conn.execute("""SELECT i.filename, a.normalized_rows->0->>'report_grain' AS grain,
+            jsonb_array_length(a.normalized_rows) AS total
+            FROM data_imports i LEFT JOIN operating_csv_artifacts a ON a.import_id=i.id AND a.product_id=i.product_id
+            WHERE i.id=%s AND i.product_id=%s""", (import_id,product_id)).fetchone()
+        if not batch:
+            raise HTTPException(404, "所选产品没有这笔导入记录")
+        if batch['grain'] != 'advertised_product':
+            return {"grain": batch['grain'], "rows": [], "total": 0, "next_offset": None}
+        total = batch['total']
+        rows = conn.execute("""SELECT a.normalized_rows->n AS payload FROM operating_csv_artifacts a
+            CROSS JOIN generate_series(%s::integer,%s::integer) AS idx(n)
+            WHERE a.import_id=%s AND a.product_id=%s ORDER BY n""",
+            (offset, min(offset+limit,total)-1, import_id, product_id)).fetchall()
+        return {"grain":batch['grain'], "total":total, "rows":[r['payload'] for r in rows],
+                "next_offset":offset+limit if offset+limit < total else None}
 
 
 @app.get("/api/products/{product_id}/operating-summary")

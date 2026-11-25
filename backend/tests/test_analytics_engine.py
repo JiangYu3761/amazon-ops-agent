@@ -203,9 +203,45 @@ class ProductMetricsTests(unittest.TestCase):
         self.assertIsNone(self.value(r,'ads','mature_acos'))
 
     def test_overlapping_ad_grains_are_not_summed(self):
-        r=self.run_engine({'advertising':[self.ad(),self.ad(report_grain='search_term',entity_name='term')]},coverage=self.coverage())
+        r=self.run_engine({'advertising':[self.ad(),self.ad(report_grain='search_term',entity_name='term')]},
+                          coverage=self.coverage(),policies={'target_acos':1})
         self.assertIsNone(self.value(r,'ads','spend'));self.assertIsNone(self.value(r,'ads','acos'))
+        self.assertIsNone(self.value(r,'ads','mature_acos'))
+        self.assertEqual(r['modules']['ads']['findings'],[])
         self.assertEqual(len(self.metric(r,'ads','spend')['inputs']['groups']),2)
+
+    def test_advertised_product_traffic_keys_ignore_names_and_job_ids(self):
+        row = self.ad(report_grain='advertised_product',campaign_id='C',ad_group_id='G',ad_id='AD1',sku='SKU1')
+        for second_spend in (10,17):
+            records = [row,dict(row,ad_id='AD2',spend=second_spend),dict(row,sku='SKU2',spend=2),
+                       dict(row,campaign_name='renamed',entity_name='new group',source_id='next sync')]
+            r = self.run_engine({'advertising':records},coverage=self.coverage())
+            self.assertEqual(self.value(r,'ads','spend'),12+second_spend)
+            self.assertEqual(self.value(r,'ads','clicks'),30)
+        # Historic payloads can omit entity IDs while their persisted facts retain an authoritative key.
+        old = self.ad(report_grain='advertised_product',source_connection_id='conn',natural_key='key1')
+        r=self.run_engine({'advertising':[old,dict(old,natural_key='key2'),dict(old,entity_name='changed')]})
+        self.assertEqual(self.value(r,'ads','spend'),20)
+
+    def test_conflicts_mixed_csv_and_incomplete_period_do_not_trigger_target(self):
+        row=self.ad(report_grain='advertised_product',profile_id='12',campaign_id='C',ad_group_id='G',ad_id='A',sku='S')
+        for other,code in ((dict(row,spend=2),'conflicting_ad_row'),
+                           (dict(row,attribution_days=14,campaign_name='renamed'),'overlapping_ad_grain')):
+            r=self.run_engine({'advertising':[row,other,dict(row,ad_id='B')]},coverage=self.coverage(),policies={'target_acos':1})
+            self.assertIsNone(self.value(r,'ads','mature_acos'))
+            self.assertIsNone(self.value(r,'ads','spend'))
+            self.assertIn(code,[x['code'] for x in r['data_quality']['issues']])
+            self.assertEqual(r['modules']['ads']['findings'],[])
+        priced=dict(row,source='advertised_product_csv',maturity_unverified=True)
+        r=self.run_engine({'advertising':[priced,self.ad(source='csv',ad_type=None,report_grain=None,attribution_days=None)]})
+        self.assertIsNone(self.value(r,'ads','spend'))
+        self.assertIn('overlapping_ad_sources',[x['code'] for x in r['data_quality']['issues']])
+        r=self.run_engine({'advertising':[priced]},coverage=self.coverage(),policies={'target_acos':1})
+        self.assertEqual(self.value(r,'ads','spend'),10)
+        self.assertIsNone(self.value(r,'ads','mature_acos'))
+        r=self.run_engine({'advertising':[dict(row,mature=True)]},policies={'target_acos':1})
+        self.assertEqual(self.metric(r,'ads','mature_acos')['status'],'partial')
+        self.assertEqual(r['modules']['ads']['findings'],[])
 
     def test_distinct_known_windows_are_retained_as_separate_cohorts(self):
         r=self.run_engine({'advertising':[self.ad(),self.ad(ad_type='SB',campaign_name='SB-test',attribution_days=14)]},coverage=self.coverage())

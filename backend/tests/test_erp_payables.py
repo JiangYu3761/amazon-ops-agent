@@ -117,3 +117,84 @@ class PayablesTests(WarehouseFixture,unittest.TestCase):
         self.assertIn(outcomes,[[201,409],[409,200]])
         remaining=self.clients['warehouse'].get(BASE+'/bills',params={'scope_id':self.scope['id']}).json()['items']
         self.assertEqual(len(remaining),1 if outcomes[0]==201 else 0)
+
+    def priced_receipt(self, contract_currency='USD', price='5.00', tax='0.30'):
+        po=self.post('/orders',{**self.po_body,'number':uuid4().hex, 'lines':[
+            {'sku':'PRICE-A','qty':10,'contract_currency':contract_currency,'net_unit_price':price,'unit_tax':tax}]},201,'admin')
+        line=po['lines'][0]['id']
+        def receive(qty):
+            notices=self.post('/orders/'+po['id']+'/notices',{'lines':[{'line_id':line,'qty':qty}]},201)['notices']
+            notice=next(n for n in notices if n['status']=='waiting')
+            result=self.post('/notices/'+notice['id']+'/receive',{'mode':'normal','lines':[{'line_id':line,'qty':qty}]})
+            event=next(n for n in result['notices'] if n['id']==notice['id'])['events'][0]
+            return {'event_id':event['id'],'line_id':line}
+        return receive
+
+    def preview(self, source, amount='15.90', currency='USD', who='warehouse', code=200):
+        response=self.clients[who].post(BASE+'/match-preview',json={'scope_id':self.scope['id'],'currency':currency,
+            'amount':amount,'sources':source})
+        self.assertEqual(response.status_code,code,response.text)
+        return response.json()
+
+    def test_priced_partial_receipts_match_independently_and_freeze_invoice(self):
+        receive=self.priced_receipt()
+        first=receive(3)
+        second=receive(4)
+        invoice={'qty':3,'unit':'件','net_unit_price':'5.00','tax_amount':'0.90','amount':'15.90'}
+        sources=[{**first,'invoice':invoice}]
+        rows=self.clients['warehouse'].get(BASE+'/sources',params={'scope_id':self.scope['id']}).json()['items']
+        a,b=[next(x for x in rows if x['event_id']==ref['event_id']) for ref in (first,second)]
+        self.assertEqual((a['pricing_status'],a['net_unit_price'],a['expected_net'],a['expected_tax'],a['expected_amount']),
+                         ('priced','5.00','15.00','0.90','15.90'))
+        self.assertEqual((b['received_qty'],b['expected_amount']),(4,'21.20'))
+        self.preview(sources,who='outside',code=404)
+        ready=self.preview(sources)
+        self.assertEqual((ready['status'],ready['expected_amount'],ready['differences']),('matched','15.90',[]))
+        body={**self.bill,'document_ref':'INV-PRICED','amount':'15.90','sources':sources,'request_id':str(uuid4())}
+        created=self.call('/bills',body)
+        self.assertEqual(self.call('/bills',body)['id'],created['id'])
+        self.assertEqual((created['amount_source'],created['sources'][0]['invoice']),('po_receipt_invoice',invoice))
+        restored=self.clients['warehouse'].get(BASE+'/bills/'+created['id']).json()
+        self.assertEqual(restored['sources'][0]['expected_amount'],'15.90')
+        self.call('/bills',{**body,'request_id':str(uuid4())},409)
+        self.call('/bills/'+created['id']+'/payments',{'amount':'15.90','external_ref':'voucher','paid_on':'2026-11-24'})
+        self.call('/bills/'+created['id']+'/void',{'reason':'已有付款'},409,'admin')
+        self.post('/events/'+first['event_id']+'/reverse',{'reason':'已结算'},409,'admin')
+        inv2={**invoice,'qty':4,'amount':'21.20','tax_amount':'1.20'}
+        self.assertEqual(self.preview([{**second,'invoice':inv2}],amount='21.20')['status'],'matched')
+
+    def test_discrepancies_block_posting_without_consuming_receipt(self):
+        first=self.priced_receipt()(3)
+        correct={'qty':3,'unit':'件','net_unit_price':'5.00','tax_amount':'0.90','amount':'15.90'}
+        for change,code in [({'qty':4},'实收数量'),({'unit':'箱'},'计量单位'),({'net_unit_price':'5.01'},'每件净价'),
+                            ({'tax_amount':'0.80'},'本行税额'),({'amount':'16.00'},'本行含税金额')]:
+            with self.subTest(change=change):
+                src=[{**first,'invoice':{**correct,**change}}]
+                issues=self.preview(src)
+                self.assertEqual(issues['status'],'difference')
+                self.assertTrue(any(code in x for x in issues['lines'][0]['differences']))
+                self.call('/bills',{**self.bill,'amount':'15.90','sources':src},422)
+        src=[{**first,'invoice':correct}]
+        for selections,currency,amt,expected in [(src,'USD','16','发票总额'),(src,'EUR','15.90','合同币种'),
+                ([first],'USD','15.90','请录入对应的发票行'),(src+[self.source],'USD','15.90','分别登记')]:
+            result=self.preview(selections,currency=currency,amount=amt)
+            self.assertTrue(any(expected in msg for msg in result['differences']))
+            self.call('/bills',{**self.bill,'sources':selections,'amount':amt,'currency':currency},422)
+        unpriced=self.preview([self.source])
+        self.assertEqual((unpriced['status'],unpriced['expected_amount']),('manual',None))
+        self.assertEqual(self.preview([{**self.source,'invoice':correct}])['status'],'difference')
+        self.assertEqual(self.call('/bills',{**self.bill,'amount':'15.90','sources':src})['balance'],'15.90')
+
+    def test_three_decimal_matching_and_multiple_line_differences_cannot_offset(self):
+        receive=self.priced_receipt('KWD','2.123','0.001')
+        a,b=receive(3),receive(2)
+        invoice={'qty':3,'unit':'件','net_unit_price':'2.123','tax_amount':'0.003','amount':'6.372'}
+        other={**invoice,'qty':2,'tax_amount':'0.002','amount':'4.248'}
+        sources=[{**a,'invoice':invoice},{**b,'invoice':other}]
+        self.assertEqual(self.preview(sources,'10.620','KWD')['expected_amount'],'10.620')
+        sources[0]['invoice']={**invoice,'amount':'6.371'}
+        sources[1]['invoice']={**other,'amount':'4.249'}
+        result=self.preview(sources,'10.620','KWD')
+        self.assertEqual(result['status'],'difference')
+        self.assertTrue(all(line['differences'] for line in result['lines']))
+        self.call('/bills',{**self.bill,'currency':'KWD','amount':'10.620','sources':sources},422)

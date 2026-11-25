@@ -8,6 +8,7 @@
   const input=(label,name,value,attrs='')=>`<label class="field">${e(label)}<input name="${name}" value="${e(value||'')}" ${attrs}></label>`;
   const option=(value,label,selected)=>`<option value="${e(value)}"${value===selected?' selected':''}>${e(label)}</option>`;
   const table=(head,rows)=>`<div class="wb-table-wrap"><table class="wb-table"><thead><tr>${head.map(t=>`<th scope="col">${e(t)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  const price=window.erpContractPricing;
   let active;
   function notice(s,message,error=false){
     s.message=message;s.error=error;const node=s.dialog.querySelector('[data-pr-msg]');
@@ -24,8 +25,9 @@
     if(s!==active)return;
     s.panel.innerHTML='<p class="ap-message" data-pr-msg hidden></p>'+body;notice(s,s.message,s.error);busy(s,s.loading||s.saving);
   }
-  function line(sku='',qty=''){
-    return `<tr data-pr-line><td><input name="sku" required maxlength="120" aria-label="SKU" value="${e(sku)}"></td><td><input name="qty" type="number" min="1" max="1000000000" step="1" required aria-label="采购数量" value="${e(qty)}"></td><td>${btn('移除','remove-line')}</td></tr>`;
+  function line(item={}){
+    const {sku='',qty=''}=item;
+    return `<tr data-pr-line><td><input name="sku" required maxlength="120" aria-label="SKU" value="${e(sku)}"></td><td><input name="qty" type="number" min="1" max="1000000000" step="1" required aria-label="采购数量" value="${e(qty)}"></td>${price.inputs(item,e)}<td>${btn('移除','remove-line')}</td></tr>`;
   }
   function edit(s,d){
     s.screen=d?'edit':'create';
@@ -34,7 +36,8 @@
       <p class="ap-note">${e(w?.warehouse)} · ${e(w?.account_ref)} · ${e(w?.site)}</p>
       <form data-pr-form="edit"><div class="ap-fields">${input('供应商','supplier',d?.supplier,'required maxlength="120"')}
       <label class="field">采购事由<textarea name="reason" required maxlength="2000">${e(d?.reason||'')}</textarea></label></div>
-      ${table(['SKU','申请数量',''],d?d.lines.map(l=>line(l.sku,l.qty)).join(''):line())}
+      <p class="ap-note">按合同逐行填写币种、每件净价和税额。无合同价的行保留为空，到货后可凭单人工登记应付。</p>
+      ${table(['SKU','申请数量',...price.columns,''],d?d.lines.map(line).join(''):line())}
       <div class="ap-actions">${btn('增加 SKU','add-line')}<button type="submit" class="btn primary">${d?'保存修订':'保存申请草稿'}</button></div></form>`);
   }
   function list(s){
@@ -47,11 +50,11 @@
   }
   function detail(s){
     s.screen='detail';const d=s.record;const owner=s.user.id===d.owner_id,editable=owner&&['draft','rejected'].includes(d.status);
-    const lines=table(['SKU','申请数量'],d.lines.map(l=>`<tr><td>${e(l.sku)}</td><td>${e(l.qty)}</td></tr>`).join(''));
+    const lines=table(['SKU','申请数量','合同价'],d.lines.map(l=>`<tr><td>${e(l.sku)}</td><td>${e(l.qty)}</td><td>${e(price.description(l))}</td></tr>`).join(''));
     const zone=s.scopes.find(w=>w.id===d.scope_id)?.business_timezone;
     const events=table(['操作','经办人','仓库时间','意见','历史版本'],(d.events||[]).map(ev=>{
       const v=ev.snapshot;
-      const snapshot=v?`<details><summary>第 ${e(ev.version)} 版</summary><small>${e(v.supplier)} · ${e(v.reason)}</small><ul>${v.lines.map(l=>`<li>${e(l.sku)} × ${e(l.qty)}</li>`).join('')}</ul></details>`:'—';
+      const snapshot=v?`<details><summary>第 ${e(ev.version)} 版</summary><small>${e(v.supplier)} · ${e(v.reason)}</small><ul>${v.lines.map(l=>`<li>${e(l.sku)} × ${e(l.qty)} · ${e(price.description(l))}</li>`).join('')}</ul></details>`:'—';
       return `<tr><td>${e(actionLabels[ev.action]||ev.action)}</td><td>${e(ev.actor_name||ev.actor_id)}</td><td>${e(new Date(ev.created_at).toLocaleString('zh-CN',{timeZone:zone}))}</td><td>${e(ev.note||'—')}</td><td>${snapshot}</td></tr>`;
     }).join(''));
     let actions='';
@@ -95,7 +98,7 @@
     let path=base, method='POST', body;
     try{
       if(kind==='edit'||kind==='create'){
-        const f=new FormData(form),lines=Array.from(form.querySelectorAll('[data-pr-line]'),row=>({sku:row.querySelector('[name=sku]').value.trim(),qty:Number(row.querySelector('[name=qty]').value)}));
+        const f=new FormData(form),lines=Array.from(form.querySelectorAll('[data-pr-line]'),row=>({sku:row.querySelector('[name=sku]').value.trim(),qty:Number(row.querySelector('[name=qty]').value),...price.read(row)}));
         if(lines.some(l=>!l.sku||!Number.isSafeInteger(l.qty)||l.qty<=0))throw new Error('请输入 SKU 和正整数采购数量。');
         if(new Set(lines.map(l=>l.sku)).size!==lines.length)throw new Error('同一申请的 SKU 须合并为一行。');
         body={supplier:String(f.get('supplier')).trim(),reason:String(f.get('reason')).trim(),lines};

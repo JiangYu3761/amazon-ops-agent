@@ -129,7 +129,7 @@ def schedule_due():
             if not credentials_status(source)['configured']:
                 conn.execute("UPDATE operating_connections SET last_error_code='credentials_missing',next_sync_at=now()+interval '5 minutes' WHERE id=%s",(source['id'],))
                 continue
-            enqueue_sync(conn,source);count+=1
+            enqueue_sync(conn,source,compensate=True);count+=1
         conn.commit();return count
 
 
@@ -158,6 +158,27 @@ def _locked_job(conn,job):
     return source,current
 
 
+def _newer_ads_partitions(conn, job, receipt):
+    # A late download of a cached report must not roll back a later observed revision.
+    # Compare per partition so nonoverlapping dates in the same report still update.
+    observed = receipt.get('ads_generated_at') or receipt.get('ads_requested_at')
+    rows = conn.execute("""SELECT c.product_id,c.fact_date FROM operating_data_coverage c
+        JOIN operating_sync_jobs j ON j.id=c.source_job_id
+        WHERE c.connection_id=%s AND c.dataset='advertising' AND c.fact_date BETWEEN %s AND %s
+          AND j.connection_version=%s
+          AND COALESCE(j.checkpoint->>'ads_generated_at',j.checkpoint->>'ads_requested_at')::timestamptz
+              > COALESCE(%s::timestamptz,'-infinity'::timestamptz)""",
+        (job['connection_id'],job['start_date'],job['end_date'],job['connection_version'],observed)).fetchall()
+    return {(str(row['product_id']),row['fact_date']) for row in rows}
+
+
+def _advance_after_ads_backfill(conn, source, job):
+    if source['provider']=='ads_sp' and job['requested_by'] is None:
+        conn.execute("""UPDATE operating_connections SET next_sync_at=now()
+            WHERE id=%s AND %s::date < (now() AT TIME ZONE time_zone)::date-1""",
+            (source['id'],job['end_date']))
+
+
 def publish_batch(job,batch):
     with connection() as conn:
         source,current=_locked_job(conn,job)
@@ -167,13 +188,21 @@ def publish_batch(job,batch):
         rows,coverage=normalize_batch(source,mappings,current,batch)
         digest=hashlib.sha256(json.dumps(_json({'rows':rows,'coverage':coverage}),sort_keys=True,separators=(',',':')).encode()).hexdigest()
         newly_published_count=0
+        warnings = list(batch.warnings)
         if rows or coverage:
             artifact=conn.execute('''INSERT INTO operating_sync_artifacts(job_id,connection_id,content_sha256,normalized_rows,coverage)
                 VALUES(%s,%s,%s,%s,%s) ON CONFLICT(job_id,content_sha256) DO NOTHING RETURNING id''',
                 (job['id'],source['id'],digest,Jsonb(_json(rows)),Jsonb(_json(coverage)))).fetchone()
+            new_artifact = artifact is not None
             if artifact is None:
                 artifact=conn.execute('SELECT id FROM operating_sync_artifacts WHERE job_id=%s AND content_sha256=%s',(job['id'],digest)).fetchone()
-            else:newly_published_count=len(rows)
+            if source['provider']=='ads_sp' and 'ads_as_of_day' in checkpoint:
+                newer = _newer_ads_partitions(conn,current,checkpoint)
+                if newer:
+                    rows = [r for r in rows if (r['product_id'],r['day']) not in newer]
+                    coverage = [c for c in coverage if (c['product_id'],c['day']) not in newer]
+                    warnings.append('部分日期已有更新的广告报告，本次旧报告已归档。')
+            if new_artifact:newly_published_count=len(rows)
             # Replace exactly the returned report partitions; retain prior reports
             # in artifacts, including rows removed by a later Amazon correction.
             for c in coverage:
@@ -191,11 +220,14 @@ def publish_batch(job,batch):
             delay=max(5,min(900,int(batch.retry_after or 30)))
             conn.execute("""UPDATE operating_sync_jobs SET status='waiting',checkpoint=%s,warnings=%s,
                 row_count=row_count+%s,next_attempt_at=now()+(%s * interval '1 second'),lease_token=NULL,lease_expires_at=NULL,error_code=NULL WHERE id=%s""",
-                (Jsonb(checkpoint),Jsonb(_json(batch.warnings)),newly_published_count,delay,job['id']))
+                (Jsonb(checkpoint),Jsonb(_json(warnings)),newly_published_count,delay,job['id']))
         else:
             conn.execute("""UPDATE operating_sync_jobs SET status='succeeded',checkpoint=%s,warnings=%s,row_count=row_count+%s,
-                finished_at=now(),lease_token=NULL,lease_expires_at=NULL,error_code=NULL WHERE id=%s""",(Jsonb(checkpoint),Jsonb(_json(batch.warnings)),newly_published_count,job['id']))
+                finished_at=now(),lease_token=NULL,lease_expires_at=NULL,error_code=NULL WHERE id=%s""",(Jsonb(checkpoint),Jsonb(_json(warnings)),newly_published_count,job['id']))
+            # Advance to the next overdue chunk or the ordinary recent window as soon
+            # as a scheduled historical pull finishes, even on once-daily connections.
             conn.execute('UPDATE operating_connections SET last_success_at=now(),last_error_code=NULL WHERE id=%s',(source['id'],))
+            _advance_after_ads_backfill(conn,source,current)
         conn.commit();return True
 
 
@@ -211,6 +243,8 @@ def fail_job(job,code='sync_failed',retryable=False,retry_after=30):
              next_attempt_at=now()+(%s * interval '1 second'),finished_at=CASE WHEN %s THEN NULL ELSE now() END,
              lease_token=NULL,lease_expires_at=NULL WHERE id=%s""",('retry_wait' if retry else 'failed',attempt,code,delay,retry,job['id']))
         conn.execute('UPDATE operating_connections SET last_error_code=%s WHERE id=%s',(code,source['id']))
+        if not retry:
+            _advance_after_ads_backfill(conn,source,current)
         conn.commit()
 
 

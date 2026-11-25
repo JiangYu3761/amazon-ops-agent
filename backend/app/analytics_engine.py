@@ -10,7 +10,7 @@ from math import isfinite
 from uuid import UUID
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-ENGINE_VERSION='1.0.0'
+ENGINE_VERSION='1.1.0'
 D=Decimal
 COST_FIELDS=('product_cost','first_mile_cost','fba_fee','referral_fee','other_cost')
 TITLES={'shop':'店铺与账户','compliance':'产品与合规','listing':'Listing 与素材','ads':'广告运营','inventory':'备货与库存','calendar':'活动与排期','finance':'成本与利润','service':'订单与售后','review':'经营复盘'}
@@ -59,6 +59,20 @@ def _json(value):
     if isinstance(value,dict):return {str(k):_json(v) for k,v in value.items()}
     if isinstance(value,(list,tuple,set)):return [_json(v) for v in value]
     return value
+
+
+def _ad_traffic_identity(row, grain):
+    """Identify a traffic row independently of its name, refresh job and attribution window."""
+    if row.get('source_connection_id') and row.get('natural_key'):
+        # Use the published primary key, including for older payloads with different column names.
+        return ('api_fact', row['source_connection_id'], row['natural_key'])
+    if grain == 'advertised_product':
+        dimensions = [row.get(field) for field in ('campaign_id', 'ad_group_id', 'ad_id', 'sku')]
+        if all(isinstance(value, (str, int)) and str(value).strip() for value in dimensions):
+            return ('advertised_product', row.get('profile_id'),
+                    *(str(value) for value in dimensions))
+    # Historical name-keyed rows only support their original import grain.
+    return ('legacy', str(row.get('campaign_name')), str(row.get('entity_name') or ''))
 
 
 def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,policies=None,coverage=None,tasks=None,events=None,rankings=None,sources=None):
@@ -183,8 +197,14 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
     ratio('listing','order_conversion_rate','订单会话转化率',optional['orders'],optional['sessions'],'Σ 订单数 ÷ Σ sessions × 100',status=sales_status,reason=sales_reason,datasets=['sales'])
     # Keep attribution cohorts visible; conflicting grains cannot be added together.
     deduped_ads={}
+    identity_modes=defaultdict(set)
     for row in ads:
-        key=(row['_day'],str(row.get('ad_type')),str(row.get('report_grain')),str(row.get('attribution_days')),str(row.get('campaign_name')),str(row.get('entity_name','')))
+        kind=str(row.get('ad_type') or 'unknown').upper()
+        grain=str(row.get('report_grain') or 'unknown').lower()
+        row['_traffic_identity']=_ad_traffic_identity(row,grain)
+        if row.get('source') in ('csv','advertised_product_csv'):
+            identity_modes[row['_day']].add(row['source'])
+        key=(row['_day'],kind,grain,str(row.get('attribution_days')),row['_traffic_identity'])
         if key in deduped_ads:
             old=deduped_ads[key]
             if old is not None and any(old[k]!=row[k] for k in ('spend','attributed_sales','attributed_orders','clicks','impressions')):
@@ -193,7 +213,7 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
                 old['mature']=False if old.get('mature') is False or row.get('mature') is False else True if old.get('mature') is True or row.get('mature') is True else None
         else:deduped_ads[key]=dict(row)
     ads=[row for row in deduped_ads.values() if row is not None]
-    if any(row is None for row in deduped_ads.values()):complete['advertising']=False;cov['advertising']['is_complete']=False
+    conflicts=any(row is None for row in deduped_ads.values())
     groups=defaultdict(list);grain_by_type=defaultdict(set)
     for row in ads:
         kind=str(row.get('ad_type') or 'unknown').upper();grain=str(row.get('report_grain') or 'unknown').lower()
@@ -203,9 +223,20 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
     # Repeated traffic identities with different attribution windows would duplicate spend.
     identities=defaultdict(set)
     for group,rows in groups.items():
-        for row in rows:identities[(row['_day'],group[0],row.get('campaign_name'),row.get('entity_name',''))].add(group)
+        for row in rows:identities[(row['_day'],group[0],row['_traffic_identity'])].add(group)
     overlapping=mixed_grain or any(len(v)>1 for v in identities.values())
     if overlapping:issue('overlapping_ad_grain','advertising','存在可能重叠的广告粒度或归因窗口，合并广告总计已停算，请分别查看分组')
+    ambiguous_csv=any(len(modes)>1 for modes in identity_modes.values())
+    if ambiguous_csv:
+        issue('overlapping_ad_sources','advertising','同日同时有名称口径与广告商品明细 CSV，覆盖范围可能重叠；请核对来源分组')
+    ad_coverage=coverage.get('advertising',{}) if isinstance(coverage.get('advertising'),dict) else {}
+    ambiguous_api=bool(ad_coverage.get('ambiguous_source_days'))
+    if ambiguous_api:
+        issue('overlapping_ad_sources','advertising','同一产品同日有多个广告连接声明覆盖，需核定唯一来源后再合计')
+    aggregate_blocked=overlapping or conflicts or ambiguous_csv or ambiguous_api
+    if aggregate_blocked:
+        complete['advertising']=False
+        cov['advertising']['is_complete']=False
     mature_rows=[];immature_rows=[];unknown_rows=[];group_info=[]
     refreshed=coverage.get('advertising',{}).get('last_synced_at') if isinstance(coverage.get('advertising'),dict) else None
     try:refresh_time=_moment(refreshed,tz) if refreshed else None
@@ -215,7 +246,7 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
     for (kind,grain,window),rows in sorted(groups.items(),key=lambda item:(item[0][0],item[0][1],item[0][2] or 0)):
         counts={'mature':0,'immature':0,'unknown':0};sums={k:sum((r[k] for r in rows),D(0)) for k in ('spend','attributed_sales','attributed_orders','clicks','impressions')}
         for row in rows:
-            if window is None:state='unknown'
+            if window is None or row.get('maturity_unverified'):state='unknown'
             elif row['_day']+timedelta(days=window)>=today or row.get('mature') is False:state='immature'
             else:
                 closed_at=datetime.combine(row['_day']+timedelta(days=window+1),time.min,tzinfo=tz)
@@ -225,7 +256,6 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
                            'acos':sums['spend']/sums['attributed_sales']*100 if sums['attributed_sales'] else None,
                            'roas':sums['attributed_sales']/sums['spend'] if sums['spend'] else None})
     actual_ad_types={kind for kind,_,_ in groups}
-    ad_coverage=coverage.get('advertising',{}) if isinstance(coverage.get('advertising'),dict) else {}
     declared_types=ad_coverage.get('ad_types_complete',[])
     declared_types={str(kind).upper() for kind in declared_types} if isinstance(declared_types,list) else set()
     full_ad_scope={'SP','SB','SD'}.issubset(declared_types) and 'UNKNOWN' not in actual_ad_types
@@ -242,10 +272,10 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
     attribution_mixed=len({window for _,_,window in groups if window is not None})>1
     if attribution_mixed:issue('mixed_attribution_windows','advertising','广告包含不同归因窗口，已分组保留；合计效果比率仅供参照')
     ads_confident=complete['advertising'] and not metadata_missing and not immature_rows and not unknown_rows and not overlapping and not attribution_mixed and 'advertising' not in bad
-    totals={k:(sum((r[k] for r in ads),D(0)) if ads or complete['advertising'] else None) if not overlapping else None for k in ('spend','attributed_sales','attributed_orders','impressions','clicks')}
+    totals={k:(sum((r[k] for r in ads),D(0)) if ads or complete['advertising'] else None) if not aggregate_blocked else None for k in ('spend','attributed_sales','attributed_orders','impressions','clicks')}
     for key,label,unit in [('spend','广告花费','money'),('attributed_sales','广告归因销售额','money'),('attributed_orders','广告归因订单','count'),('impressions','广告展示量','count'),('clicks','广告点击量','count')]:
-        metric('ads',key,('SP '+label if sp_only else label),totals[key],unit,'Σ '+key+'（不重叠粒度）',status='unavailable' if overlapping else 'ready' if ads_confident else ad_status if ad_status=='missing' else 'partial',
-               reason='报表粒度可能重叠，不能相加' if overlapping else ('归因窗口尚未成熟或元数据不完整' if ads and not ads_confident else ad_reason),inputs={'groups':group_info,'currency':currency,'ad_scope':ad_scope},datasets=['advertising'])
+        metric('ads',key,('SP '+label if sp_only else label),totals[key],unit,'Σ '+key+'（不重叠粒度）',status='unavailable' if aggregate_blocked else 'ready' if ads_confident else ad_status if ad_status=='missing' else 'partial',
+               reason='来源身份冲突或报表覆盖可能重叠，不能相加' if aggregate_blocked else ('归因窗口尚未成熟或元数据不完整' if ads and not ads_confident else ad_reason),inputs={'groups':group_info,'currency':currency,'ad_scope':ad_scope},datasets=['advertising'])
     confidence='ready' if ads_confident else 'partial'
     ad_explanation='归因窗口和刷新证据完整' if ads_confident else '按已取得广告记录计算；归因成熟度或期间覆盖不完整，不据此直接执行否词、竞价或价格调整'
     ratio('ads','ctr','广告点击率',totals['clicks'],totals['impressions'],'Σ clicks ÷ Σ impressions × 100',status=confidence,reason=ad_explanation,datasets=['advertising'])
@@ -254,15 +284,17 @@ def _calculate_product_metrics(product,records,start_date,end_date,*,now=None,po
     ratio('ads','roas','广告 ROAS',totals['attributed_sales'],totals['spend'],'Σ attributed_sales ÷ Σ spend',unit='ratio',status=confidence,reason=ad_explanation,datasets=['advertising'])
     ratio('ads','ad_order_conversion_rate','广告订单转化率',totals['attributed_orders'],totals['clicks'],'Σ attributed_orders ÷ Σ clicks × 100',status=confidence,reason=ad_explanation,datasets=['advertising'])
     ratio('ads','tacos','全渠道 TACOS' if full_ad_scope else 'SP广告花费率' if sp_only else '已接入渠道广告花费率',totals['spend'],revenue,('SP广告花费' if sp_only else '全渠道广告花费' if full_ad_scope else '已接入渠道广告花费')+' ÷ 订购销售额 × 100；广告归因销售额不重复加到总销售额',status='ready' if ads_confident and complete['sales'] and (full_ad_scope or sp_only) else 'partial',reason=scope_reason+'；'+ad_explanation,inputs={'ad_scope':ad_scope},datasets=['advertising','sales'])
-    mature_spend=sum((r['spend'] for r in mature_rows),D(0)) if mature_rows else None
-    mature_sales=sum((r['attributed_sales'] for r in mature_rows),D(0)) if mature_rows else None
-    ratio('ads','mature_acos','已确认成熟记录 ACOS',mature_spend,mature_sales,'成熟且已刷新记录 Σ spend ÷ Σ attributed_sales × 100',status='ready' if ads_confident else 'partial',reason='仅使用有明确归因窗口且已完成最终刷新确认的记录',datasets=['advertising'])
-    metric('ads','immature_spend','尚未成熟记录花费',sum((r['spend'] for r in immature_rows),D(0)) if ads else None,'money','Σ 未成熟记录 spend',status='partial' if ads else 'missing',reason='未成熟归因不作为确定优化结论',inputs={'unknown_maturity_spend':sum((r['spend'] for r in unknown_rows),D(0)),'groups':group_info},datasets=['advertising'])
+    comparable_mature=bool(mature_rows) and not aggregate_blocked and not attribution_mixed
+    mature_spend=sum((r['spend'] for r in mature_rows),D(0)) if comparable_mature else None
+    mature_sales=sum((r['attributed_sales'] for r in mature_rows),D(0)) if comparable_mature else None
+    mature_reason='仅使用同一归因窗、已完成最终刷新确认的可比记录' if not aggregate_blocked and not attribution_mixed else '来源身份、粒度或归因窗不可合计，请核对分组'
+    ratio('ads','mature_acos','已确认成熟记录 ACOS',mature_spend,mature_sales,'成熟且已刷新记录 Σ spend ÷ Σ attributed_sales × 100',status='ready' if ads_confident else 'partial',reason=mature_reason,datasets=['advertising'])
+    metric('ads','immature_spend','尚未成熟记录花费',sum((r['spend'] for r in immature_rows),D(0)) if ads and not aggregate_blocked else None,'money','Σ 未成熟记录 spend',status='partial' if ads else 'missing',reason='未成熟归因不作为确定优化结论',inputs={'unknown_maturity_spend':None if aggregate_blocked else sum((r['spend'] for r in unknown_rows),D(0)),'groups':group_info},datasets=['advertising'])
     for ad_metric in modules['ads']['metrics']:
         ad_metric['inputs'].setdefault('ad_scope',_json(ad_scope))
         if ad_metric['key']!='tacos':ad_metric['reason']=scope_reason+('；'+ad_metric['reason'] if ad_metric['reason'] else '')
     target=_decimal(policy.get('target_acos'))
-    if target is not None and target>=0 and mature_spend is not None and mature_sales and mature_spend/mature_sales*100>target:
+    if ads_confident and target is not None and target>=0 and mature_spend is not None and mature_sales and mature_spend/mature_sales*100>target:
         modules['ads']['findings'].append({'type':'mature_acos_above_target','severity':'warning','title':'已确认成熟记录 ACOS 高于设定目标','evidence':_json({'spend':mature_spend,'sales':mature_sales,'target_acos':target}),'action':'核对成熟报表、利润和库存后人工评审；本引擎不会修改定向、竞价或价格'})
     # Latest snapshot is selected independently for every SKU, not globally.
     latest={};ambiguous=set()

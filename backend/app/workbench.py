@@ -1,4 +1,5 @@
 """Authenticated workspace business records, independent of linked SOP approval state."""
+from datetime import date
 import hashlib
 import json
 from typing import Any, Literal
@@ -31,6 +32,7 @@ class NewItem(BaseModel):
     site: str = Field(default='', max_length=100)
     object_ref: str = Field(default='', max_length=500)
     values: dict[str, Any] = Field(default_factory=dict, max_length=100)
+    focus_date: date | None = None
     reviewer_id: UUID | None = None
     task_id: UUID | None = None
     request_id: UUID
@@ -50,6 +52,7 @@ class EditItem(Change):
     site: str | None = Field(default=None, max_length=100)
     object_ref: str | None = Field(default=None, max_length=500)
     values: dict[str, Any] | None = Field(default=None, max_length=100)
+    focus_date: date | None = None
     reviewer_id: UUID | None = None
     task_id: UUID | None = None
 
@@ -160,7 +163,7 @@ def _receipt(conn, item_id, actor, body, fingerprint):
 def _event(conn, row, actor, action, body, fingerprint, note='', evidence=''):
     snapshot = {key: row[key] for key in ('status', 'values', 'title', 'site', 'object_ref',
                                            'owner_id', 'reviewer_id', 'task_id', 'parent_id', 'source_note',
-                                           'product_id', 'account_ref', 'business_timezone', 'connection_id')}
+                                           'product_id', 'account_ref', 'business_timezone', 'connection_id', 'focus_date')}
     conn.execute('''INSERT INTO workbench_events
         (item_id,version,actor_id,action,note,evidence,snapshot,request_id,request_hash)
         VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s)''',
@@ -206,11 +209,25 @@ def list_items(product_id: UUID | None = None, page_id: str | None = None, secti
         if product_id:
             _product(conn, product_id)
         rows = conn.execute('''SELECT id,number,product_id,page_id,section_id,title,site,object_ref,signal_key,parent_id,
-                account_ref,business_timezone,connection_id,owner_id,reviewer_id,task_id,values,status,version,created_at,updated_at
+                account_ref,business_timezone,connection_id,owner_id,reviewer_id,task_id,focus_date,values,status,version,created_at,updated_at
                 FROM workbench_items''' + where + ' ORDER BY updated_at DESC,id DESC LIMIT %s OFFSET %s',
                 (*params, limit + 1, offset)).fetchall()
     return {'items': rows[:limit], 'has_more': len(rows) > limit,
             'next_offset': offset + limit if len(rows) > limit else None}
+
+
+@router.get('/focus')
+def calendar_focus(start_date: date, end_date: date, product_id: UUID | None = None, actor=Depends(require_user)):
+    if not 0 <= (end_date - start_date).days <= 62:
+        raise HTTPException(422, '请选择不超过 63 天的日历范围')
+    # Workbench items are already shared with signed-in members of this workspace.
+    # Read the source items directly so rescheduling cannot create a second calendar event.
+    with connection() as conn:
+        rows = conn.execute('''SELECT id,number,title,page_id,section_id,product_id,account_ref,
+                site,owner_id,status,focus_date FROM workbench_items
+            WHERE focus_date BETWEEN %s AND %s AND (%s::uuid IS NULL OR product_id=%s)
+            ORDER BY focus_date,number''', (start_date, end_date, product_id, product_id)).fetchall()
+    return {'items': rows}
 
 
 @router.get('/items/{item_id}')
@@ -276,11 +293,11 @@ def create_item(body: NewItem, actor=Depends(require_user)):
                 return _detail(conn, prior)
         row = conn.execute('''INSERT INTO workbench_items(product_id,page_id,section_id,title,site,object_ref,
                 owner_id,reviewer_id,task_id,values,definition,signal_key,parent_id,source_note,
-                account_ref,business_timezone,connection_id)
-            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING *''',
+                account_ref,business_timezone,connection_id,focus_date)
+            VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING RETURNING *''',
             (body.product_id, body.page_id, body.section_id, body.title.strip(), site,
              body.object_ref.strip(), actor['id'], body.reviewer_id, body.task_id, Jsonb(body.values),
-             Jsonb(section), signal_key, body.parent_id, body.source_note, account_ref, zone, body.connection_id)).fetchone()
+             Jsonb(section), signal_key, body.parent_id, body.source_note, account_ref, zone, body.connection_id, body.focus_date)).fetchone()
         if not row:
             raise HTTPException(409, '此对象已有关联业务单，请刷新后核对最新记录')
         return _event(conn, row, actor, 'create', body, fingerprint)
@@ -305,7 +322,7 @@ def patch_item(item_id: UUID, body: EditItem, actor=Depends(require_user)):
         if actor['id'] != row['owner_id']:
             if not actor['is_admin'] or set(changes) != {'reviewer_id'}:
                 raise HTTPException(403, '业务内容只能由经办人填写，管理员可单独分配审核人')
-        if any(value is None and key not in ('reviewer_id','task_id') for key,value in changes.items()):
+        if any(value is None and key not in ('reviewer_id','task_id','focus_date') for key,value in changes.items()):
             raise HTTPException(422, '请用空文本或空表单清空相应字段')
         if 'task_id' in changes:
             _task(conn, row['product_id'], changes['task_id'])

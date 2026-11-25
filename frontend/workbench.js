@@ -159,7 +159,7 @@ window.workbenchUI = (() => {
     if(!content){content=document.createElement('div');content.className='wb-content';root.replaceChildren(content);}
     content.innerHTML=`${view==='overview'&&!p.legacy&&!p.section&&!comparison?renderTodayDashboard():''}${previousQueue ? control('返回来源队列','back'):''}<div class="wb-nav">
       <button class="wb-tab ${!p.legacy&&!p.section&&!receiving&&!comparison&&!searchTerms?'selected':''}" data-wb-section="">${['overview','team','agent'].includes(view)?'跨模块队列':'办理队列'}</button>
-      ${view==='overview'?'<button class="wb-tab" data-erp-queue-open>ERP 待办</button><button class="wb-tab" data-erp-shop-sales-open>多店经营</button>':''}
+      ${view==='overview'?'<button type="button" class="wb-tab" data-feishu-open>飞书同步总表</button><button class="wb-tab" data-erp-queue-open>ERP 待办</button><button class="wb-tab" data-erp-shop-sales-open>多店经营</button>':''}
       ${view==='inventory'?'<button class="wb-tab" data-erp-procurement-open>采购申请</button>':''}
       ${view==='finance'?'<button class="wb-tab" data-erp-payables-open>供应商应付</button><button class="wb-tab" data-erp-settlements-open>店铺结算对账</button>':''}
       ${view==='service'?'<button class="wb-tab" data-erp-fulfillment-open>自发货履约</button><button class="wb-tab" data-erp-refunds-open>退款核对台账</button>':''}
@@ -224,14 +224,14 @@ window.workbenchUI = (() => {
       if(!triage || triage.dataset.scope!==triageScope){
         triage?.remove();triage=document.createElement('div');triage.id='wb-routing';triage.dataset.scope=triageScope;root.append(triage);
       }
-      window.workbenchTriage?.mount();
+      window.workbenchTriage?.mount(currentUser()?.id);
     }else triage?.remove();
   }
   function blank(section,seed={}){
     const product=productId==='all'?'':ws.products.find(p=>p.id===productId);
     return {id:null,request_id:uuid(),version:0,status:'draft',page_id:view,section_id:section.id,
       product_id:product?.id||'',site:product?.marketplace||'',object_ref:'',title:'',values:{},
-      owner_id:currentUser()?.id,reviewer_id:null,task_id:null,history:[],...seed};
+      owner_id:currentUser()?.id,focus_date:null,reviewer_id:null,task_id:null,history:[],...seed};
   }
   function draftKey(item) {
     return ['homa.workbench.draft.1',mode,currentUser()?.id,item.page_id,item.section_id,item.id||'new',item.id?'':productId].join('/');
@@ -342,6 +342,7 @@ window.workbenchUI = (() => {
       <h2 id="wbDialogTitle">${escape(item.id?item.title:section.action)}</h2></div>${control('关闭','close')}</header>
       <form id="wbItemForm"><div class="wb-dialog-body">
       <div class="wb-stamp">${item.sample?'<span>本机示例</span>':''}<span class="wb-state">${escape(labels[item.status])}</span><span>经办人　${escape(personName(item.owner_id))}</span><span data-wb-version-label>${item.version?'版本 '+item.version:'新单据'}</span></div>
+      ${item.id?`<button type="button" class="btn" data-feishu-open data-feishu-item="${escape(item.id)}" data-feishu-title="${escape(item.title)}">同步到飞书总表</button>`:''}
       ${editor.conflict?`<section class="wb-conflict"><strong>检测到本机旧版本草稿</strong><p>核对旧稿后可在最新版本继续办理。</p>
       <textarea aria-label="本机旧版本草稿" readonly>${escape(JSON.stringify(editor.conflict,null,2))}</textarea>
       ${control('复制旧稿','copy-old')} ${control('保留旧稿并使用最新版本','use-latest')}</section>`:''}
@@ -356,6 +357,7 @@ window.workbenchUI = (() => {
       `<label class="field">所属型号 *<select name="product_id" ${item.id||productId!=='all'?'disabled':''}><option value="">请选择产品型号</option>${ws.products.map(p=>opt(p.id,p.model,form.product_id)).join('')}</select></label>`}
       <label class="field">业务环节<select name="section_id" ${item.id||form.signal_key||form.source_note||form.parent_id?'disabled':''}>${page.sections.map(s=>opt(s.id,s.title,section.id)).join('')}</select></label>
       <label class="field wb-wide">事项标题 *<input name="title" maxlength="240" value="${escape(form.title)}" ${fieldLock?'disabled':''}></label>
+      <label class="field">工作重点日期<input name="focus_date" type="date" value="${escape(form.focus_date||'')}" ${fieldLock?'disabled':''}><small>${form.priority_review?.decision==='priority'?'已选为重点，请确认安排日期。':'选定日期后，这张单会出现在工作日历。'}</small></label>
       <label class="field">站点 *<input name="site" value="${escape(form.site)}" ${fieldLock||(shop&&scopeLock)?'disabled':''}></label>
       <label class="field">业务对象 *<input name="object_ref" placeholder="SKU、批次或业务编号" value="${escape(form.object_ref)}" ${fieldLock||form.signal_key?'disabled':''}></label>
       <label class="field">指定审核人<select name="reviewer_id" ${editable&&admin()&&(mode==='demo'||editor.memberList)?'':'disabled'}><option value="">待管理员分配</option>${people.map(p=>opt(p.id,p.display_name,form.reviewer_id)).join('')}</select></label>
@@ -387,9 +389,9 @@ window.workbenchUI = (() => {
     if(!editor)return;
     const form=q('#wbItemForm');if(!form)return;
     const draft=editor.form;
-    for(const key of ['product_id','title','site','object_ref','reviewer_id','task_id','account_ref','business_timezone']){
+    for(const key of ['product_id','title','site','object_ref','reviewer_id','task_id','focus_date','account_ref','business_timezone']){
       const el=form.elements.namedItem(key);
-      if(el)draft[key]=el.value||(['task_id','reviewer_id'].includes(key)?null:'');
+      if(el)draft[key]=el.value||(['task_id','reviewer_id','focus_date'].includes(key)?null:'');
     }
     for(const el of form.querySelectorAll('[data-wb-field]')){
       if(el.value==='')delete draft.values[el.dataset.wbField];
@@ -592,6 +594,7 @@ window.workbenchUI = (() => {
         Object.entries(value).every(([key,entry])=>entry===previous?.[key]):value===previous;
       if(!equal)body[k]=value;
     }
+    if((form.focus_date||null)!==(item.focus_date||null))body.focus_date=form.focus_date||null;
     if(admin() && form.reviewer_id!==item.reviewer_id)body.reviewer_id=form.reviewer_id;
     return body;
   }
@@ -599,6 +602,7 @@ window.workbenchUI = (() => {
     const body={};
     for(const k of ['product_id','page_id','section_id','title','site','object_ref','values','task_id','request_id'])body[k]=form[k];
     if(admin() && form.reviewer_id)body.reviewer_id=form.reviewer_id;
+    if(form.focus_date)body.focus_date=form.focus_date;
     if(form.signal_key)body.signal_key=form.signal_key;
     if(form.parent_id)body.parent_id=form.parent_id;
     if(form.source_note)body.source_note=form.source_note;
@@ -709,7 +713,7 @@ window.workbenchUI = (() => {
     if(signal.product_id)productId=signal.product_id;else if(signal.account_ref)productId='all';
     navigate(signal.page_id);
     Object.assign(pane(),{section:signal.section_id,legacy:false,receiving:false,comparison:false,searchTerms:false});mount();
-    handleNew({title:signal.title,site:signal.site||'',object_ref:signal.object_ref||'',signal_key:signal.signal_key,parent_id:signal.parent_id,source_note:signal.source_note||signal.reason||'',...(signal.account_ref?{record_scope:'shop',product_id:null,account_ref:signal.account_ref,business_timezone:signal.business_timezone,connection_id:signal.connection_id}:{}),values:{...signal.values}});
+    handleNew({priority_review:signal.priority_review,title:signal.title,site:signal.site||'',object_ref:signal.object_ref||'',signal_key:signal.signal_key,parent_id:signal.parent_id,source_note:signal.source_note||signal.reason||'',...(signal.account_ref?{record_scope:'shop',product_id:null,account_ref:signal.account_ref,business_timezone:signal.business_timezone,connection_id:signal.connection_id}:{}),values:{...signal.values}});
   }
   function handleNew(seed={}){
     if(!currentUser())return window.processUI?.login();
@@ -846,5 +850,5 @@ window.workbenchUI = (() => {
     pane().legacy=false;pane().receiving=true;draw();
     return window.erpReceiving?.openOrder(scopeId,orderId,noticeId);
   }
-  return {mount,invalidate:clearQueue,openSignal,openReceivingOrder};
+  return {mount,invalidate:clearQueue,openSignal,openReceivingOrder,openFocus:id=>openRow(id,{id}),localFocus:()=>demoItems().filter(item=>item.focus_date)};
 })();

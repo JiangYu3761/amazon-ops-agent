@@ -1,0 +1,6 @@
+# Optional mirror of the Python base for installations with a preloaded image.
+services:
+  api:
+    build:
+      additional_contexts:
+        "python:3.12-slim": "docker-image://${HOMA_LOCAL_PYTHON_BASE}"

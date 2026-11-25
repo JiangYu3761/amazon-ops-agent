@@ -19,12 +19,16 @@ from psycopg import sql
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def serve():
+def serve(feishu=False):
     import uvicorn
     from starlette.staticfiles import StaticFiles
 
     sys.path.insert(0, str(ROOT / "backend"))
     from app.main import app
+    if feishu:
+        from app import feishu_transport
+        from feishu_browser_fixture import simulated_request
+        feishu_transport.request = simulated_request
 
     app.mount("/", StaticFiles(directory=ROOT / "frontend", html=True))
     listener = socket.socket(fileno=int(os.environ["WORKBENCH_LISTENER_FD"]))
@@ -32,7 +36,7 @@ def serve():
     server.run(sockets=[listener])
 
 
-def run(backend=False, browser_script=None):
+def run(backend=False, browser_script=None, feishu=None):
     admin_dsn = os.environ["WORKBENCH_TEST_PG"]
     parts = urlsplit(admin_dsn)
     if parts.scheme not in ("postgres", "postgresql") or parts.hostname not in {"127.0.0.1", "localhost", "::1"}:
@@ -56,14 +60,19 @@ def run(backend=False, browser_script=None):
                            UPDATE_ENABLED="false", LLM_API_KEY="", CATALOG_FILE=str(ROOT / "frontend/catalog.json"),
                            WORKBENCH_DEFINITION_DIR=str(ROOT / "frontend"))
                 for key in list(env):
-                    if key.startswith("AMAZON_"):
+                    if key.startswith(("AMAZON_","HOMA_FEISHU_")):
                         del env[key]
+                if feishu is not None:
+                    env["FEISHU_BROWSER_CASE"]="configured" if feishu else "unconfigured"
+                if feishu:
+                    env.update({f"HOMA_FEISHU_{k}":"fixture_"+k for k in
+                                ("APP_ID","APP_SECRET","BASE_TOKEN","TABLE_ID")})
                 if backend:
                     env.update(WORKFLOW_INTEGRATION="1", PYTHONPATH=str(ROOT / "backend"))
                     subprocess.run([sys.executable, "-m", "unittest", "discover", "-s", "backend/tests", "-v"],
                                    check=True, cwd=ROOT, env=env)
                     return
-                service = subprocess.Popen([sys.executable, __file__, "serve"], env=env, cwd=ROOT,
+                service = subprocess.Popen([sys.executable, __file__, "serve-feishu" if feishu else "serve"], env=env, cwd=ROOT,
                                            pass_fds=[listener.fileno()])
                 try:
                     for _ in range(100):
@@ -88,6 +97,11 @@ def run(backend=False, browser_script=None):
 if __name__ == "__main__":
     if sys.argv[1:] == ["serve"]:
         serve()
+    elif sys.argv[1:] == ["serve-feishu"]:
+        serve(feishu=True)
+    elif sys.argv[1:] == ["--feishu-ui"]:
+        for configured in (False,True):
+            run(browser_script="scripts/check_feishu.cjs",feishu=configured)
     elif sys.argv[1:] in ([], ["--backend"]):
         run(backend="--backend" in sys.argv)
     elif sys.argv[1:] == ["--erp-ui"]:
@@ -100,4 +114,4 @@ if __name__ == "__main__":
             run(browser_script=script)
         print(f"Passed {len(suites)} ERP browser suites.", flush=True)
     else:
-        raise SystemExit("usage: python scripts/check_workbench.py [--backend | --erp-ui]")
+        raise SystemExit("usage: python scripts/check_workbench.py [--backend | --erp-ui | --feishu-ui]")

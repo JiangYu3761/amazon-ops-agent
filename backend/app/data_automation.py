@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from psycopg.types.json import Jsonb
 
+from .amazon_connectors import MAX_DAYS, SP_AD_ATTRIBUTION_DAYS
 from .db import connection
 from .workflow_auth import require_admin, require_user
 
@@ -169,6 +170,11 @@ def _public_job(row):
     result['detail']=ERRORS.get(code,'')
     # Remote IDs, signed URLs, raw reports and exception bodies stay server-side.
     result['warning_count']=len(row.get('warnings') or [])
+    receipt = row.get('checkpoint') or {}
+    if 'ads_as_of_day' in receipt:
+        result.update(report_as_of_day=receipt['ads_as_of_day'],
+                      report_generated_at=receipt.get('ads_generated_at'),
+                      report_requested_at=receipt.get('ads_requested_at'))
     return result
 
 
@@ -264,20 +270,55 @@ def update_connection(identifier:UUID,body:ConnectionUpdate,actor=Depends(requir
         result=_public_connection(conn,row);conn.commit();return result
 
 
-def enqueue_sync(conn,source,body=None,actor=None):
+def _overdue_ads_start(conn, source, today, regular_start):
+    # Look back at most 90 calendar days, within the advertised-product report horizon.
+    # Only infer a continuous schedule from this connection version's automatic jobs.
+    # An explicit historical pull must not enroll intervening dates in automatic backfill.
+    return conn.execute("""WITH history AS (
+        SELECT start_date,end_date,status,requested_by,checkpoint,
+               (created_at AT TIME ZONE %(zone)s)::date requested_day
+        FROM operating_sync_jobs WHERE connection_id=%(id)s AND connection_version=%(version)s
+          AND end_date >= %(today)s::date-90
+    ), first_run AS (SELECT min(start_date) AS first_day FROM operating_sync_jobs
+        WHERE connection_id=%(id)s AND connection_version=%(version)s AND requested_by IS NULL),
+    days AS (
+        SELECT %(today)s::date-n AS day FROM generate_series(1,90) n,first_run
+        WHERE %(today)s::date-n >= first_day AND %(today)s::date-n < %(regular_start)s
+    )
+    SELECT min(day) AS due FROM days WHERE NOT EXISTS (
+        SELECT 1 FROM history h WHERE day BETWEEN h.start_date AND h.end_date AND
+        ((h.status='succeeded' AND (h.checkpoint->>'ads_as_of_day')::date > day+%(window)s)
+          OR h.requested_day=%(today)s)
+    )""", dict(id=source['id'], version=source['version'], zone=source['time_zone'],
+               today=today, regular_start=regular_start, window=SP_AD_ATTRIBUTION_DAYS)).fetchone()['due']
+
+
+def enqueue_sync(conn,source,body=None,actor=None,*,compensate=False):
     body=body or SyncRequest()
     if not source['enabled']:raise HTTPException(409,'请先启用此数据连接')
     if not _credentials(source)['configured']:raise HTTPException(409,{'code':'credentials_missing','message':ERRORS['credentials_missing']})
+    today=now_utc().astimezone(ZoneInfo(source['time_zone'])).date()
+    explicit = body.start_date is not None or body.end_date is not None
+    span = source['lookback_days']
+    if source['provider']=='ads_sp' and not explicit:
+        span = max(span, SP_AD_ATTRIBUTION_DAYS + 1)
+    end=body.end_date or (today if source['provider']=='sp_inventory' else today-timedelta(days=1))
+    start=body.start_date or (end if source['provider']=='sp_inventory' else end-timedelta(days=span-1))
+    if start>end or (end-start).days>=MAX_DAYS or end>today:raise HTTPException(422,'同步窗口必须是过去或今天的连续 1–31 天')
+    if source['provider']=='sp_inventory' and (start!=today or end!=today):raise HTTPException(422,'库存 API 只提供当前快照，不生成历史库存')
     existing=conn.execute('SELECT * FROM operating_sync_jobs WHERE connection_id=%s AND status=ANY(%s) ORDER BY created_at LIMIT 1',
                           (source['id'],list(ACTIVE))).fetchone()
     if existing:
+        if explicit and (existing['start_date'],existing['end_date'])!=(start,end):
+            raise HTTPException(409,'此连接正在同步其他日期，请待当前任务完成后再提交所选范围')
         conn.execute("UPDATE operating_connections SET next_sync_at=now()+(sync_interval_minutes * interval '1 minute') WHERE id=%s",(source['id'],))
         return existing
-    today=now_utc().astimezone(ZoneInfo(source['time_zone'])).date()
-    end=body.end_date or (today if source['provider']=='sp_inventory' else today-timedelta(days=1))
-    start=body.start_date or (end if source['provider']=='sp_inventory' else end-timedelta(days=source['lookback_days']-1))
-    if start>end or (end-start).days>=31 or end>today:raise HTTPException(422,'同步窗口必须是过去或今天的连续 1–31 天')
-    if source['provider']=='sp_inventory' and (start!=today or end!=today):raise HTTPException(422,'库存 API 只提供当前快照，不生成历史库存')
+    if compensate and source['provider']=='ads_sp' and not explicit:
+        overdue = _overdue_ads_start(conn, source, today, start)
+        if overdue:
+            if (end-overdue).days>=MAX_DAYS:
+                end = min(start-timedelta(days=1), overdue+timedelta(days=MAX_DAYS-1))
+            start = overdue
     row=conn.execute('''INSERT INTO operating_sync_jobs(connection_id,connection_version,start_date,end_date,requested_by)
         VALUES(%s,%s,%s,%s,%s) RETURNING *''',(source['id'],source['version'],start,end,actor['id'] if actor else None)).fetchone()
     conn.execute("UPDATE operating_connections SET next_sync_at=now()+(sync_interval_minutes * interval '1 minute') WHERE id=%s",(source['id'],))
@@ -299,6 +340,8 @@ def retry_sync(identifier:UUID,actor=Depends(require_admin)):
         old=conn.execute('SELECT * FROM operating_sync_jobs WHERE id=%s',(identifier,)).fetchone()
         if not old:raise HTTPException(404,'Sync job not found')
         source=conn.execute('SELECT * FROM operating_connections WHERE id=%s FOR UPDATE',(old['connection_id'],)).fetchone()
+        if old['connection_version'] != source['version']:
+            raise HTTPException(409,'此任务的连接配置已变更，请在当前连接下重新选择补采范围')
         row=enqueue_sync(conn,source,SyncRequest(start_date=old['start_date'],end_date=old['end_date']),actor)
         conn.commit();return _public_job(row)
 
@@ -359,6 +402,15 @@ def load_product_analytics(conn,product_id,start_date=None,end_date=None):
         if len(rows)>100000:raise HTTPException(413,'所选数据超过单次分析上限，请缩短日期范围')
         for row in rows:row['source']='csv'
         records[dataset]=rows
+    # Name-keyed historical files cannot establish whether they cover a new product-ad extract.
+    # Preserve both cohorts for the engine's overlap check until an explicit API partition supersedes them.
+    product_ads=conn.execute('''SELECT r.*,i.created_at source_updated_at FROM erp_advertised_product_rows r
+        JOIN data_imports i ON i.id=r.import_id WHERE r.product_id=%s AND r.report_date BETWEEN %s AND %s
+        AND r.account_key=%s AND r.marketplace=%s ORDER BY r.report_date,r.business_key LIMIT 100001''',
+        (product_id,start,end,product['data_account_key'],product['marketplace'])).fetchall()
+    if len(product_ads)+len(records['advertising'])>100000:
+        raise HTTPException(413,'广告记录超过单次分析上限，请缩短日期范围')
+    records['advertising'].extend(dict(row,source='advertised_product_csv',maturity_unverified=True) for row in product_ads)
     # Inventory takes latest not-after-as_of per SKU in the engine, never one
     # global MAX date. Keep all cost versions for date-effective matching.
     coverage={kind:{'complete_days':[],'last_synced_at':None,'source':'csv'} for kind in queries}
@@ -368,6 +420,7 @@ def load_product_analytics(conn,product_id,start_date=None,end_date=None):
     cover=conn.execute('''SELECT x.*,c.provider FROM operating_data_coverage x
         JOIN operating_connections c ON c.id=x.connection_id WHERE x.product_id=%s AND x.fact_date<=%s''',(product_id,end)).fetchall()
     authoritative={}
+    ad_connections={}
     for row in cover:
         kind=row['dataset'];key=(kind,row['fact_date'])
         authoritative[key]=True
@@ -376,7 +429,13 @@ def load_product_analytics(conn,product_id,start_date=None,end_date=None):
         stamp=row['fetched_at'].isoformat()
         if not coverage[kind]['last_synced_at'] or stamp>coverage[kind]['last_synced_at']:coverage[kind]['last_synced_at']=stamp
         coverage[kind]['source']='api'
-        if kind=='advertising' and row['provider']=='ads_sp':coverage[kind]['ad_types_complete']=['SP']
+        if kind=='advertising' and row['provider']=='ads_sp':
+            coverage[kind]['ad_types_complete']=['SP']
+            if row['fact_date']>=start:
+                ad_connections.setdefault(row['fact_date'],set()).add(row['connection_id'])
+    coverage['advertising']['ambiguous_source_days']=[
+        day.isoformat() for day,ids in sorted(ad_connections.items()) if len(ids)>1
+    ]
     api_rows=conn.execute('''SELECT * FROM operating_api_facts WHERE product_id=%s AND fact_date<=%s
         AND (dataset='inventory' OR fact_date>=%s) ORDER BY fact_date,natural_key LIMIT 100001''',(product_id,end,start)).fetchall()
     if len(api_rows)>100000:raise HTTPException(413,'API 记录超过单次分析上限，请缩短日期范围')
@@ -388,8 +447,12 @@ def load_product_analytics(conn,product_id,start_date=None,end_date=None):
         records[kind]=[r for r in records[kind] if not authoritative.get((kind,r[date_key]))]
     for row in api_rows:
         if not authoritative.get((row['dataset'],row['fact_date'])):continue
+        if row['dataset']=='advertising' and ad_connections.get(row['fact_date'])!={row['connection_id']}:
+            continue
         payload=dict(row['payload'],product_id=str(product_id),source='api',source_id=str(row['source_job_id']),
                      source_updated_at=row['fetched_at'].isoformat())
+        if row['dataset']=='advertising':
+            payload.update(source_connection_id=str(row['connection_id']),natural_key=row['natural_key'])
         records[row['dataset']].append(payload)
     policy_row=conn.execute('SELECT * FROM operating_policies WHERE product_id=%s',(product_id,)).fetchone()
     tasks=conn.execute('''SELECT t.* FROM tasks t JOIN product_workflows pw ON pw.id=t.product_workflow_id

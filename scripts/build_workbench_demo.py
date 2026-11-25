@@ -108,6 +108,7 @@ def build(destination: Path) -> None:
     # Raw text in the HTML script element must never terminate on business text containing markup.
     assets = json.dumps(files, ensure_ascii=False, separators=(',', ':')).replace('<', r'\u003c')
     page = asset_text('index.html')
+    page = re.sub(r'<link rel="manifest"[^>]+>\s*', '', page)
     page = re.sub(r'<link rel="stylesheet" href="([^"]+)">', lambda m: inline_tag(m, 'style'), page)
     page = re.sub(r'<script src="([^"]+)" defer></script>', lambda m: inline_tag(m, 'script'), page)
     if re.search(r'<(?:script\b[^>]*\bsrc=|link\b[^>]*\brel="stylesheet")', page, re.IGNORECASE):

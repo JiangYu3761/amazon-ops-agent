@@ -159,7 +159,7 @@ class AmazonConnectorTests(unittest.TestCase):
     def ads_row(self,sku='SKU-1',asin='ASIN-1',cost='3.25',ad='a1'):
         return dict(date='2026-11-20',advertisedSku=sku,advertisedAsin=asin,campaignId='campaign-shared',adGroupId='group-1',adId=ad,impressions=100,clicks=8,cost=cost,purchases7d=1,sales7d='29.99')
 
-    def ads_client(self,rows=None,report_type='spAdvertisedProduct',profiles=None):
+    def ads_client(self,rows=None,report_type='spAdvertisedProduct',profiles=None,metadata=None):
         def handler(request):
             if request.url.path=='/v2/profiles':
                 self.assertNotIn('amazon-advertising-api-scope',request.headers)
@@ -171,7 +171,7 @@ class AmazonConnectorTests(unittest.TestCase):
                 self.assertNotIn('spCampaigns',request.content.decode())
                 return httpx.Response(202,json={'reportId':'ads-report'})
             if request.url.host=='reports.s3.amazonaws.com':return httpx.Response(200,content=gzip.compress(json.dumps(rows if rows is not None else [self.ads_row()]).encode()))
-            return httpx.Response(200,json={'status':'COMPLETED','configuration':{'adProduct':'SPONSORED_PRODUCTS','reportTypeId':report_type,'groupBy':['advertiser'],'timeUnit':'DAILY','format':'GZIP_JSON'},'startDate':'2026-11-20','endDate':'2026-11-20','url':'https://reports.s3.amazonaws.com/ads.gz?signature=fixture'})
+            return httpx.Response(200,json={'status':'COMPLETED','configuration':{'adProduct':'SPONSORED_PRODUCTS','reportTypeId':report_type,'groupBy':['advertiser'],'timeUnit':'DAILY','format':'GZIP_JSON'},'startDate':'2026-11-20','endDate':'2026-11-20','url':'https://reports.s3.amazonaws.com/ads.gz?signature=fixture',**(metadata or {})})
         return self.client(handler)
 
     def test_ads_product_rows_do_not_duplicate_campaign_spend_across_products(self):
@@ -184,6 +184,39 @@ class AmazonConnectorTests(unittest.TestCase):
         self.assertTrue(all(c['complete'] for c in done.coverage));self.assertFalse(done.rows[0]['payload']['mature'])
         self.assertEqual(done.rows[0]['payload']['attribution_days'],7)
         self.assertTrue(done.warnings)
+
+    def test_ads_maturity_uses_platform_generation_or_request_lower_bound_across_midnight(self):
+        # Nov 20 + 7 complete days first matures at Nov 28 00:00 Los Angeles.
+        before = datetime(2026,11,28,7,59,tzinfo=timezone.utc)
+        after = datetime(2026,11,28,8,1,tzinfo=timezone.utc)
+        for generated,expected in ((before.isoformat(),False),(after.isoformat(),True),(None,False)):
+            with self.subTest(generated=generated):
+                self.now=before
+                client=self.ads_client(metadata={'generatedAt':generated})
+                pending=self.collect(client,provider='ads_sp')
+                self.now=after
+                done=self.collect(client,pending.checkpoint,provider='ads_sp')
+                self.assertEqual(done.rows[0]['payload']['mature'],expected)
+                self.assertEqual(done.checkpoint['ads_as_of_day'],'2026-11-28' if expected else '2026-11-27')
+                self.assertEqual(done.checkpoint['ads_generated_at'],generated)
+                self.assertEqual(done.checkpoint['ads_requested_at'],before.isoformat())
+        legacy=dict(pending.checkpoint)
+        legacy.pop('ads_requested_at')
+        old=self.collect(client,legacy,provider='ads_sp')
+        self.assertFalse(old.rows[0]['payload']['mature'])
+        self.assertIsNone(old.checkpoint['ads_as_of_day'])
+        fresh=self.collect(client,provider='ads_sp')
+        refreshed=self.collect(client,fresh.checkpoint,provider='ads_sp')
+        self.assertTrue(refreshed.rows[0]['payload']['mature'])
+
+    def test_invalid_platform_report_timestamp_rejects_the_unpublished_report(self):
+        for stamp in ('bad','2026-11-20T02:00:00','2040-01-01T00:00:00Z'):
+            with self.subTest(stamp=stamp):
+                client=self.ads_client(metadata={'generatedAt':stamp})
+                pending=self.collect(client,provider='ads_sp')
+                with self.assertRaises(ac.ConnectorError) as caught:
+                    self.collect(client,pending.checkpoint,provider='ads_sp')
+                self.assertEqual(caught.exception.code,'invalid_report')
 
     def test_campaign_report_is_never_accepted_as_product_report(self):
         client=self.ads_client(report_type='spCampaigns');pending=self.collect(client,provider='ads_sp')

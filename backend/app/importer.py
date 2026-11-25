@@ -94,6 +94,29 @@ def _term_metadata(source, item, line):
     item["business_key"] = hashlib.sha256(json.dumps(dimensions, ensure_ascii=False).encode()).hexdigest()
 
 
+def _advertised_product_metadata(source, item, line):
+    if source.get("report_grain") != "advertised_product" or source.get("ad_type", "").upper() != "SP":
+        raise ValueError("商品广告日报须明确使用 report_grain=advertised_product、ad_type=SP")
+    if not re.fullmatch(r"[0-9]{1,30}", source.get("profile_id", "")):
+        raise ValueError("profile_id 须为来源广告账户的数字标识")
+    ids = ("campaign_id", "ad_group_id", "ad_id", "sku")
+    for field in ids:
+        value = source.get(field, "")
+        if not value or not value.isprintable() or len(value) > 120:
+            raise ValueError(f"广告商品维度 {field} 缺失或格式无效")
+        item[field] = value
+    days = _integer(source.get("attribution_days", ""), "attribution_days")
+    if not 1 <= days <= 90 or not source.get("currency"):
+        raise ValueError("请明确填写原报告币种及 1 至 90 天的归因窗口")
+    item.update(profile_id=source["profile_id"], report_grain="advertised_product", ad_type="SP",
+                attribution_days=days, source_line=line, asin=source.get("asin") or None)
+    for field in ("account_key", "marketplace"):
+        if source.get(field):
+            item[field] = source[field]
+    dimensions = [item["date"].isoformat(), item["profile_id"], item["currency"], days, *[item[field] for field in ids]]
+    item["business_key"] = hashlib.sha256(json.dumps(dimensions, ensure_ascii=False).encode()).hexdigest()
+
+
 def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tuple[list[dict], list[dict]]:
     if import_type not in SCHEMAS:
         raise ValueError("unsupported import type")
@@ -110,7 +133,12 @@ def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tu
         raise ValueError("duplicate column names")
     rows, errors = [], []
     term_file = import_type == "advertising" and "search_term" in headers
+    product_file = (import_type == "advertising" and not term_file
+                    and bool({"profile_id", "campaign_id", "ad_group_id", "ad_id"} & set(headers)))
     seen_terms = set()
+    seen_products = set()
+    seen_legacy = set()
+    legacy_duplicate = None
     for line, source in enumerate(reader, start=2):
         if None in source:
             errors.append({"line":line,"error":"column count does not match header"})
@@ -141,6 +169,18 @@ def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tu
                     if item["business_key"] in seen_terms:
                         raise ValueError("同一文件重复包含该搜索词投放源行，请先核对后再导入")
                     seen_terms.add(item["business_key"])
+                elif product_file or source.get("report_grain") == "advertised_product":
+                    product_file = True
+                    _advertised_product_metadata(source, item, line)
+                    if item["business_key"] in seen_products:
+                        raise ValueError("同一文件重复包含该广告商品源行，请核对原始报表")
+                    seen_products.add(item["business_key"])
+                else:
+                    key = (item["date"], item["campaign_name"], item["entity_name"])
+                    if key in seen_legacy:
+                        legacy_duplicate = line
+                        continue
+                    seen_legacy.add(key)
             elif import_type == "inventory":
                 item.update(sku=source["sku"], asin=source.get("asin") or None,
                             fulfillable=_integer(source["fulfillable"], "fulfillable"),
@@ -157,6 +197,12 @@ def parse_csv(import_type: str, raw: bytes, default_currency: str = 'USD') -> tu
             rows.append(item)
         except (ValueError, KeyError) as exc:
             errors.append({"line": line, "error": str(exc)})
+    if legacy_duplicate is not None:
+        raise ValueError(f"第 {legacy_duplicate} 行与本文件同日、同活动名和实体名的记录冲突。请核对重复行，多个广告须按真实广告 ID 导入")
     if term_file and errors:
         raise ValueError(f"搜索词报表未导入：第 {errors[0]['line']} 行，{errors[0]['error']}")
+    if product_file and (errors or any(row.get("report_grain") != "advertised_product" for row in rows)):
+        if errors:
+            raise ValueError(f"广告商品报表未导入：第 {errors[0]['line']} 行，{errors[0]['error']}")
+        raise ValueError("同一广告商品 CSV 只能包含 advertised_product 粒度")
     return rows, errors
